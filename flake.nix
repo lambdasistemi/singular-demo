@@ -43,6 +43,12 @@
       devnet = offchain.packages.${system}.devnet;
       open-datum-exe = open-datum.packages.${system}.open-datum;
       blueprint = open-datum-onchain.packages.${system}.open-datum-blueprint;
+      # The commands look for version.txt beside the contracts file, so the two travel together.
+      contracts = pkgs.runCommand "singular-contracts-v0.12.0" { } ''
+        mkdir -p $out
+        cp ${blueprint} $out/plutus.json
+        cp ${source}/version.txt $out/version.txt
+      '';
     in
     {
       devShells.${system}.default = pkgs.mkShell {
@@ -55,7 +61,7 @@
         ];
         shellHook = ''
           # Where the programs find what they need.
-          export blueprint=${blueprint}
+          export blueprint=${contracts}/plutus.json
           export E2E_GENESIS_DIR=${source}/offchain/e2e-test/genesis
           # A short temporary directory: the devnet's node socket path has a length limit.
           export TMPDIR=/tmp/singular-demo-$(id -u)
