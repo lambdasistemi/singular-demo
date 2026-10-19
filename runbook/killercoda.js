@@ -55,7 +55,7 @@ const idx = {
   description: 'Play Singular Demo 1 yourself on a private Cardano test chain: book keys, fold them, change and remove them, reject a stuck request and take one back. Ubuntu, nothing to install.',
   details: {
     intro: { text: 'intro/text.md', foreground: 'intro/foreground.sh', background: 'intro/background.sh' },
-    steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: two programs, one registry/, 'Two programs, one registry').replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
+    steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: two programs, one registry/, 'Two programs, one registry').replace(/^Before you start: two ways to sign/, 'Two ways to sign').replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
     finish: { text: 'finish/text.md' },
   },
   backend: { imageid: 'ubuntu' },
