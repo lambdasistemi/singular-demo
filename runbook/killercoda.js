@@ -60,7 +60,9 @@ function swapCode(page, from, to) {
 // ---- who acts
 
 // Each window has a word that goes to it (a function in windows.rc, so a click is enough) and a number for Ctrl-b.
-// The scenario test finds the words as click-to-run blocks of one line: alice, bob or chain.
+// The scenario test finds the words as click-to-run blocks of one line: alice, bob or chain. The one place a word cannot
+// be used is the chain's own window while the chain runs: there the page says to press `Ctrl-b N` at the start of a
+// paragraph, and the test finds that line by its shape.
 const WINDOW = { alice: 0, bob: 1, chain: 2 };
 const NAME = { alice: 'Alice', bob: 'Bob' };
 const OWNER = { alice: "Alice's", bob: "Bob's", chain: "the chain's" };
@@ -201,9 +203,9 @@ Then run it:
 devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" > devnet.out
 \`\`\`{{exec}}
 
-The chain prints its messages here and keeps running: leave it.
+The chain prints its messages here and keeps running: leave it. Nothing can be typed in this window while it runs, so a word does not work here; use the keys.
 
-${goTo('alice')}
+Press \`Ctrl-b ${WINDOW.alice}\` to go back to Alice's window.
 
 **Wait until the settings line has appeared**, then show it. \`providerUrl\` is where the chain's web API answers.
 

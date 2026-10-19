@@ -7,7 +7,8 @@
 #    then intro/foreground.sh (the three tmux windows)
 # 2. the click-to-run blocks of every step, in the order of index.json, then of the finish page, are TYPED into the
 #    tmux window the learner is in, each followed by waiting for the shell's prompt; a block that is one of the words
-#    alice, bob or chain moves the learner to that window; passphrase prompts are answered when they appear on the
+#    alice, bob or chain moves the learner to that window, and a page line that starts with "Press `Ctrl-b N`" (the way
+#    out of the chain's window while the chain runs) does the same as the key; passphrase prompts are answered when they appear on the
 #    screen, as a person would; the chain, which stays in the foreground of its window, is not waited for, and is
 #    stopped with Ctrl+C at the end as the finish page says
 # 3. the receipts of Alice's and Bob's directories are checked
@@ -35,7 +36,7 @@ for w in alice bob chain; do tmux resize-window -t "demo:$w" -x 200 -y 50; done
 kit=$(ls -d "$HOME"/singular-demo-*-linux | head -1)
 
 # ---- the blocks, one file each
-# the click-to-run blocks, one file each
+# an item is a click-to-run block, or a line telling the learner to press Ctrl-b and a digit (a file "#KEY digit")
 pages="$(grep -o '"text": *"[^"]*"' "$scenario/index.json" | cut -d'"' -f4)"
 n=0
 for p in $pages; do
@@ -43,11 +44,13 @@ for p in $pages; do
     /^```bash$/ {inb=1; buf=""; next}
     inb && /^```\{\{exec\}\}$/ {start++; f=sprintf("%s/blk-%04d", dir, start); printf "%s", buf > f; close(f); inb=0; next}
     inb && /^```$/ {inb=0; next}
-    inb {buf = buf $0 "\n"}
+    inb {buf = buf $0 "\n"; next}
+    match($0, /^(\*\*[^*]*\*\* )?Press `Ctrl-b [0-9]`/) {start++; f=sprintf("%s/blk-%04d", dir, start); printf "#KEY %s\n", substr($0, RSTART + RLENGTH - 2, 1) > f; close(f)}
     END {print start > (dir "/.last")}' "$scenario/$p"
   n=$(cat "$work/.last")
 done
-echo "ok    $n click-to-run blocks from $(echo "$pages" | wc -w) pages"
+echo "ok    $n items (click-to-run blocks and key presses) from $(echo "$pages" | wc -w) pages"
+echo "ok    key presses found: $(grep -l '^#KEY' "$work"/blk-* | wc -l)"
 
 # ---- the terminal
 declare -A started
@@ -102,6 +105,11 @@ for i in $(seq 1 "$n"); do
   first=$(head -1 "$f")
   case "$first" in
     "tmux attach -t demo"*) current=alice; echo "ok    attached; the learner is in the window alice"; continue;;
+    "#KEY "*)
+      [ -n "$current" ] || { echo "FAIL  item $i presses Ctrl-b before the learner attached"; exit 1; }
+      key=${first#"#KEY "}; names=(alice bob chain)
+      tmux select-window -t "demo:$key"   # the same as the key: Ctrl-b and the digit select that window
+      current=${names[$key]}; echo "ok    Ctrl-b $key: the learner is in the window $current"; continue;;
     alice|bob|chain)
       [ -n "$current" ] || { echo "FAIL  block $i goes to a window before the learner attached"; exit 1; }
       run_block "$f" || { dump_windows; exit 1; }
