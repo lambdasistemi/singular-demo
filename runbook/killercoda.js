@@ -1,10 +1,11 @@
 // Builds a Killercoda scenario (Ubuntu, no Nix) from the runbook step files.
 //   node runbook/killercoda.js OUTDIR
 //
-// The scenario runs in tmux with three windows: `devnet` (the private chain, with a shell), `alice` and `bob`, each
-// person in a directory of their own with their own vault, receipts and journal. Every "bash" block of the step
-// files becomes a block the learner runs with a click, in the window of the person who acts. Wherever the person
-// changes, the page gets a switcher block first. "bash skip" blocks are shown only.
+// The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `devnet` (the private
+// chain, in the foreground of its window), each person in a directory of their own with their own vault, receipts and
+// journal. Every window reads the shared settings file before each command. Every "bash" block of the step files
+// becomes a block the learner runs with a click, in the window of the person who acts. Wherever the person changes,
+// the page says which keys go there (Ctrl-b 0, 1 or 2). "bash skip" blocks are shown only.
 const fs = require('fs');
 const path = require('path');
 
@@ -58,8 +59,12 @@ function swapCode(page, from, to) {
 
 // ---- who acts
 
-const SWITCH = (w) => `tmux select-window -t ${w} \\; send-keys -t ${w} '. ../env.sh' Enter`;
+// Each window has a word that goes to it (a function in windows.rc, so a click is enough) and a number for Ctrl-b.
+// The scenario test finds the words as click-to-run blocks of one line: alice, bob or chain.
+const WINDOW = { alice: 0, bob: 1, chain: 2 };
 const NAME = { alice: 'Alice', bob: 'Bob' };
+const OWNER = { alice: "Alice's", bob: "Bob's", chain: "the chain's" };
+const goTo = (w, lead = '') => `${lead}Go to ${OWNER[w]} window: click \`${w}\`, or press \`Ctrl-b ${WINDOW[w]}\`.\n\n\`\`\`bash\n${w}\n\`\`\`{{exec}}`;
 
 function actorOf(code) {
   if (/open-datum inspect/.test(code)) return 'alice'; // reads are Alice's: she owns the receipts the next steps compare
@@ -85,56 +90,61 @@ function render(page, { actors }) {
     }
   });
   let md = '';
+  let chunkStart = -1; // where the text chunk just before this block starts, -1 when a block came last
   for (const p of page.parts) {
-    if (p.text !== undefined) { md += p.text + '\n'; continue; }
-    if (p.skip) { md += '```bash\n' + p.code + '\n```\n'; continue; }
+    if (p.text !== undefined) { chunkStart = md.length; md += p.text + '\n'; continue; }
+    if (p.skip) { md += '```bash\n' + p.code + '\n```\n'; chunkStart = -1; continue; }
     if (actors && p.actor && p.actor !== current) {
-      md += `\n**Now ${NAME[p.actor]}.** Switch to ${NAME[p.actor]}'s window; the same line loads the shared settings there:\n\n\`\`\`bash\n${SWITCH(p.actor)}\n\`\`\`{{exec}}\n\n`;
+      const line = goTo(p.actor, `**Now ${NAME[p.actor]}.** `) + '\n\n';
+      // the keys come before the caption of the block (the last paragraph of the text above it), so the learner
+      // is in the right window when reading what that person does
+      if (chunkStart >= 0) {
+        const cut = md.trimEnd().lastIndexOf('\n\n');
+        const at = cut >= chunkStart ? cut + 2 : chunkStart;
+        md = md.slice(0, at) + line + md.slice(at);
+      } else {
+        md += '\n' + line;
+      }
       current = p.actor;
     }
+    chunkStart = -1;
     md += '```bash\n' + p.code + '\n```{{exec}}\n';
   }
   return md.replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
-// -- tmux, in three commands (written for this scenario)
+// -- tmux, with the commands used here (written for this scenario)
 pages.push({
-  title: 'tmux, in three commands',
-  md: `This scenario runs in **tmux**, a program that keeps several terminals in one: three windows, each with its own shell.
+  title: 'tmux, in three words',
+  md: `This scenario runs in **tmux**, a program that keeps several terminals in one. The setup has made three windows, each with its own shell:
 
-- \`alice\`: Alice's window, in her own directory with her own vault and receipts
-- \`bob\`: Bob's window, in his own directory
-- \`devnet\`: the private chain (it appears when the chain starts)
+- \`0\` \`alice\`: Alice's window, in her own directory with her own vault and receipts
+- \`1\` \`bob\`: Bob's window, in his own directory
+- \`2\` \`chain\`: the private chain
 
-Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows and marks the one you are in with a \`*\`.
+Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`. Whatever you save in the shared settings file (an address, the registry's name) every window reads before each command.
 
-You need three commands, and nothing else:
-
-- **Switch window**: \`tmux select-window -t NAME\`. It is the *switcher*. Wherever the story passes from one person to the other, the page gives you the switcher to click. It also loads the shared settings in the window you go to.
-- **Leave**: \`tmux detach\`. Nothing stops; the windows and the chain keep running.
-- **Come back**: \`tmux attach -t demo\`.
-
-Let us start. The programs are already unpacked by the setup, which also wrote \`${RUN}/env.sh\`, the file that holds the settings Alice and Bob share. First create the session with the two windows:
-
-\`\`\`bash
-tmux new-session -d -s demo -n alice -c ${RUN}/alice && tmux new-window -d -t demo -n bob -c ${RUN}/bob && tmux send-keys -t demo:alice '. ../env.sh' Enter && tmux send-keys -t demo:bob '. ../env.sh' Enter
-\`\`\`{{exec}}
-
-Now go inside it. From here on, every command you click runs in the window you are in; the bar at the bottom shows \`alice\`:
+Go inside:
 
 \`\`\`bash
 tmux attach -t demo
 \`\`\`{{exec}}
 
-Try the switcher: go to Bob's window, then back to Alice's. The bar at the bottom moves the \`*\`.
+From here on every command you click runs in the window you are in. To change window, type the window's name: \`alice\`, \`bob\` or \`chain\` (the setup made these three words into commands). Wherever the story passes from one person to the other, the page gives you the word to click.
+
+**Try it.** Go to Bob's window; the \`*\` in the bar moves to \`bob\`:
 
 \`\`\`bash
-tmux select-window -t bob
+bob
 \`\`\`{{exec}}
 
+And back to Alice's:
+
 \`\`\`bash
-tmux select-window -t alice
+alice
 \`\`\`{{exec}}
+
+The keys do the same: \`Ctrl-b 0\`, \`Ctrl-b 1\` and \`Ctrl-b 2\` go to the window with that number (hold Ctrl, press b, release both, press the digit; click on the terminal first, so that it has the focus). One more key: \`Ctrl-b d\` leaves tmux. Nothing stops; the windows and the chain keep running. Come back with \`tmux attach -t demo\`.
 `,
 });
 
@@ -160,17 +170,13 @@ Passphrases are not shown while typed. Use \`alice\` for Alice and \`bob\` for B
 alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)
 \`\`\`{{exec}}
 
-The address is public: it is all the chain will ever be told about her. Save it in the shared settings, where Bob's window can read it too:
+The address is public: it is all the chain will ever be told about her. Save it in the shared settings, \`../env.sh\`, where Bob's window reads it too:
 
 \`\`\`bash
 echo "alice_addr=$alice_addr" >> ../env.sh; echo "Alice: $alice_addr"
 \`\`\`{{exec}}
 
-**Now Bob.** Switch to his window; the same line loads the shared settings there:
-
-\`\`\`bash
-${SWITCH('bob')}
-\`\`\`{{exec}}
+${goTo('bob', '**Now Bob.** ')}
 
 **Bob's vault**, the same way, with his own passphrase:
 
@@ -182,15 +188,22 @@ bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)
 echo "bob_addr=$bob_addr" >> ../env.sh; echo "Bob:   $bob_addr"
 \`\`\`{{exec}}
 
-**The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It gets a window of its own, \`devnet\`, which keeps a shell so you can leave it again with a click.
+**The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It runs in the foreground of its own window and stays there.
+
+${goTo('chain')}
+
+Then run it:
 
 - \`--fund-address ADDRESS:6:2000000000\`: gives the address 6 coins of 2000 ada each (2000000000 lovelace)
 - \`> devnet.out\`: its one line of settings goes to this file; its messages stay in the window
-- \`& exec bash\`: the chain runs in the background of that window, which keeps a shell
 
 \`\`\`bash
-. ../env.sh && tmux new-window -d -n devnet -c ${RUN} "export PATH=$PATH; devnet --fund-address $alice_addr:6:2000000000 --fund-address $bob_addr:6:2000000000 > devnet.out & exec bash"
+devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" > devnet.out
 \`\`\`{{exec}}
+
+The chain prints its messages here and keeps running: leave it.
+
+${goTo('alice')}
 
 **Wait until the settings line has appeared**, then show it. \`providerUrl\` is where the chain's web API answers.
 
@@ -201,17 +214,7 @@ until jq -e .providerUrl ../devnet.out >/dev/null 2>&1; do sleep 1; done; jq . .
 **Two values to keep** in the shared settings: where the chain answers, and where its clock data is (when each slot happens).
 
 \`\`\`bash
-printf 'koios_url=%s\\ntime_dir=%s\\n' "$(jq -r .providerUrl ../devnet.out)" "$(jq -r .networkTimeDirectory ../devnet.out)" >> ../env.sh && . ../env.sh && echo "$koios_url"
-\`\`\`{{exec}}
-
-Want to see the chain? Switch to its window and look at its messages, then come back to Alice's window with her switcher:
-
-\`\`\`bash
-tmux select-window -t devnet
-\`\`\`{{exec}}
-
-\`\`\`bash
-${SWITCH('alice')}
+printf 'koios_url=%s\\ntime_dir=%s\\n' "$(jq -r .providerUrl ../devnet.out)" "$(jq -r .networkTimeDirectory ../devnet.out)" >> ../env.sh && echo "$koios_url"
 \`\`\`{{exec}}
 `,
 });
@@ -230,7 +233,7 @@ for (const f of stepPages) {
     pg.parts.splice(i, j - i + 1);
     const tok = pg.parts.findIndex((p) => p.code !== undefined && p.code.startsWith('token='));
     if (tok < 0) { console.error('killercoda.js: s01 token block not found'); process.exit(1); }
-    pg.parts[tok].code = 'echo "token=$(jq -r .stateToken receipts/01-create.json)" >> ../env.sh && . ../env.sh && echo "$token"';
+    pg.parts[tok].code = 'echo "token=$(jq -r .stateToken receipts/01-create.json)" >> ../env.sh && echo "$token"';
     const k = pg.parts.findIndex((p, n) => n < tok && p.text !== undefined && p.text.includes('From now on every command names the registry'));
     if (k >= 0) pg.parts[k].text = pg.parts[k].text.replace(/The token is the registry's name, read from the create receipt:?/, "The token is the registry's name, read from the create receipt. It goes into the shared settings, so Bob's window knows it too:");
   }
@@ -245,7 +248,7 @@ for (const f of stepPages) {
     if (d < 0) { console.error('killercoda.js: wait_for_slot definition not found'); process.exit(1); }
     const lead = d - 1;
     if (pg.parts[lead].text === undefined || !pg.parts[lead].text.includes('wait_for_slot')) { console.error('killercoda.js: lead of the helper not found'); process.exit(1); }
-    pg.parts.splice(lead, 2, { text: '\n**The waiting helper.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain\'s clock, like the program does. It is part of the shared settings, so both windows have it.\n' });
+    pg.parts.splice(lead, 2, { text: '\n**The waiting helper.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain\'s clock, like the program does. Both windows have it.\n' });
   }
   pages.push({ title: pg.title, md: render(pg, { actors: !/^s20-/.test(f) }) });
 }
@@ -270,7 +273,7 @@ pages.forEach((p, i) => w(`step${i + 1}/text.md`, p.md));
 
 w('intro/text.md', `Singular keeps a registry of keys on Cardano. Here you play its Demo 1 yourself on a **private test chain**: nothing touches a public network, and nothing is installed on this machine.
 
-You play two people, **Alice** and **Bob**, each in a tmux window of their own, and a third window holds the chain. You will, step by step:
+You play two people, **Alice** and **Bob**, each in a tmux window of their own, and a third window holds the chain. You switch windows by clicking a word (\`alice\`, \`bob\`, \`chain\`) or with the keys \`Ctrl-b 0\`, \`Ctrl-b 1\`, \`Ctrl-b 2\`; the first page explains them. You will, step by step:
 
 - create two wallets and a registry,
 - book a key, fold it into the registry, read it back, change it and remove it,
@@ -298,30 +301,45 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
 # one directory for each person (with the folders for their receipts, bundles and witnesses), and the settings they share
-mkdir -p /root/singular-demo-run/alice/receipts /root/singular-demo-run/alice/bundles /root/singular-demo-run/alice/witnesses \
+mkdir -p /root/singular-demo-run/alice/receipts /root/singular-demo-run/alice/bundles /root/singular-demo-run/alice/witnesses \\
   /root/singular-demo-run/bob/receipts /root/singular-demo-run/bob/bundles /root/singular-demo-run/bob/witnesses
 cat > /root/singular-demo-run/env.sh <<'ENVEOF'
-# Settings shared by Alice's and Bob's windows; every window loads this file (". ../env.sh").
+# Settings Alice's and Bob's windows share: addresses, the registry's name, where the chain answers.
+# Every window reads this file again before each command.
+ENVEOF
+# what every window starts with: the usual bash setup, the programs, the waiting helper, and the shared settings
+cat > /root/singular-demo-run/windows.rc <<'RCEOF'
+[ -f ~/.bashrc ] && . ~/.bashrc
 export PATH="/root/${KIT}/bin:$PATH"
 export blueprint="/root/${KIT}/share/plutus.json"
 # wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\\n  done: chain slot %s is past slot %s\\n' "$now" "$1"; }
-ENVEOF
+# one word goes to a window
+alice() { tmux select-window -t alice; }
+bob() { tmux select-window -t bob; }
+chain() { tmux select-window -t chain; }
+trap '. /root/singular-demo-run/env.sh' DEBUG
+RCEOF
+echo 'set -g default-command "bash --rcfile /root/singular-demo-run/windows.rc"' > /root/singular-demo-run/tmux.conf
 touch /tmp/finished
 `);
 
 w('intro/foreground.sh', `echo "Downloading and checking the demo kit, and installing tmux..."
 while [ ! -f /tmp/finished ]; do sleep 1; done
+# the three windows: 0 alice, 1 bob, 2 chain
+tmux -f /root/singular-demo-run/tmux.conf new-session -d -s demo -n alice -c /root/singular-demo-run/alice
+tmux new-window -d -t demo -n bob -c /root/singular-demo-run/bob
+tmux new-window -d -t demo -n chain -c /root/singular-demo-run
 echo "Ready."
 `);
 
 w('finish/text.md', `That was the whole of Demo 1: a key booked, folded, changed and removed; a stuck request rejected after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Alice and Bob each in a window of their own.
 
-Stop the chain, which still runs in its window:
+**Stop the chain.**
 
-\`\`\`bash
-tmux kill-window -t devnet
-\`\`\`{{exec}}
+${goTo('chain')}
+
+Then press \`Ctrl+C\`. The window keeps its shell.
 
 Alice's receipts are in \`~/singular-demo-run/alice/receipts\`; Bob's receipts, the transactions he built (\`bundles/\`) and his signatures (\`witnesses/\`) are in \`~/singular-demo-run/bob\`.
 `);
