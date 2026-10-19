@@ -10,7 +10,17 @@ The values below live only in the terminal where they were pasted: the two addre
 ```bash skip
 cd ~/singular-demo-run
 alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
+```
+
+**Bob's, the same way:**
+
+```bash skip
 bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
+```
+
+**Then:**
+
+```bash skip
 koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
 token=$(jq -r .stateToken receipts/01-create.json)
 ```

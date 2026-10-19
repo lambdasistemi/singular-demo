@@ -55,7 +55,7 @@ const idx = {
   description: 'Play Singular Demo 1 yourself on a private Cardano test chain: book keys, fold them, change and remove them, reject a stuck request and take one back. Ubuntu, nothing to install.',
   details: {
     intro: { text: 'intro/text.md', foreground: 'intro/foreground.sh', background: 'intro/background.sh' },
-    steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: two programs, one registry/, 'Two programs, one registry').replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
+    steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: two programs, one registry/, 'Two programs, one registry').replace(/^Before you start: two ways to sign/, 'Two ways to sign').replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
     finish: { text: 'finish/text.md' },
   },
   backend: { imageid: 'ubuntu' },
@@ -78,6 +78,8 @@ You will, step by step:
 Every command is shown in full with what it does. Click a command to run it, read what comes back, and go on. Two steps wait a few minutes for the chain's own clock, and the page says when.
 
 Passphrases are typed at a prompt (they are not shown); use \`alice\` for Alice and \`bob\` for Bob.
+
+The machine lasts one hour at most and is deleted when you close this tab. The whole journey takes about 15 minutes. If the chain on the machine is ever stopped, restart the scenario: a new machine starts from the beginning.
 
 A kit with the programs is being downloaded and checked in the background. When the terminal says \`Ready\`, start.
 `);

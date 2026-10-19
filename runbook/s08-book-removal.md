@@ -11,5 +11,10 @@ open-datum terminate \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/08-terminate.json
-jq '{outcome, request, released, deposit, foldDeadline}' receipts/08-terminate.json
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, request, released, deposit, foldDeadline} | with_entries(select(.value != null))' receipts/08-terminate.json
 ```

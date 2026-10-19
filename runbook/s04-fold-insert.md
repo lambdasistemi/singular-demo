@@ -1,14 +1,8 @@
 # Step 4: fold it (Bob signs outside the program)
 
-A fold moves pending requests into the registry for good. Anyone may do it, and here Bob does, the external way: his command only names his address and a bundle file. It builds the transactions, writes them into that file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. It is not an error.
+Run these three, one after the other, now. They build Bob's fold of the booking, sign it with his vault and send it; what each one is was explained on the previous page.
 
-Then Bob signs the bundle with his vault, and the signed bundle is sent; the send waits until the transactions have landed. Run the three pieces before the fold deadline of step 3.
-
-**Build the fold into a bundle file.** Bob is named only by his public address; no key is used here.
-
-- `--wallet-address`: who will pay and sign later
-- `--bundle`: the file the finished, unsigned transactions are written to, in `bundles/`
-- in the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline
+**Build the fold into a bundle file** (exit status 19, nothing sent). In the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline.
 
 ```bash
 open-datum fold \
@@ -16,26 +10,54 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   > receipts/04-fold-insert.json
-jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/04-fold-insert.json
 ```
 
-**Bob signs the bundle with his vault** (witnesses are signatures). His key is used inside the command and never leaves it. It asks for Bob's passphrase.
+**Read what it returned:**
 
-- `--out`: where the signatures are written, in `witnesses/`
+```bash
+jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/04-fold-insert.json
+```
+
+**Bob signs the bundle** (his passphrase):
 
 ```bash
 singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-insert.bundle
 ```
 
-**Send the signed bundle** and wait until the chain has accepted it.
-
-- `--receipt`: where the proof of landing is written, in `receipts/`
-- `slot` in the output is where on the chain it landed
+**Send the signed bundle** and wait until it has landed. `slot` in the output is where on the chain it landed.
 
 ```bash
-singular submit \
-  --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
+singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
-jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
 ```
+
+```bash
+jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
+```
+
+**If the first command was refused because the window ended.**
+
+The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected, which is what steps 11 and 14 show. See where the chain is compared with the booking's deadline:
+
+```bash skip
+jq '{request, foldDeadline}' receipts/03-insert-alice.json
+```
+
+```bash skip
+curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
+```
+
+- While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (the command of step 14, her passphrase). Then book again (step 3) and fold at once:
+
+```bash skip
+singular registry reclaim \
+  --request "$(jq -r .request receipts/03-insert-alice.json)" \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/04-reclaim.json
+```
+
+- If the retract window has ended too, the reclaim is refused, and the way out is the reject of step 11: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.

@@ -7,6 +7,7 @@
 # It takes about ten minutes: the reject and the reclaim wait for the chain's own clock.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
+bash "$here/lint.sh" "$here"/s*.md || exit 1
 work=$(mktemp -d /tmp/rb-XXXXXX)
 for f in "$here"/s*.md; do awk '/^```bash$/{on=1; next} /^```/{on=0} on' "$f"; done > "$work/blocks.sh"
 {

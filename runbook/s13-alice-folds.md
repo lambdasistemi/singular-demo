@@ -10,5 +10,12 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
-jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json
 ```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, settled: [.settled[]? | {key, edge}], root} | with_entries(select(.value != null))' receipts/13-fold-bob.json
+```
+
+If the fold is refused because the window ended, the recovery is the one at the end of step 4 for a booking of a key (Bob takes his request back with a reclaim while the retract window is open, or any wallet rejects it after both windows), and the one at the end of step 9 when only the reject is left.

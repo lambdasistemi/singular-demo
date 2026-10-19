@@ -45,6 +45,22 @@ The relation in one line: **`singular` runs the registry, `open-datum` is the ap
 
 Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The few options that every command repeats are explained in step 1.
 
+## Before you start: two ways to sign
+
+Every write in this demo is signed by a wallet, and a command takes exactly one signer. The demo shows two of the ways to give it one, and each of the two people uses one of them throughout.
+
+- **By vault, in one command (Alice).** The command names the vault: `--vault alice.vault`. It builds the transactions, asks for the passphrase, signs, sends, and waits until they have landed.
+- **By bundle, in three commands (Bob).** The command names only the wallet's public address and a file: `--wallet-address …` and `--bundle …`. It builds the transactions into the file, signs nothing, sends nothing, and exits with status 19, which means "waiting for signatures". Then `singular wallet sign` signs the bundle and `singular submit` sends it. The program that builds the transactions never touches the key, so the signing can happen wherever the key is. Here it is Bob's vault, on the same machine.
+
+A third way, a plain key file (`--wallet-skey`), exists and is not used here.
+
+**It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side:
+
+- the same command appears in both modes: `open-datum fold` is Bob's bundle in steps 4, 9 and 16 and Alice's vault in step 13, and `open-datum insert` is Alice's vault in step 3 and Bob's bundle in step 12;
+- when you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
+
+**Hardware wallets: not verified.** The bundle and the signature files are standard Cardano text envelopes, so signing on a hardware device may be possible. It has not been tried, and the project does not say it is supported.
+
 ## Before you start: two wallets and a private chain
 
 A wallet here is a vault: an encrypted key file, opened by a passphrase that is typed when a command asks for it. The key never leaves the vault. Alice and Bob each get one. Nothing here touches a public network.
@@ -123,7 +139,7 @@ until jq -e .providerUrl devnet.out >/dev/null 2>&1; do sleep 1; done; jq . devn
 
 A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. `create` picks a suitable coin of Alice's by itself and names it in the receipt. The registry's name is its state token.
 
-The windows are short on purpose, so the waits later last minutes: 120 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 120 seconds; raise `process_ms` below if there is a lot to say between the two.
+The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two.
 
 **Two values to keep.** The devnet printed where its web API answers (`providerUrl`) and where its clock data is (`networkTimeDirectory`). Every command below is written out in full and repeats the same groups of options, so these are the only shorthands: plain variables you can print.
 
@@ -152,14 +168,20 @@ echo "$koios_url"; echo "$time_dir"
 - `seed` in the output is the coin that was spent; `stateToken` is the registry's name
 
 ```bash
-process_ms=120000; retract_ms=60000
+process_ms=180000; retract_ms=60000
 open-datum create \
   --process-time "$process_ms" --retract-time "$retract_ms" \
   --state-dir reg --blueprint "$blueprint" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/01-create.json
-jq '{outcome, seed, stateToken}' receipts/01-create.json
+
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, seed, stateToken} | with_entries(select(.value != null))' receipts/01-create.json
 
 ```
 
@@ -191,6 +213,16 @@ singular registry describe \
 
 Alice adds a key. She books `alice` with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
 
+**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. (On Cardano an output can be spent once, so a single shared state output is exactly what everybody would otherwise queue for.) The price is the wait: until a fold, the request is pending and the key does not exist yet.
+
+**Before you book, read this once.** The next page folds the booking, and its three commands must all run before the fold deadline, so everything that needs explaining is here.
+
+- **A fold** moves pending requests into the registry for good. It is its own command, `open-datum fold`, and anyone may run it: the wallet that folds need not be the one that booked, and the fold's receipt names the requests it settles.
+- **Why Bob, and not Alice?** Nothing requires it. The demo has Bob fold Alice's booking to show that a fold is open to every wallet, and to show the second way of signing, Bob's, next to Alice's. Alice could fold her own booking: `open-datum insert` takes a `--fold` switch that books and folds in one command with one wallet. Step 13 has Alice fold Bob's request.
+- **Bob signs outside the program.** His fold command only names his address and a bundle file: it builds the transactions, writes them to the file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. That is not an error. Then `singular wallet sign` signs the bundle with his vault (the signatures are called witnesses), and `singular submit` sends it and waits until it has landed.
+- **The options on the fold.** `--wallet-address` names who will pay and sign later; `--bundle` is the file the finished, unsigned transactions go to (in `bundles/`); `--out` is where the signatures go (in `witnesses/`); `--receipt` is where the proof of landing goes (in `receipts/`).
+- **The clock starts at the booking.** The fold must run within the registry's processing window (3 minutes here). Book, then go straight to the next page and run its three commands without stopping to read.
+
 **The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.
 
 ```bash
@@ -210,21 +242,21 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/03-insert-alice.json
-jq '{outcome, request, foldDeadline}' receipts/03-insert-alice.json
+
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/03-insert-alice.json
 
 ```
 
 ## Step 4: fold it (Bob signs outside the program)
 
-A fold moves pending requests into the registry for good. Anyone may do it, and here Bob does, the external way: his command only names his address and a bundle file. It builds the transactions, writes them into that file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. It is not an error.
+Run these three, one after the other, now. They build Bob's fold of the booking, sign it with his vault and send it; what each one is was explained on the previous page.
 
-Then Bob signs the bundle with his vault, and the signed bundle is sent; the send waits until the transactions have landed. Run the three pieces before the fold deadline of step 3.
-
-**Build the fold into a bundle file.** Bob is named only by his public address; no key is used here.
-
-- `--wallet-address`: who will pay and sign later
-- `--bundle`: the file the finished, unsigned transactions are written to, in `bundles/`
-- in the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline
+**Build the fold into a bundle file** (exit status 19, nothing sent). In the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline.
 
 ```bash
 open-datum fold \
@@ -232,32 +264,65 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   > receipts/04-fold-insert.json
-jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/04-fold-insert.json
 
 ```
 
-**Bob signs the bundle with his vault** (witnesses are signatures). His key is used inside the command and never leaves it. It asks for Bob's passphrase.
+**Read what it returned:**
 
-- `--out`: where the signatures are written, in `witnesses/`
+```bash
+jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/04-fold-insert.json
+
+```
+
+**Bob signs the bundle** (his passphrase):
 
 ```bash
 singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-insert.bundle
 
 ```
 
-**Send the signed bundle** and wait until the chain has accepted it.
-
-- `--receipt`: where the proof of landing is written, in `receipts/`
-- `slot` in the output is where on the chain it landed
+**Send the signed bundle** and wait until it has landed. `slot` in the output is where on the chain it landed.
 
 ```bash
-singular submit \
-  --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
+singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
-jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
 
 ```
+
+```bash
+jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
+
+```
+
+**If the first command was refused because the window ended.**
+
+The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected, which is what steps 11 and 14 show. See where the chain is compared with the booking's deadline:
+
+```bash
+jq '{request, foldDeadline}' receipts/03-insert-alice.json
+
+```
+
+```bash
+curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
+
+```
+
+- While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (the command of step 14, her passphrase). Then book again (step 3) and fold at once:
+
+```bash
+singular registry reclaim \
+  --request "$(jq -r .request receipts/03-insert-alice.json)" \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/04-reclaim.json
+
+```
+
+- If the retract window has ended too, the reclaim is refused, and the way out is the reject of step 11: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
 
 ## Step 5: read the key back
 
@@ -293,14 +358,21 @@ open-datum update \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
-jq '{outcome, payload}' receipts/06-update.json
 
 ```
 
-**The root before and after is the same.** An update changes the key's data but not the registry's fingerprint: both lines show the same value.
+**Read what it returned:**
 
 ```bash
-echo "root before: $(jq -r .root receipts/05-inspect.json)"; echo "root after:  $(jq -r .root receipts/06-update.json)"
+jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/06-update.json
+
+```
+
+**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal (you will see it change in steps 10, 13 and 16). The payload is not part of it: it lives in the key's own output, which is what the update replaced.
+
+```bash
+echo "payload before: $(jq -c .applicationOutput.payload receipts/05-inspect.json)"; echo "payload after:  $(jq -c .payload receipts/06-update.json)"
+echo "root before:    $(jq -r .root receipts/05-inspect.json)"; echo "root after:     $(jq -r .root receipts/06-update.json)"
 
 ```
 
@@ -331,7 +403,13 @@ open-datum terminate \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/08-terminate.json
-jq '{outcome, request, released, deposit, foldDeadline}' receipts/08-terminate.json
+
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, request, released, deposit, foldDeadline} | with_entries(select(.value != null))' receipts/08-terminate.json
 
 ```
 
@@ -347,7 +425,7 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-terminate.bundle \
   > receipts/09-fold-terminate.json
-jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/09-fold-terminate.json
+jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/09-fold-terminate.json
 
 ```
 
@@ -365,7 +443,30 @@ singular submit \
   --witnesses witnesses/fold-terminate --receipt receipts/09-fold-terminate.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-terminate.bundle
-jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json
+jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json
+
+```
+
+**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim (the project's page says updates and deletions cannot be retracted), so the way out is the reject of step 11. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
+
+```bash
+singular registry reject \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/reject-late.bundle \
+  > receipts/09-reject.json
+
+```
+
+```bash
+singular wallet sign --vault bob.vault --out witnesses/reject-late bundles/reject-late.bundle
+
+```
+
+```bash
+singular submit --witnesses witnesses/reject-late \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  bundles/reject-late.bundle
 
 ```
 
@@ -396,7 +497,13 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
-jq '{request, foldDeadline}' receipts/11a-insert-late.json
+
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/11a-insert-late.json
 
 ```
 
@@ -408,7 +515,7 @@ singular registry reject \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
-jq '{outcome, pending: [.pendingRequests[] | {request, retractEndsSlot}], tipSlot}' receipts/11b-reject-too-early.json
+jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}], tipSlot} | with_entries(select(.value != null))' receipts/11b-reject-too-early.json
 
 ```
 
@@ -419,7 +526,7 @@ wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0
 
 ```
 
-**Wait until the tip passes the end of the retract window**, named in the refusal. About three minutes.
+**Wait until the tip passes the end of the retract window**, named in the refusal. About four minutes.
 
 ```bash
 wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject-too-early.json)"
@@ -434,7 +541,7 @@ singular registry reject \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
-jq '{outcome, rejected: [.expected.rejected[] | {key, request}]}' receipts/11d-reject.json
+jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with_entries(select(.value != null))' receipts/11d-reject.json
 
 ```
 
@@ -452,7 +559,7 @@ singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
-jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
+jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 
 ```
 
@@ -469,7 +576,7 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
   > receipts/12-insert-bob.json
-jq '{outcome, request: .expected.request, foldDeadline: .expected.foldDeadline}' receipts/12-insert-bob.json
+jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDeadline} | with_entries(select(.value != null))' receipts/12-insert-bob.json
 
 ```
 
@@ -487,7 +594,7 @@ singular submit \
   --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/insert-bob.bundle
-jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json
+jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json
 
 ```
 
@@ -503,9 +610,17 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
-jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json
 
 ```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, settled: [.settled[]? | {key, edge}], root} | with_entries(select(.value != null))' receipts/13-fold-bob.json
+
+```
+
+If the fold is refused because the window ended, the recovery is the one at the end of step 4 for a booking of a key (Bob takes his request back with a reclaim while the retract window is open, or any wallet rejects it after both windows), and the one at the end of step 9 when only the reject is left.
 
 ## Step 14: take back a request: wait for the retract window, then reclaim it
 
@@ -522,8 +637,14 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
+
+```
+
+**Keep the request, and the slot after which its retract window opens:**
+
+```bash
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
-jq '{request, foldDeadline}' receipts/14a-insert-carol.json
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/14a-insert-carol.json
 
 ```
 
@@ -536,11 +657,17 @@ singular registry reclaim \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
-jq '{outcome, reason}' receipts/14b-reclaim-too-early.json
 
 ```
 
-**Wait for the chain's clock** to pass the end of the processing window. About two minutes.
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason} | with_entries(select(.value != null))' receipts/14b-reclaim-too-early.json
+
+```
+
+**Wait for the chain's clock** to pass the end of the processing window. About three minutes.
 
 ```bash
 wait_for_slot "$carol_opens"
@@ -556,7 +683,13 @@ singular registry reclaim \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
-jq '{outcome, request, returned}' receipts/14c-reclaim.json
+
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, request, returned} | with_entries(select(.value != null))' receipts/14c-reclaim.json
 
 ```
 
@@ -571,7 +704,13 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/15-insert-dave.json
-jq '{outcome, request, foldDeadline}' receipts/15-insert-dave.json
+
+```
+
+**Read what it returned:**
+
+```bash
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/15-insert-dave.json
 
 ```
 
@@ -587,7 +726,7 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
   > receipts/16a-fold-dave.json
-jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/16a-fold-dave.json
+jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/16a-fold-dave.json
 
 ```
 
@@ -619,6 +758,8 @@ open-datum inspect \
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
 
 ```
+
+If the first command is refused because the window ended, the recovery is at the end of step 4 for a booking of a key (Alice reclaims while the retract window is open) and at the end of step 9 for the reject.
 
 ## Extra: look at the wallets
 
@@ -668,7 +809,7 @@ jq '.transactions[] | {effects, deadline}' bundles/fold-insert.bundle
 **Which transaction landed, and where.** The landing receipt names each transaction by its `identity` (its hash, the name to look it up by), the slot and block it is in, and how many blocks have been built on top since.
 
 ```bash
-jq '.submissions[] | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json
+jq '.submissions[]? | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json
 
 ```
 
@@ -708,7 +849,19 @@ The values below live only in the terminal where they were pasted: the two addre
 ```bash
 cd ~/singular-demo-run
 alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
+
+```
+
+**Bob's, the same way:**
+
+```bash
 bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
+
+```
+
+**Then:**
+
+```bash
 koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
 token=$(jq -r .stateToken receipts/01-create.json)
 

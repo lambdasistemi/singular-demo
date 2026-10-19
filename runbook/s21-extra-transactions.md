@@ -11,7 +11,7 @@ jq '.transactions[] | {effects, deadline}' bundles/fold-insert.bundle
 **Which transaction landed, and where.** The landing receipt names each transaction by its `identity` (its hash, the name to look it up by), the slot and block it is in, and how many blocks have been built on top since.
 
 ```bash
-jq '.submissions[] | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json
+jq '.submissions[]? | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json
 ```
 
 **Every transaction of the demo**, in the order of the receipts. The loop walks all receipts and prints the transactions each one landed.
