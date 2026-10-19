@@ -79,6 +79,8 @@ Every command is shown in full with what it does. Click a command to run it, rea
 
 Passphrases are typed at a prompt (they are not shown); use \`alice\` for Alice and \`bob\` for Bob.
 
+The machine lasts one hour at most and is deleted when you close this tab. The whole journey takes about 15 minutes. If the chain on the machine is ever stopped, restart the scenario: a new machine starts from the beginning.
+
 A kit with the programs is being downloaded and checked in the background. When the terminal says \`Ready\`, start.
 `);
 w('intro/background.sh', `#!/bin/bash
