@@ -22,7 +22,7 @@ open-datum update \
 **Read what it returned:**
 
 ```bash
-jq '{outcome, payload}' receipts/06-update.json
+jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/06-update.json
 ```
 
 **The root before and after is the same.** An update changes the key's data but not the registry's fingerprint: both lines show the same value.

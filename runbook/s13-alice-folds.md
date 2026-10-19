@@ -15,5 +15,5 @@ open-datum fold \
 **Read what it returned:**
 
 ```bash
-jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json
+jq '{outcome, reason, settled: [.settled[]? | {key, edge}], root} | with_entries(select(.value != null))' receipts/13-fold-bob.json
 ```

@@ -16,7 +16,7 @@ open-datum insert \
 **Read what it returned:**
 
 ```bash
-jq '{request, foldDeadline}' receipts/11a-insert-late.json
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/11a-insert-late.json
 ```
 
 **Bob asks to reject it now**, naming only his address, no key. It is too early, so the program refuses: exit status 10, outcome `client-refusal`, nothing built. The refusal says when the retract window closes: `retractEndsSlot` is the slot where the window closes and `tipSlot` is where the chain is now.
@@ -27,7 +27,7 @@ singular registry reject \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
-jq '{outcome, pending: [.pendingRequests[] | {request, retractEndsSlot}], tipSlot}' receipts/11b-reject-too-early.json
+jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}], tipSlot} | with_entries(select(.value != null))' receipts/11b-reject-too-early.json
 ```
 
 **A small helper that waits for the chain's own clock.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.
@@ -36,7 +36,7 @@ jq '{outcome, pending: [.pendingRequests[] | {request, retractEndsSlot}], tipSlo
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }
 ```
 
-**Wait until the tip passes the end of the retract window**, named in the refusal. About three minutes.
+**Wait until the tip passes the end of the retract window**, named in the refusal. About four minutes.
 
 ```bash
 wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject-too-early.json)"
@@ -50,7 +50,7 @@ singular registry reject \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
-jq '{outcome, rejected: [.expected.rejected[] | {key, request}]}' receipts/11d-reject.json
+jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with_entries(select(.value != null))' receipts/11d-reject.json
 ```
 
 **Bob signs** (his passphrase):
@@ -66,5 +66,5 @@ singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
-jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
+jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 ```

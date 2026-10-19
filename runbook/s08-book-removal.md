@@ -16,5 +16,5 @@ open-datum terminate \
 **Read what it returned:**
 
 ```bash
-jq '{outcome, request, released, deposit, foldDeadline}' receipts/08-terminate.json
+jq '{outcome, reason, request, released, deposit, foldDeadline} | with_entries(select(.value != null))' receipts/08-terminate.json
 ```

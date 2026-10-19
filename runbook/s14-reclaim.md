@@ -19,7 +19,7 @@ open-datum insert \
 
 ```bash
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
-jq '{request, foldDeadline}' receipts/14a-insert-carol.json
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/14a-insert-carol.json
 ```
 
 **Try to reclaim right away.** Refused (exit status 10, `client-refusal`): the retract window has not opened yet.
@@ -36,10 +36,10 @@ singular registry reclaim \
 **Read what it returned:**
 
 ```bash
-jq '{outcome, reason}' receipts/14b-reclaim-too-early.json
+jq '{outcome, reason} | with_entries(select(.value != null))' receipts/14b-reclaim-too-early.json
 ```
 
-**Wait for the chain's clock** to pass the end of the processing window. About two minutes.
+**Wait for the chain's clock** to pass the end of the processing window. About three minutes.
 
 ```bash
 wait_for_slot "$carol_opens"
@@ -59,5 +59,5 @@ singular registry reclaim \
 **Read what it returned:**
 
 ```bash
-jq '{outcome, request, returned}' receipts/14c-reclaim.json
+jq '{outcome, reason, request, returned} | with_entries(select(.value != null))' receipts/14c-reclaim.json
 ```

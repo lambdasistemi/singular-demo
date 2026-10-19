@@ -14,5 +14,5 @@ open-datum insert \
 **Read what it returned:**
 
 ```bash
-jq '{outcome, request, foldDeadline}' receipts/15-insert-dave.json
+jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/15-insert-dave.json
 ```
