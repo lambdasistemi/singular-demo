@@ -1,4 +1,6 @@
-# Look at the wallets
+# Extra: look at the wallets
+
+The next three pages are optional extras. Skip them in a short demo; the journey is complete without them.
 
 A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.
 

@@ -1,6 +1,6 @@
 # Step 1: create the registry
 
-A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. The registry's name is its state token.
+A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. `create` picks a suitable coin of Alice's by itself and names it in the receipt. The registry's name is its state token.
 
 The windows are short on purpose, so the waits later last minutes: 120 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 120 seconds; raise `process_ms` below if there is a lot to say between the two.
 
@@ -17,46 +17,34 @@ echo "$koios_url"; echo "$time_dir"
 
 **How to read the commands from here on.** Each one has the same layout, one group per line:
 
-- the command's own options (what to do: the key, the payload, the seed)
+- the command's own options (what to do: the key, the payload, the windows)
 - the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name)
 - the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number)
 - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
 
-**Preview first.** A dry look: nothing is signed or sent, so only Alice's public address is needed. It shows which seed her address would use and what the registry would be called. There is no registry name yet, so the registry group has only the folder and the contracts.
-
-- `seed` in the output is the coin that will be spent; `stateToken` is the registry's name
-
-```bash
-open-datum create \
-  --preview \
-  --state-dir reg --blueprint "$blueprint" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
-  --wallet-address "$alice_addr" \
-  > receipts/01a-preview.json
-jq '{seed, stateToken}' receipts/01a-preview.json
-```
-
-**Create.** It spends the seed coin and publishes the registry, signed by Alice's vault. It asks for her passphrase, and returns when everything has landed.
+**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.
 
 - `process_ms`: how long the registry has to process a request, in milliseconds
 - `retract_ms`: how long after that the owner may take a request back
 - both windows are fixed for the registry's whole life
-- `--seed` names the coin to spend
+- `seed` in the output is the coin that was spent; `stateToken` is the registry's name
 
 ```bash
 process_ms=120000; retract_ms=60000
 open-datum create \
-  --seed "$(jq -r .seed receipts/01a-preview.json)" --process-time "$process_ms" --retract-time "$retract_ms" \
+  --process-time "$process_ms" --retract-time "$retract_ms" \
   --state-dir reg --blueprint "$blueprint" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
-  > receipts/01b-create.json
-jq '{outcome, stateToken}' receipts/01b-create.json
+  > receipts/01-create.json
+jq '{outcome, seed, stateToken}' receipts/01-create.json
 ```
 
 **From now on every command names the registry by its state token**, as `--state-token "$token"`. The token is the registry's name, read from the create receipt:
 
 ```bash
-token=$(jq -r .stateToken receipts/01b-create.json)
+token=$(jq -r .stateToken receipts/01-create.json)
 echo "$token"
 ```
+
+Want to see the seed coin before it is spent? Add `--preview` and use `--wallet-address "$alice_addr"` instead of the vault: it reads the chain and writes nothing.

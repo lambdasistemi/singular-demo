@@ -94,7 +94,7 @@ until jq -e .providerUrl devnet.out >/dev/null 2>&1; do sleep 1; done; jq . devn
 
 ## Step 1: create the registry
 
-A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. The registry's name is its state token.
+A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. `create` picks a suitable coin of Alice's by itself and names it in the receipt. The registry's name is its state token.
 
 The windows are short on purpose, so the waits later last minutes: 120 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 120 seconds; raise `process_ms` below if there is a lot to say between the two.
 
@@ -110,63 +110,33 @@ echo "$koios_url"; echo "$time_dir"
 
 **How to read the commands from here on.** Each one has the same layout, one group per line:
 
-- the command's own options (what to do: the key, the payload, the seed) - the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name) - the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number) - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
+- the command's own options (what to do: the key, the payload, the windows) - the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name) - the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number) - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
 
-**Preview first.** A dry look: nothing is signed or sent, so only Alice's public address is needed. It shows which seed her address would use and what the registry would be called. There is no registry name yet, so the registry group has only the folder and the contracts.
+**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.
 
-- `seed` in the output is the coin that will be spent; `stateToken` is the registry's name
-
-```bash
-open-datum create \
-  --preview \
-  --state-dir reg --blueprint "$blueprint" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
-  --wallet-address "$alice_addr" \
-  > receipts/01a-preview.json
-jq '{seed, stateToken}' receipts/01a-preview.json
-
-```
-
-**Create.** It spends the seed coin and publishes the registry, signed by Alice's vault. It asks for her passphrase, and returns when everything has landed.
-
-- `process_ms`: how long the registry has to process a request, in milliseconds - `retract_ms`: how long after that the owner may take a request back - both windows are fixed for the registry's whole life - `--seed` names the coin to spend
+- `process_ms`: how long the registry has to process a request, in milliseconds - `retract_ms`: how long after that the owner may take a request back - both windows are fixed for the registry's whole life - `seed` in the output is the coin that was spent; `stateToken` is the registry's name
 
 ```bash
 process_ms=120000; retract_ms=60000
 open-datum create \
-  --seed "$(jq -r .seed receipts/01a-preview.json)" --process-time "$process_ms" --retract-time "$retract_ms" \
+  --process-time "$process_ms" --retract-time "$retract_ms" \
   --state-dir reg --blueprint "$blueprint" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
-  > receipts/01b-create.json
-jq '{outcome, stateToken}' receipts/01b-create.json
+  > receipts/01-create.json
+jq '{outcome, seed, stateToken}' receipts/01-create.json
 
 ```
 
 **From now on every command names the registry by its state token**, as `--state-token "$token"`. The token is the registry's name, read from the create receipt:
 
 ```bash
-token=$(jq -r .stateToken receipts/01b-create.json)
+token=$(jq -r .stateToken receipts/01-create.json)
 echo "$token"
 
 ```
 
-## If you open a new terminal in the middle
-
-The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
-
-- `cd ~/singular-demo-run`: back to the demo folder - the two `singular wallet address` lines read the public addresses from the vaults; each asks for its passphrase once - `koios_url` and `time_dir` are the two values of step 1 - `token` is the registry's name, read from the create receipt
-
-```bash
-cd ~/singular-demo-run
-alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
-bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
-koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
-token=$(jq -r .stateToken receipts/01b-create.json)
-
-```
-
-Steps 11 and 14 also use the `wait_for_slot` helper; paste its block from step 11 if it is missing.
+Want to see the seed coin before it is spent? Add `--preview` and use `--wallet-address "$alice_addr"` instead of the vault: it reads the chain and writes nothing.
 
 ## Step 2: read the registry's page
 
@@ -179,38 +149,6 @@ singular registry describe \
   --blueprint "$blueprint" --state-token "$token" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   | tee receipts/02-describe.txt
-
-```
-
-## Look at the wallets
-
-A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.
-
-**A small helper** that asks the chain for the outputs at an address and prints a short form. `total_ada` is what the wallet holds; each line of `utxos` is one output: the transaction that made it, its index, its ada and any tokens.
-
-```bash
-wallet_show() { curl -fsS -X POST "$koios_url/address_utxos" -H 'content-type: application/json' -d "{\"_addresses\":[\"$1\"]}" | jq '{outputs: length, total_ada: ([.[] | (.value|tonumber)] | add / 1000000), utxos: [.[] | {tx: .tx_hash[0:12], ix: .tx_index, ada: ((.value|tonumber)/1000000), tokens: [.asset_list[]? | .asset_name[0:8]]}]}'; }
-
-```
-
-**Alice's wallet**, from her public address. No passphrase is needed to look. At the start she holds six outputs of 2000 ada.
-
-```bash
-wallet_show "$alice_addr"
-
-```
-
-**Bob's wallet**, the same way:
-
-```bash
-wallet_show "$bob_addr"
-
-```
-
-**The chain's own clock**, for reference. It is what the program uses to judge windows: the slot is the chain's unit of time.
-
-```bash
-curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot, block_no}'
 
 ```
 
@@ -643,7 +581,41 @@ jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' re
 
 ```
 
-## Optional: look inside the transactions
+## Extra: look at the wallets
+
+The next three pages are optional extras. Skip them in a short demo; the journey is complete without them.
+
+A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.
+
+**A small helper** that asks the chain for the outputs at an address and prints a short form. `total_ada` is what the wallet holds; each line of `utxos` is one output: the transaction that made it, its index, its ada and any tokens.
+
+```bash
+wallet_show() { curl -fsS -X POST "$koios_url/address_utxos" -H 'content-type: application/json' -d "{\"_addresses\":[\"$1\"]}" | jq '{outputs: length, total_ada: ([.[] | (.value|tonumber)] | add / 1000000), utxos: [.[] | {tx: .tx_hash[0:12], ix: .tx_index, ada: ((.value|tonumber)/1000000), tokens: [.asset_list[]? | .asset_name[0:8]]}]}'; }
+
+```
+
+**Alice's wallet**, from her public address. No passphrase is needed to look. At the start she holds six outputs of 2000 ada.
+
+```bash
+wallet_show "$alice_addr"
+
+```
+
+**Bob's wallet**, the same way:
+
+```bash
+wallet_show "$bob_addr"
+
+```
+
+**The chain's own clock**, for reference. It is what the program uses to judge windows: the slot is the chain's unit of time.
+
+```bash
+curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot, block_no}'
+
+```
+
+## Extra: look inside the transactions
 
 Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.
 
@@ -684,6 +656,23 @@ jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .p
 ```
 
 `jq . receipts/tx-info.json` prints all of it. The data on an output is shown as raw bytes; `open-datum inspect` (step 5) prints the same data decoded. This devnet's web API does not report fees or times.
+
+## Extra: if you open a new terminal in the middle
+
+The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
+
+- `cd ~/singular-demo-run`: back to the demo folder - the two `singular wallet address` lines read the public addresses from the vaults; each asks for its passphrase once - `koios_url` and `time_dir` are the two values of step 1 - `token` is the registry's name, read from the create receipt
+
+```bash
+cd ~/singular-demo-run
+alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
+bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
+koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
+token=$(jq -r .stateToken receipts/01-create.json)
+
+```
+
+Steps 11 and 14 also use the `wait_for_slot` helper; paste its block from step 11 if it is missing.
 
 ## Finish: stop the devnet
 

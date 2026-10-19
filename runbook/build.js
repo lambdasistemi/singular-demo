@@ -64,7 +64,8 @@ steps.forEach((s, i) => {
   }
   html += '</section>\n';
 });
-const nav = steps.map((s, i) => '<a href="#s' + i + '">' + esc(s.title.replace(/^Step /, '').replace(/:.*/, '').replace(/^Before you start/, 'Start').replace(/^Finish/, 'End')) + '</a>').join('');
+const label = (t) => /^Step \d+/.test(t) ? t.match(/^Step (\d+)/)[1] : /^Extra:/.test(t) ? t.replace(/^Extra: (look at |look inside |if you open a )?(the )?/, '').slice(0, 14) : /^Before you start: open/.test(t) ? 'Shell' : /^Before you start/.test(t) ? 'Setup' : /^Finish/.test(t) ? 'End' : t.slice(0, 14);
+const nav = steps.map((s, i) => '<a href="#s' + i + '">' + esc(label(s.title)) + '</a>').join('');
 const template = fs.readFileSync(path.join(dir, 'template.html'), 'utf8');
 const page = template.replace('<!--NAV-->', nav).replace('<!--STEPS-->', html);
 fs.writeFileSync(path.join(dir, '..', 'demo.html'), page);
