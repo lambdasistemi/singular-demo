@@ -11,7 +11,11 @@ Then Bob signs the bundle with his vault, and the signed bundle is sent; the sen
 - in the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline
 
 ```bash
-open-datum fold "${registry[@]}" "${provider[@]}" --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle > receipts/04-fold-insert.json
+open-datum fold \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
+  > receipts/04-fold-insert.json
 jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/04-fold-insert.json
 ```
 
@@ -29,6 +33,9 @@ singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-
 - `slot` in the output is where on the chain it landed
 
 ```bash
-singular submit --witnesses witnesses/fold-insert "${provider[@]}" --receipt receipts/04-fold-insert.submitted.json bundles/fold-insert.bundle
+singular submit \
+  --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  bundles/fold-insert.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
 ```

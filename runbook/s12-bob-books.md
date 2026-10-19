@@ -5,7 +5,12 @@ The registry takes requests again. This time Bob adds a key, with his own wallet
 **Build the bundle:**
 
 ```bash
-open-datum insert "${registry[@]}" --key bob --payload payload.json "${provider[@]}" --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle > receipts/12-insert-bob.json
+open-datum insert \
+  --key bob --payload payload.json \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
+  > receipts/12-insert-bob.json
 jq '{outcome, request: .expected.request, foldDeadline: .expected.foldDeadline}' receipts/12-insert-bob.json
 ```
 
@@ -18,6 +23,9 @@ singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert
 **Send it** and wait until it has landed:
 
 ```bash
-singular submit --witnesses witnesses/insert-bob "${provider[@]}" --receipt receipts/12-insert-bob.submitted.json bundles/insert-bob.bundle
+singular submit \
+  --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  bundles/insert-bob.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json
 ```

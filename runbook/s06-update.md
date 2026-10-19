@@ -11,7 +11,12 @@ echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
 **The update.** It asks for Alice's passphrase and takes effect at once.
 
 ```bash
-open-datum update "${registry[@]}" --key alice --payload payload-new.json "${provider[@]}" "${alice[@]}" > receipts/06-update.json
+open-datum update \
+  --key alice --payload payload-new.json \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/06-update.json
 jq '{outcome, payload}' receipts/06-update.json
 ```
 

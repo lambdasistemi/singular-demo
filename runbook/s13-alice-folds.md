@@ -5,6 +5,10 @@ Anyone may fold, and here Alice does. The fold is a single command, because it i
 In the output, `settled` lists the requests now part of the registry and `root` is the registry's new fingerprint.
 
 ```bash
-open-datum fold "${registry[@]}" "${provider[@]}" "${alice[@]}" > receipts/13-fold-bob.json
+open-datum fold \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/13-fold-bob.json
 jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json
 ```
