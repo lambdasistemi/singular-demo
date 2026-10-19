@@ -96,16 +96,17 @@ until jq -e .providerUrl devnet.out &gt;/dev/null 2&gt;&amp;1; do sleep 1; done;
 <h2><span class="num">3</span>Step 1: create the registry<label class="done"><input type="checkbox" data-step="2"> done</label></h2>
 <p>A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. The registry's name is its state token.</p>
 <p>The windows are short on purpose, so the waits later last minutes: 120 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 120 seconds; raise <code>process_ms</code> below if there is a lot to say between the two.</p>
-<p>Which chain to talk to: the settings the devnet printed.</p>
+<p>Shorthands used from here on: which chain to talk to, and how Alice signs. Paste this first, in the same terminal as everything else:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Read the chain's settings from the line the devnet printed:
 #   providerUrl          where the chain's web API answers
 #   networkTimeDirectory the chain's clock data (when each slot happens)
 koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
-# From now on "${provider[@]}" stands for these three options, which every command needs:
-provider=(--koios-url "$koios_url" --network-time "$time_dir" --network-magic 42)</code></pre></div>
-<p>The options every Alice command uses: sign from her vault, in one command.</p>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code># "${alice[@]}" stands for: sign with Alice's vault (it asks for her passphrase), then send.
-alice=(--vault alice.vault)</code></pre></div>
+# "${provider[@]}" stands for these three options, which every command needs:
+provider=(--koios-url "$koios_url" --network-time "$time_dir" --network-magic 42)
+# "${alice[@]}" stands for: sign with Alice's vault (it asks for her passphrase), then send.
+alice=(--vault alice.vault)
+# Check: both lines must print something. If one is empty, paste this block again.
+echo "${provider[@]}"; echo "${alice[@]}"</code></pre></div>
 <p>Preview first. It reads the chain, writes nothing, and shows which seed Alice's address would use and what the registry would be called:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Preview: a dry look. Nothing is signed or sent, so only her public address is needed.
 #   --state-dir reg    the folder where this registry's own journal is kept (it is created)
@@ -113,16 +114,18 @@ alice=(--vault alice.vault)</code></pre></div>
 open-datum create --preview --state-dir reg --blueprint "$blueprint" "${provider[@]}" --wallet-address "$alice_addr" &gt; receipts/01a-preview.json
 # seed = the coin that will be spent; stateToken = the registry's name
 jq '{seed, stateToken}' receipts/01a-preview.json</code></pre></div>
-<p>The two windows, in milliseconds:</p>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code># process_ms: how long the registry has to process a request. retract_ms: how long after that its owner may take it back.
-process_ms=120000; retract_ms=60000</code></pre></div>
-<p>Create: it spends the seed coin and publishes the registry. It asks for Alice's passphrase, and returns when everything has landed:</p>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code># Create the registry. --seed names the coin to spend; the windows are fixed for the registry's whole life.
-open-datum create --seed "$(jq -r .seed receipts/01a-preview.json)" --process-time "$process_ms" --retract-time "$retract_ms" --state-dir reg --blueprint "$blueprint" "${provider[@]}" "${alice[@]}" &gt; receipts/01b-create.json
+<p>Create. It spends the seed coin and publishes the registry, signed by Alice's vault. It asks for her passphrase, and returns when everything has landed:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># The two windows, in milliseconds. They are fixed for the registry's whole life.
+#   process_ms: how long the registry has to process a request
+#   retract_ms: how long after that the owner may take it back
+process_ms=120000; retract_ms=60000
+# Create the registry. --seed names the coin to spend; --vault is Alice's wallet (the same as "${alice[@]}").
+open-datum create --seed "$(jq -r .seed receipts/01a-preview.json)" --process-time "$process_ms" --retract-time "$retract_ms" --state-dir reg --blueprint "$blueprint" "${provider[@]}" --vault alice.vault &gt; receipts/01b-create.json
 jq '{outcome, stateToken}' receipts/01b-create.json</code></pre></div>
 <p>From now on every command names the registry by its state token:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># "${registry[@]}" stands for: this registry's journal folder, the contracts, and its name (the state token).
-registry=(--state-dir reg --blueprint "$blueprint" --state-token "$(jq -r .stateToken receipts/01b-create.json)")</code></pre></div>
+registry=(--state-dir reg --blueprint "$blueprint" --state-token "$(jq -r .stateToken receipts/01b-create.json)")
+echo "${registry[@]}" | cut -c1-120</code></pre></div>
 </section>
 <section class="step" id="s3">
 <h2><span class="num">4</span>Step 2: read the registry's page<label class="done"><input type="checkbox" data-step="3"> done</label></h2>
