@@ -4,35 +4,30 @@ The other way out of a pending request is for its owner to take it back. That is
 
 `wait_for_slot` was defined in step 11. In a new terminal, define it again from there.
 
-Alice books `carol` (her passphrase). The receipt names the request, which she needs to take it back:
+**Alice books `carol`** (her passphrase). The receipt names the request, which she needs to take it back: `carol_request` keeps it, and `carol_opens` keeps the slot after which the retract window opens.
 
 ```bash
-# Book the key "carol". The receipt names the request (transaction#output), which Alice needs to take it back.
 open-datum insert "${registry[@]}" --key carol --payload payload.json "${provider[@]}" "${alice[@]}" > receipts/14a-insert-carol.json
-# Keep the request, and the slot after which the retract window opens.
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 jq '{request, foldDeadline}' receipts/14a-insert-carol.json
 ```
 
-Reclaim right away: refused (exit status 10), because the processing window is still open:
+**Try to reclaim right away.** Refused (exit status 10, `client-refusal`): the retract window has not opened yet.
 
 ```bash
-# Try to take the request back at once. Refused (exit status 10): the retract window has not opened yet.
 singular registry reclaim "${registry[@]}" --request "$carol_request" "${provider[@]}" "${alice[@]}" > receipts/14b-reclaim-too-early.json
 jq '{outcome, reason}' receipts/14b-reclaim-too-early.json
 ```
 
-Wait for the chain's clock, about two minutes:
+**Wait for the chain's clock** to pass the end of the processing window. About two minutes.
 
 ```bash
-# Wait until the chain's clock passes the end of the processing window.
 wait_for_slot "$carol_opens"
 ```
 
-Reclaim, with one command (her passphrase):
+**Reclaim**, with one command (her passphrase). Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.
 
 ```bash
-# Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.
 singular registry reclaim "${registry[@]}" --request "$carol_request" "${provider[@]}" "${alice[@]}" > receipts/14c-reclaim.json
 jq '{outcome, request, returned}' receipts/14c-reclaim.json
 ```
