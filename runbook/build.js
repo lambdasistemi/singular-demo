@@ -66,5 +66,8 @@ steps.forEach((s, i) => {
 });
 const nav = steps.map((s, i) => '<a href="#s' + i + '">' + esc(s.title.replace(/^Step /, '').replace(/:.*/, '').replace(/^Before you start/, 'Start').replace(/^Finish/, 'End')) + '</a>').join('');
 const template = fs.readFileSync(path.join(dir, 'template.html'), 'utf8');
-fs.writeFileSync(path.join(dir, '..', 'demo.html'), template.replace('<!--NAV-->', nav).replace('<!--STEPS-->', html));
+const page = template.replace('<!--NAV-->', nav).replace('<!--STEPS-->', html);
+fs.writeFileSync(path.join(dir, '..', 'demo.html'), page);
+// index.html is the same page, so the site root (GitHub Pages) opens it.
+fs.writeFileSync(path.join(dir, '..', 'index.html'), page);
 console.log('built DEMO.md and demo.html from ' + steps.length + ' step files');
