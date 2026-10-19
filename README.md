@@ -6,6 +6,15 @@ A nix shell with everything needed to play Singular's Demo 1 on a private devnet
 nix develop github:lambdasistemi/singular-demo --accept-flake-config
 ```
 
+## Step by step
+
+The whole journey is written as steps to paste into one terminal: one command per block, the explanation as text above it, passphrases typed at the prompt.
+
+- https://lambdasistemi.github.io/singular-demo/ is a page with a Copy button on each block and a done mark per step. Every copy ends with a line return, so the last command runs when pasted.
+- [DEMO.md](DEMO.md) holds the same steps in this repository. GitHub puts a copy button on each block.
+
+An automatic test, `runbook/test.sh`, pastes every block in order into one shell against a fresh devnet and checks the receipts: all 16 steps pass.
+
 ## What is inside
 
 The shell is Singular release v0.12.0.
