@@ -17,6 +17,11 @@ open-datum update \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, payload}' receipts/06-update.json
 ```
 

@@ -2,6 +2,8 @@
 
 A fold moves pending requests into the registry for good. Anyone may do it, and here Bob does, the external way: his command only names his address and a bundle file. It builds the transactions, writes them into that file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. It is not an error.
 
+**Why Bob, and not Alice?** Nothing requires it. Anyone may fold, and the wallet that folds need not be the one that booked; the fold's receipt names the requests it settles. The demo has Bob fold Alice's booking for two reasons: it shows that a fold is open to every wallet, and it shows the second way of signing, Bob's, next to Alice's. Alice could just as well fold her own booking: `open-datum insert` takes a `--fold` switch that books and folds in one command with one wallet. Step 13 has Alice fold Bob's request.
+
 Then Bob signs the bundle with his vault, and the signed bundle is sent; the send waits until the transactions have landed. Run the three pieces before the fold deadline of step 3.
 
 **Build the fold into a bundle file.** Bob is named only by his public address; no key is used here.

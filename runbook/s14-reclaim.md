@@ -13,6 +13,11 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
+```
+
+**Keep the request, and the slot after which its retract window opens:**
+
+```bash
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 jq '{request, foldDeadline}' receipts/14a-insert-carol.json
 ```
@@ -26,6 +31,11 @@ singular registry reclaim \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, reason}' receipts/14b-reclaim-too-early.json
 ```
 
@@ -44,5 +54,10 @@ singular registry reclaim \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, request, returned}' receipts/14c-reclaim.json
 ```

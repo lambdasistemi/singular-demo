@@ -10,6 +10,7 @@
 set -u
 scenario=$(cd "${1:?usage: scenario-test.sh SCENARIO_DIR}" && pwd)
 here=$(cd "$(dirname "$0")" && pwd)
+bash "$here/lint.sh" "$scenario"/*/text.md || exit 1
 export HOME=/root
 cd "$HOME"
 if ! command -v curl >/dev/null; then apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null; fi

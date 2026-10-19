@@ -11,6 +11,11 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
+```
+
+**Read what it returned:**
+
+```bash
 jq '{request, foldDeadline}' receipts/11a-insert-late.json
 ```
 

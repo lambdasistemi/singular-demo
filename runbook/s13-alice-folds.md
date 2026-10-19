@@ -10,5 +10,10 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json
 ```

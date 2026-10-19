@@ -159,6 +159,12 @@ open-datum create \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/01-create.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, seed, stateToken}' receipts/01-create.json
 
 ```
@@ -191,6 +197,8 @@ singular registry describe \
 
 Alice adds a key. She books `alice` with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
 
+**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. (On Cardano an output can be spent once, so a single shared state output is exactly what everybody would otherwise queue for.) The price is the wait: until a fold, the request is pending and the key does not exist yet.
+
 **The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.
 
 ```bash
@@ -210,6 +218,12 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/03-insert-alice.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, request, foldDeadline}' receipts/03-insert-alice.json
 
 ```
@@ -217,6 +231,8 @@ jq '{outcome, request, foldDeadline}' receipts/03-insert-alice.json
 ## Step 4: fold it (Bob signs outside the program)
 
 A fold moves pending requests into the registry for good. Anyone may do it, and here Bob does, the external way: his command only names his address and a bundle file. It builds the transactions, writes them into that file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. It is not an error.
+
+**Why Bob, and not Alice?** Nothing requires it. Anyone may fold, and the wallet that folds need not be the one that booked; the fold's receipt names the requests it settles. The demo has Bob fold Alice's booking for two reasons: it shows that a fold is open to every wallet, and it shows the second way of signing, Bob's, next to Alice's. Alice could just as well fold her own booking: `open-datum insert` takes a `--fold` switch that books and folds in one command with one wallet. Step 13 has Alice fold Bob's request.
 
 Then Bob signs the bundle with his vault, and the signed bundle is sent; the send waits until the transactions have landed. Run the three pieces before the fold deadline of step 3.
 
@@ -293,6 +309,12 @@ open-datum update \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, payload}' receipts/06-update.json
 
 ```
@@ -331,6 +353,12 @@ open-datum terminate \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/08-terminate.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, request, released, deposit, foldDeadline}' receipts/08-terminate.json
 
 ```
@@ -396,6 +424,12 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{request, foldDeadline}' receipts/11a-insert-late.json
 
 ```
@@ -503,6 +537,12 @@ open-datum fold \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json
 
 ```
@@ -522,6 +562,12 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
+
+```
+
+**Keep the request, and the slot after which its retract window opens:**
+
+```bash
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 jq '{request, foldDeadline}' receipts/14a-insert-carol.json
 
@@ -536,6 +582,12 @@ singular registry reclaim \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, reason}' receipts/14b-reclaim-too-early.json
 
 ```
@@ -556,6 +608,12 @@ singular registry reclaim \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, request, returned}' receipts/14c-reclaim.json
 
 ```
@@ -571,6 +629,12 @@ open-datum insert \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/15-insert-dave.json
+
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, request, foldDeadline}' receipts/15-insert-dave.json
 
 ```
@@ -708,7 +772,19 @@ The values below live only in the terminal where they were pasted: the two addre
 ```bash
 cd ~/singular-demo-run
 alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
+
+```
+
+**Bob's, the same way:**
+
+```bash
 bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
+
+```
+
+**Then:**
+
+```bash
 koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
 token=$(jq -r .stateToken receipts/01-create.json)
 

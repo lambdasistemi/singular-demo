@@ -37,6 +37,11 @@ open-datum create \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/01-create.json
+```
+
+**Read what it returned:**
+
+```bash
 jq '{outcome, seed, stateToken}' receipts/01-create.json
 ```
 
