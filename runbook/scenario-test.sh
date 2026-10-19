@@ -41,4 +41,5 @@ WRAP
 bash "$work/run.sh" > "$work/log.txt" 2>&1
 rc=$?
 tail -24 "$work/log.txt"
+if command -v tmux >/dev/null && tmux has-session -t devnet 2>/dev/null; then echo "FAIL  the tmux session devnet is still running"; rc=1; else echo "ok    no devnet session left"; fi
 exit $rc

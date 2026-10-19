@@ -36,6 +36,25 @@ function convert(text) {
 
 const steps = files.map((f) => ({ file: f, ...convert(fs.readFileSync(path.join(dir, f), 'utf8')) }));
 
+// On Killercoda the devnet runs in a detached tmux session: a stray Ctrl+C in the learner's terminal cannot stop it,
+// and the page needs no background job, process number or kill. Every replacement must find its text.
+function swap(body, from, to) {
+  const next = body.replace(from, to);
+  if (next === body) { console.error('killercoda.js: text to replace not found: ' + String(from).slice(0, 70)); process.exit(1); }
+  return next;
+}
+for (const s of steps) {
+  if (!/^s00b/.test(s.file)) continue;
+  s.body = swap(s.body, '**The private chain**, started in the background.', '**The private chain**, started in a tmux session of its own.');
+  s.body = swap(s.body,
+    "- `> devnet.out`: its one line of settings goes to this file, its messages to `devnet.err`\n- `&`: runs it in the background\n- `devnet_pid=$!`: remembers its process number, so the last step can stop it",
+    "- `tmux new-session -d -s devnet`: starts the chain in a background session called `devnet`. Pressing Ctrl+C in this terminal cannot stop it. To watch the chain's messages, run `tmux attach -t devnet` and leave again with Ctrl+b, then d.\n- `> devnet.out`: its one line of settings goes to this file");
+  s.body = swap(s.body,
+    /```bash\ndevnet --fund-address "\$alice_addr:6:2000000000" --fund-address "\$bob_addr:6:2000000000" > devnet\.out 2> devnet\.err &\ndevnet_pid=\$!\n```\{\{exec\}\}/,
+    '```bash\ntmux new-session -d -s devnet -c "$PWD" "devnet --fund-address $alice_addr:6:2000000000 --fund-address $bob_addr:6:2000000000 > devnet.out"\n```{{exec}}');
+  s.body = swap(s.body, 'kill "$devnet_pid" 2>/dev/null; cd ~', 'tmux kill-session -t devnet 2>/dev/null; cd ~');
+}
+
 fs.rmSync(out, { recursive: true, force: true });
 const w = (p, s) => { fs.mkdirSync(path.dirname(path.join(out, p)), { recursive: true }); fs.writeFileSync(path.join(out, p), s); };
 
@@ -91,6 +110,10 @@ curl -fsSLO "$base/${KIT}.tar.gz"
 curl -fsSLO "$base/SHA256SUMS"
 sha256sum -c SHA256SUMS
 tar xzf ${KIT}.tar.gz
+# tmux runs the devnet in a session of its own
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq && apt-get install -y -qq tmux
+tmux -V
 touch /tmp/finished
 `);
 w('intro/foreground.sh', `echo "Downloading and checking the demo kit..."
@@ -99,10 +122,10 @@ echo "Ready."
 `);
 w('finish/text.md', `That was the whole of Demo 1: a key booked, folded, changed and removed; a stuck request rejected after its two windows; a request taken back inside its window. Everything ran on a private test chain.
 
-The devnet is still running in this machine's background. Stop it:
+The devnet is still running in its tmux session. Stop it:
 
 \`\`\`bash
-kill "$devnet_pid"
+tmux kill-session -t devnet
 \`\`\`{{exec}}
 
 Your receipts are in \`~/singular-demo-run/receipts\`, the transactions you built in \`bundles/\` and the signatures in \`witnesses/\`.
