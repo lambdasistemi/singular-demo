@@ -447,6 +447,29 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-
 
 ```
 
+**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim (the project's page says updates and deletions cannot be retracted), so the way out is the reject of step 11. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
+
+```bash
+singular registry reject \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/reject-late.bundle \
+  > receipts/09-reject.json
+
+```
+
+```bash
+singular wallet sign --vault bob.vault --out witnesses/reject-late bundles/reject-late.bundle
+
+```
+
+```bash
+singular submit --witnesses witnesses/reject-late \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  bundles/reject-late.bundle
+
+```
+
 ## Step 10: read the removed key
 
 The key `alice` is now terminal: gone for good, it can never be used again, and nothing holds it any more.
@@ -597,6 +620,8 @@ jq '{outcome, reason, settled: [.settled[]? | {key, edge}], root} | with_entries
 
 ```
 
+If the fold is refused because the window ended, the recovery is the one at the end of step 4 for a booking of a key (Bob takes his request back with a reclaim while the retract window is open, or any wallet rejects it after both windows), and the one at the end of step 9 when only the reject is left.
+
 ## Step 14: take back a request: wait for the retract window, then reclaim it
 
 The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.
@@ -733,6 +758,8 @@ open-datum inspect \
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
 
 ```
+
+If the first command is refused because the window ended, the recovery is at the end of step 4 for a booking of a key (Alice reclaims while the retract window is open) and at the end of step 9 for the reject.
 
 ## Extra: look at the wallets
 
