@@ -168,7 +168,7 @@ The registry describes itself: which registry this is, which release of Singular
 
 ```bash
 # Run the "singular registry describe" command that the create receipt printed. It needs no key: reading is free.
-eval "$(jq -r .describeCommand receipts/01b-create.json)"
+eval "$(jq -r .describeCommand receipts/01b-create.json)" | tee receipts/02-describe.txt
 
 ```
 
