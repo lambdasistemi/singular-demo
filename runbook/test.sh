@@ -8,7 +8,16 @@ here=$(cd "$(dirname "$0")" && pwd)
 work=$(mktemp -d /tmp/rb-XXXXXX)
 for f in "$here"/s*.md; do awk '/^```bash$/{on=1; next} /^```/{on=0} on' "$f"; done > "$work/blocks.sh"
 {
-  printf 'export HOME=%q TMPDIR=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp"
+  printf 'export HOME=%q TMPDIR=%q PASSDIR=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp" "$work/pass"
+  # The pasted blocks ask for passphrases at a prompt. The test cannot type, so these two
+  # functions answer for it: when a command names a vault, the passphrase comes from a file.
+  printf 'mkdir -p %q; printf "%%s\\n" "alice test" > %q/alice; printf "%%s\\n" "bob test" > %q/bob\n' "$work/pass" "$work/pass" "$work/pass"
+  cat <<'WRAP'
+_with_pass() { local prog=$1 a v=""; shift; for a in "$@"; do case "$a" in *.vault) v=$(basename "$a" .vault);; esac; done
+  if [ -n "$v" ]; then command "$prog" "$@" --passphrase-fd 3 3< "$PASSDIR/$v"; else command "$prog" "$@"; fi; }
+singular() { _with_pass singular "$@"; }
+open-datum() { _with_pass open-datum "$@"; }
+WRAP
   cat "$work/blocks.sh"
   cat <<'CHECKS'
 echo "=== checks"
