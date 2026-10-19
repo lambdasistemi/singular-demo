@@ -39,7 +39,7 @@
   <h1>Singular Demo 1, step by step</h1>
   <p>Release v0.12.0 on a private test chain. Copy a block, paste it into one terminal, run it, go to the next. Nothing touches a public network.</p>
 </header>
-<nav><a href="#s0">Shell</a><a href="#s1">Setup</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">3</a><a href="#s5">4</a><a href="#s6">5</a><a href="#s7">6</a><a href="#s8">7</a><a href="#s9">8</a><a href="#s10">9</a><a href="#s11">10</a><a href="#s12">11</a><a href="#s13">12</a><a href="#s14">13</a><a href="#s15">14</a><a href="#s16">15</a><a href="#s17">16</a><a href="#s18">wallets</a><a href="#s19">transactions</a><a href="#s20">new terminal i</a><a href="#s21">End</a></nav>
+<nav><a href="#s0">Shell</a><a href="#s1">Setup</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">3</a><a href="#s5">4</a><a href="#s6">5</a><a href="#s7">6</a><a href="#s8">7</a><a href="#s9">8</a><a href="#s10">9</a><a href="#s11">10</a><a href="#s12">11</a><a href="#s13">12</a><a href="#s14">13</a><a href="#s15">14</a><a href="#s16">15</a><a href="#s17">16</a><a href="#s18">wallets</a><a href="#s19">transactions</a><a href="#s20">a new terminal</a><a href="#s21">End</a></nav>
 <main>
 <section class="step" id="s0">
 <h2><span class="num">1</span>Before you start: open the shell<label class="done"><input type="checkbox" data-step="0"> done</label></h2>
@@ -392,7 +392,7 @@ curl -fsS -X POST "$koios_url/tx_info" -H 'content-type: application/json' -d "{
 <p><code>jq . receipts/tx-info.json</code> prints all of it. The data on an output is shown as raw bytes; <code>open-datum inspect</code> (step 5) prints the same data decoded. This devnet's web API does not report fees or times.</p>
 </section>
 <section class="step" id="s20">
-<h2><span class="num">21</span>Extra: if you open a new terminal in the middle<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
+<h2><span class="num">21</span>Extra: a new terminal in the middle<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
 <p>The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.</p>
 <p>- <code>cd ~/singular-demo-run</code>: back to the demo folder - the two <code>singular wallet address</code> lines read the public addresses from the vaults; each asks for its passphrase once - <code>koios_url</code> and <code>time_dir</code> are the two values of step 1 - <code>token</code> is the registry's name, read from the create receipt</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>cd ~/singular-demo-run

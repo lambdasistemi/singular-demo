@@ -1,4 +1,4 @@
-# Extra: if you open a new terminal in the middle
+# Extra: a new terminal in the middle
 
 The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
 
