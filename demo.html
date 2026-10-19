@@ -39,7 +39,7 @@
   <h1>Singular Demo 1, step by step</h1>
   <p>Release v0.12.0 on a private test chain. Copy a block, paste it into one terminal, run it, go to the next. Nothing touches a public network.</p>
 </header>
-<nav><a href="#s0">Start</a><a href="#s1">Start</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">3</a><a href="#s5">4</a><a href="#s6">5</a><a href="#s7">6</a><a href="#s8">7</a><a href="#s9">8</a><a href="#s10">9</a><a href="#s11">10</a><a href="#s12">11</a><a href="#s13">12</a><a href="#s14">13</a><a href="#s15">14</a><a href="#s16">15</a><a href="#s17">16</a><a href="#s18">Optional</a><a href="#s19">End</a></nav>
+<nav><a href="#s0">Start</a><a href="#s1">Start</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">Look at the wallets</a><a href="#s5">3</a><a href="#s6">4</a><a href="#s7">5</a><a href="#s8">6</a><a href="#s9">7</a><a href="#s10">8</a><a href="#s11">9</a><a href="#s12">10</a><a href="#s13">11</a><a href="#s14">12</a><a href="#s15">13</a><a href="#s16">14</a><a href="#s17">15</a><a href="#s18">16</a><a href="#s19">Optional</a><a href="#s20">End</a></nav>
 <main>
 <section class="step" id="s0">
 <h2><span class="num">1</span>Before you start: open the shell<label class="done"><input type="checkbox" data-step="0"> done</label></h2>
@@ -131,7 +131,24 @@ registry=(--state-dir reg --blueprint "$blueprint" --state-token "$(jq -r .state
 eval "$(jq -r .describeCommand receipts/01b-create.json)"</code></pre></div>
 </section>
 <section class="step" id="s4">
-<h2><span class="num">5</span>Step 3: book the key "alice" (Alice)<label class="done"><input type="checkbox" data-step="4"> done</label></h2>
+<h2><span class="num">5</span>Look at the wallets<label class="done"><input type="checkbox" data-step="4"> done</label></h2>
+<p>A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.</p>
+<p>A small helper that asks the chain for the outputs at an address and prints the total and each output:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># wallet_show ADDRESS: list the outputs at an address (the chain's "address_utxos" answer) in a short form.
+# total_ada = what the wallet holds; each line is one output: the transaction that made it, its index, its ada, and any tokens.
+wallet_show() { curl -fsS -X POST "$koios_url/address_utxos" -H 'content-type: application/json' -d "{\"_addresses\":[\"$1\"]}" | jq '{outputs: length, total_ada: ([.[] | (.value|tonumber)] | add / 1000000), utxos: [.[] | {tx: .tx_hash[0:12], ix: .tx_index, ada: ((.value|tonumber)/1000000), tokens: [.asset_list[]? | .asset_name[0:8]]}]}'; }</code></pre></div>
+<p>Alice's wallet. At the start: six outputs of 2000 ada.</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># Alice's outputs, from her public address. No passphrase is needed to look.
+wallet_show "$alice_addr"</code></pre></div>
+<p>Bob's wallet, the same way:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># Bob's outputs.
+wallet_show "$bob_addr"</code></pre></div>
+<p>The chain's own clock, for reference. It is what the program uses to judge windows:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># The newest block the chain has: its slot (the chain's time unit) and number.
+curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot, block_no}'</code></pre></div>
+</section>
+<section class="step" id="s5">
+<h2><span class="num">6</span>Step 3: book the key "alice" (Alice)<label class="done"><input type="checkbox" data-step="5"> done</label></h2>
 <p>Alice adds a key. She books <code>alice</code> with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.</p>
 <p>The payload:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># The data stored under the key, as Plutus data in JSON: constructor 0 holding the integer 42.
@@ -143,8 +160,8 @@ open-datum insert "${registry[@]}" --key alice --payload payload.json "${provide
 # request = the pending request (transaction#output); foldDeadline = the slot by which it must be folded
 jq '{outcome, request, foldDeadline}' receipts/03-insert-alice.json</code></pre></div>
 </section>
-<section class="step" id="s5">
-<h2><span class="num">6</span>Step 4: fold it (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="5"> done</label></h2>
+<section class="step" id="s6">
+<h2><span class="num">7</span>Step 4: fold it (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="6"> done</label></h2>
 <p>A fold moves pending requests into the registry for good. Anyone may do it, and here Bob does, the external way: his command only names his address and a bundle file. It builds the transactions, writes them into that file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. It is not an error.</p>
 <p>Then Bob signs the bundle with his vault, and the signed bundle is sent; the send waits until the transactions have landed. Run the three pieces before the fold deadline of step 3.</p>
 <p>Build the fold into a bundle file:</p>
@@ -166,16 +183,16 @@ singular submit --witnesses witnesses/fold-insert "${provider[@]}" --receipt rec
 # slot = where on the chain it landed
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s6">
-<h2><span class="num">7</span>Step 5: read the key back<label class="done"><input type="checkbox" data-step="6"> done</label></h2>
+<section class="step" id="s7">
+<h2><span class="num">8</span>Step 5: read the key back<label class="done"><input type="checkbox" data-step="7"> done</label></h2>
 <p>Reading is free and needs no key and no wallet. <code>inspect</code> asks the chain for the key's state and prints what it found: the key is now active, with its payload, its owner and the deposit that stays locked with it.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Read the key "alice" from the chain. No wallet and no key: anyone can check.
 open-datum inspect "${registry[@]}" --key alice "${provider[@]}" &gt; receipts/05-inspect.json
 # state: active; payload: 42; deposit: what stays locked; root: a fingerprint of the whole registry
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/05-inspect.json</code></pre></div>
 </section>
-<section class="step" id="s7">
-<h2><span class="num">8</span>Step 6: change the data (Alice)<label class="done"><input type="checkbox" data-step="7"> done</label></h2>
+<section class="step" id="s8">
+<h2><span class="num">9</span>Step 6: change the data (Alice)<label class="done"><input type="checkbox" data-step="8"> done</label></h2>
 <p>Alice, as the key's controller, replaces the payload with 43. Only she may; nobody else's signature would be accepted. An update is immediate, with no booking and no fold, and the registry's root does not change.</p>
 <p>The new payload:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># The new data: the integer 43.
@@ -188,23 +205,23 @@ jq '{outcome, payload}' receipts/06-update.json</code></pre></div>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># An update changes the key's data but not the registry's root: both lines show the same fingerprint.
 echo "root before: $(jq -r .root receipts/05-inspect.json)"; echo "root after:  $(jq -r .root receipts/06-update.json)"</code></pre></div>
 </section>
-<section class="step" id="s8">
-<h2><span class="num">9</span>Step 7: read the key back again<label class="done"><input type="checkbox" data-step="8"> done</label></h2>
+<section class="step" id="s9">
+<h2><span class="num">10</span>Step 7: read the key back again<label class="done"><input type="checkbox" data-step="9"> done</label></h2>
 <p>The same read: the payload is now 43, and the owner and the deposit are unchanged.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># The same read as step 5. The payload is now 43; the deposit is unchanged.
 open-datum inspect "${registry[@]}" --key alice "${provider[@]}" &gt; receipts/07-inspect.json
 jq '{state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/07-inspect.json</code></pre></div>
 </section>
-<section class="step" id="s9">
-<h2><span class="num">10</span>Step 8: book the removal of the key (Alice)<label class="done"><input type="checkbox" data-step="9"> done</label></h2>
+<section class="step" id="s10">
+<h2><span class="num">11</span>Step 8: book the removal of the key (Alice)<label class="done"><input type="checkbox" data-step="10"> done</label></h2>
 <p>Removing a key is also two stages. Alice books the termination of <code>alice</code>. The receipt names the pending request, the live output the fold will release, and the deposit that will come back to her. It asks for Alice's passphrase.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Book the removal ("terminate") of the key "alice". Like an insertion, it waits as a pending request.
 open-datum terminate "${registry[@]}" --key alice "${provider[@]}" "${alice[@]}" &gt; receipts/08-terminate.json
 # released = the output the fold will release; deposit = what comes back to Alice
 jq '{outcome, request, released, deposit, foldDeadline}' receipts/08-terminate.json</code></pre></div>
 </section>
-<section class="step" id="s10">
-<h2><span class="num">11</span>Step 9: fold the removal (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="10"> done</label></h2>
+<section class="step" id="s11">
+<h2><span class="num">12</span>Step 9: fold the removal (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="11"> done</label></h2>
 <p>Bob folds the termination, the external way again: build (exit status 19), sign, send. When it lands, the key's token is burned and the deposit goes back to Alice. Run the three pieces before the fold deadline of step 8.</p>
 <p>Build the bundle:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Same as step 4: build the fold for Bob into a bundle file (exit status 19, nothing sent).
@@ -218,15 +235,15 @@ singular wallet sign --vault bob.vault --out witnesses/fold-terminate bundles/fo
 singular submit --witnesses witnesses/fold-terminate "${provider[@]}" --receipt receipts/09-fold-terminate.submitted.json bundles/fold-terminate.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s11">
-<h2><span class="num">12</span>Step 10: read the removed key<label class="done"><input type="checkbox" data-step="11"> done</label></h2>
+<section class="step" id="s12">
+<h2><span class="num">13</span>Step 10: read the removed key<label class="done"><input type="checkbox" data-step="12"> done</label></h2>
 <p>The key is now terminal: gone for good, it can never be used again, and nothing holds it any more.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Read "alice" once more. The state is now terminal: the key is gone for good.
 open-datum inspect "${registry[@]}" --key alice "${provider[@]}" &gt; receipts/10-inspect.json
 jq '{state: .leaf, root}' receipts/10-inspect.json</code></pre></div>
 </section>
-<section class="step" id="s12">
-<h2><span class="num">13</span>Step 11: a request nobody folded: wait out its windows, then reject it<label class="done"><input type="checkbox" data-step="12"> done</label></h2>
+<section class="step" id="s13">
+<h2><span class="num">14</span>Step 11: a request nobody folded: wait out its windows, then reject it<label class="done"><input type="checkbox" data-step="13"> done</label></h2>
 <p>What if nobody folds a request? Alice books the key <code>late</code> and nobody touches it. A request that stays pending past its two windows (processing, then retract) blocks the registry, and the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.</p>
 <p>Alice books <code>late</code> (her passphrase). Nobody will fold it:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Book the key "late". Nobody will fold it, so the request stays pending.
@@ -257,8 +274,8 @@ singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bun
 singular submit --witnesses witnesses/reject "${provider[@]}" --receipt receipts/11d-reject.submitted.json bundles/reject.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s13">
-<h2><span class="num">14</span>Step 12: book the key "bob" (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="13"> done</label></h2>
+<section class="step" id="s14">
+<h2><span class="num">15</span>Step 12: book the key "bob" (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="14"> done</label></h2>
 <p>The registry takes requests again. This time Bob adds a key, with his own wallet and the external flow from the start: his command names his address and a bundle file, and the bundle holds the booking. Build (exit status 19), sign, send.</p>
 <p>Build the bundle:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Book the key "bob" as Bob: his address and a bundle file instead of a vault. Exit status 19, nothing sent.
@@ -272,16 +289,16 @@ singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert
 singular submit --witnesses witnesses/insert-bob "${provider[@]}" --receipt receipts/12-insert-bob.submitted.json bundles/insert-bob.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s14">
-<h2><span class="num">15</span>Step 13: fold Bob's key (Alice, vault in one command)<label class="done"><input type="checkbox" data-step="14"> done</label></h2>
+<section class="step" id="s15">
+<h2><span class="num">16</span>Step 13: fold Bob's key (Alice, vault in one command)<label class="done"><input type="checkbox" data-step="15"> done</label></h2>
 <p>Alice folds Bob's request. Here the fold is a single command, because it is her vault that signs and sends it (her passphrase), and it prints its receipt when it has landed. Run it before the fold deadline of step 12.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Anyone may fold: here Alice does, with her vault, in one command (build, sign, send, wait).
 open-datum fold "${registry[@]}" "${provider[@]}" "${alice[@]}" &gt; receipts/13-fold-bob.json
 # settled = the requests now part of the registry; root = the registry's new fingerprint
 jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json</code></pre></div>
 </section>
-<section class="step" id="s15">
-<h2><span class="num">16</span>Step 14: take back a request: wait for the retract window, then reclaim it<label class="done"><input type="checkbox" data-step="15"> done</label></h2>
+<section class="step" id="s16">
+<h2><span class="num">17</span>Step 14: take back a request: wait for the retract window, then reclaim it<label class="done"><input type="checkbox" data-step="16"> done</label></h2>
 <p>The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books <code>carol</code>, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.</p>
 <p><code>wait_for_slot</code> was defined in step 11. In a new terminal, define it again from there.</p>
 <p>Alice books <code>carol</code> (her passphrase). The receipt names the request, which she needs to take it back:</p>
@@ -302,15 +319,15 @@ wait_for_slot "$carol_opens"</code></pre></div>
 singular registry reclaim "${registry[@]}" --request "$carol_request" "${provider[@]}" "${alice[@]}" &gt; receipts/14c-reclaim.json
 jq '{outcome, request, returned}' receipts/14c-reclaim.json</code></pre></div>
 </section>
-<section class="step" id="s16">
-<h2><span class="num">17</span>Step 15: book the key "dave" (Alice)<label class="done"><input type="checkbox" data-step="16"> done</label></h2>
+<section class="step" id="s17">
+<h2><span class="num">18</span>Step 15: book the key "dave" (Alice)<label class="done"><input type="checkbox" data-step="17"> done</label></h2>
 <p>The reclaimed request no longer blocks anything, so Alice books one more key, <code>dave</code> (her passphrase).</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Book the key "dave". The registry takes requests again because the stuck one is gone.
 open-datum insert "${registry[@]}" --key dave --payload payload.json "${provider[@]}" "${alice[@]}" &gt; receipts/15-insert-dave.json
 jq '{outcome, request, foldDeadline}' receipts/15-insert-dave.json</code></pre></div>
 </section>
-<section class="step" id="s17">
-<h2><span class="num">18</span>Step 16: fold "dave" (Bob signs outside the program), then read it<label class="done"><input type="checkbox" data-step="17"> done</label></h2>
+<section class="step" id="s18">
+<h2><span class="num">19</span>Step 16: fold "dave" (Bob signs outside the program), then read it<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
 <p>Bob folds <code>dave</code>, external signing as before: build (exit status 19), sign, send. Afterwards an independent read asks the chain for the key and finds it active. That is the last proof that the whole journey worked.</p>
 <p>Build the bundle:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Build Bob's fold of "dave" into a bundle (exit status 19, nothing sent). Same as steps 4 and 9.
@@ -327,8 +344,8 @@ singular submit --witnesses witnesses/fold-dave "${provider[@]}" --receipt recei
 open-datum inspect "${registry[@]}" --key dave "${provider[@]}" &gt; receipts/16b-inspect-dave.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json</code></pre></div>
 </section>
-<section class="step" id="s18">
-<h2><span class="num">19</span>Optional: look inside the transactions<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
+<section class="step" id="s19">
+<h2><span class="num">20</span>Optional: look inside the transactions<label class="done"><input type="checkbox" data-step="19"> done</label></h2>
 <p>Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.</p>
 <p>What a prepared transaction is for. Every bundle file lists, in plain words, the effect of each transaction in it, and its deadline:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># A bundle is a JSON file written by a command run with --bundle. "effects" says what each transaction does.
@@ -347,8 +364,8 @@ curl -fsS -X POST "$koios_url/tx_info" -H 'content-type: application/json' -d "{
 jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000)}], outputs: [.outputs[] | {to: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000), tokens: [.asset_list[].asset_name[0:8]], has_data: (.inline_datum != null)}]}' receipts/tx-info.json</code></pre></div>
 <p>The full answer is in <code>receipts/tx-info.json</code>; <code>jq . receipts/tx-info.json</code> prints all of it. The data on an output is shown as raw bytes; <code>open-datum inspect</code> (step 5) prints the same data decoded. This devnet's web API does not report fees or times.</p>
 </section>
-<section class="step" id="s19">
-<h2><span class="num">20</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="19"> done</label></h2>
+<section class="step" id="s20">
+<h2><span class="num">21</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
 <p>The devnet was started in the background. This stops it and its node. The receipts stay in <code>receipts/</code>, the bundles in <code>bundles/</code>, the signatures in <code>witnesses/</code>.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Stop the private chain started at the beginning.
 kill "$devnet_pid"</code></pre></div>
