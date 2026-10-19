@@ -4,6 +4,13 @@ A wallet here is a vault: an encrypted key file opened by a passphrase that is t
 
 Passphrases are not shown while typed. Use `alice` for Alice and `bob` for Bob, or anything else; the same one is asked again at every command that signs with that vault.
 
+Running this a second time? A vault from an earlier try is refused ("vault already exists"), and it belongs to the earlier chain's addresses. Start clean first: stop the old devnet and remove the demo folder. Skip this the first time.
+
+```bash skip
+# Stop the old devnet if one is still running, then remove the demo folder of the earlier try.
+kill "$devnet_pid" 2>/dev/null; cd ~ && rm -rf ~/singular-demo-run
+```
+
 A folder of your own for the vaults, receipts and the registry's saved state:
 
 ```bash
