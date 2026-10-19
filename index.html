@@ -86,14 +86,13 @@ export blueprint="$PWD/share/plutus.json"</code></pre></div>
 <ul><li><code>receipts/</code>: what each command printed, one JSON file per command, kept to read afterwards</li><li><code>bundles/</code>: transactions a command has built but not signed (written by <code>--bundle</code>)</li><li><code>witnesses/</code>: the signatures Bob makes for a bundle (written by <code>wallet sign</code>)</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>mkdir -p ~/singular-demo-run &amp;&amp; cd ~/singular-demo-run
 mkdir -p receipts bundles witnesses</code></pre></div>
-<p><strong>Alice's vault.</strong> <code>singular wallet create</code> makes the vault file and prints her address. It asks for a new passphrase twice.</p>
+<p><strong>Alice's vault.</strong> <code>singular wallet create</code> makes the vault file and prints her address. It asks for a new passphrase twice. The <code>$(...)</code> keeps the printed address in <code>alice_addr</code>.</p>
 <ul><li><code>--vault alice.vault</code>: the file to create</li><li><code>--network-magic 42</code>: the number of this private test chain (preprod is 1, mainnet 764824073)</li></ul>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet create --vault alice.vault --network-magic 42</code></pre></div>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code>alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)</code></pre></div>
 <p><strong>Bob's vault</strong>, the same way, with his own passphrase:</p>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet create --vault bob.vault --network-magic 42</code></pre></div>
-<p><strong>Their public addresses</strong>, read back from the vaults into shell variables. A public address is safe to share. Each command asks for the passphrase once.</p>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code>alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)</code></pre></div>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code>bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)</code></pre></div>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code>bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)</code></pre></div>
+<p><strong>Their public addresses.</strong> A public address is safe to share, and it is all the chain will ever be told about a wallet.</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code>echo "Alice: $alice_addr"; echo "Bob:   $bob_addr"</code></pre></div>
 <p><strong>The private chain</strong>, started in the background. <code>devnet</code> runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the addresses, never the keys.</p>
 <ul><li><code>--fund-address ADDRESS:6:2000000000</code>: gives the address 6 coins of 2000 ada each (2000000000 lovelace)</li><li><code>&gt; devnet.out</code>: its one line of settings goes to this file, its messages to <code>devnet.err</code></li><li><code>&amp;</code>: runs it in the background</li><li><code>devnet_pid=$!</code>: remembers its process number, so the last step can stop it</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" &gt; devnet.out 2&gt; devnet.err &amp;

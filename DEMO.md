@@ -86,32 +86,27 @@ mkdir -p receipts bundles witnesses
 
 ```
 
-**Alice's vault.** `singular wallet create` makes the vault file and prints her address. It asks for a new passphrase twice.
+**Alice's vault.** `singular wallet create` makes the vault file and prints her address. It asks for a new passphrase twice. The `$(...)` keeps the printed address in `alice_addr`.
 
 - `--vault alice.vault`: the file to create
 - `--network-magic 42`: the number of this private test chain (preprod is 1, mainnet 764824073)
 
 ```bash
-singular wallet create --vault alice.vault --network-magic 42
+alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)
 
 ```
 
 **Bob's vault**, the same way, with his own passphrase:
 
 ```bash
-singular wallet create --vault bob.vault --network-magic 42
+bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)
 
 ```
 
-**Their public addresses**, read back from the vaults into shell variables. A public address is safe to share. Each command asks for the passphrase once.
+**Their public addresses.** A public address is safe to share, and it is all the chain will ever be told about a wallet.
 
 ```bash
-alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
-
-```
-
-```bash
-bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
+echo "Alice: $alice_addr"; echo "Bob:   $bob_addr"
 
 ```
 
