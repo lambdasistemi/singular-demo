@@ -5,7 +5,11 @@ Bob folds `dave`, external signing as before: build (exit status 19), sign, send
 **Build the bundle**, as in steps 4 and 9: nothing is sent yet.
 
 ```bash
-open-datum fold "${registry[@]}" "${provider[@]}" --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle > receipts/16a-fold-dave.json
+open-datum fold \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
+  > receipts/16a-fold-dave.json
 jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/16a-fold-dave.json
 ```
 
@@ -18,12 +22,19 @@ singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-da
 **Send it** and wait until it has landed:
 
 ```bash
-singular submit --witnesses witnesses/fold-dave "${provider[@]}" --receipt receipts/16a-fold-dave.submitted.json bundles/fold-dave.bundle
+singular submit \
+  --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  bundles/fold-dave.bundle
 ```
 
 **Read `dave` back**, the independent check. It should be active.
 
 ```bash
-open-datum inspect "${registry[@]}" --key dave "${provider[@]}" > receipts/16b-inspect-dave.json
+open-datum inspect \
+  --key dave \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  > receipts/16b-inspect-dave.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
 ```

@@ -7,7 +7,12 @@ The other way out of a pending request is for its owner to take it back. That is
 **Alice books `carol`** (her passphrase). The receipt names the request, which she needs to take it back: `carol_request` keeps it, and `carol_opens` keeps the slot after which the retract window opens.
 
 ```bash
-open-datum insert "${registry[@]}" --key carol --payload payload.json "${provider[@]}" "${alice[@]}" > receipts/14a-insert-carol.json
+open-datum insert \
+  --key carol --payload payload.json \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/14a-insert-carol.json
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 jq '{request, foldDeadline}' receipts/14a-insert-carol.json
 ```
@@ -15,7 +20,12 @@ jq '{request, foldDeadline}' receipts/14a-insert-carol.json
 **Try to reclaim right away.** Refused (exit status 10, `client-refusal`): the retract window has not opened yet.
 
 ```bash
-singular registry reclaim "${registry[@]}" --request "$carol_request" "${provider[@]}" "${alice[@]}" > receipts/14b-reclaim-too-early.json
+singular registry reclaim \
+  --request "$carol_request" \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/14b-reclaim-too-early.json
 jq '{outcome, reason}' receipts/14b-reclaim-too-early.json
 ```
 
@@ -28,6 +38,11 @@ wait_for_slot "$carol_opens"
 **Reclaim**, with one command (her passphrase). Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.
 
 ```bash
-singular registry reclaim "${registry[@]}" --request "$carol_request" "${provider[@]}" "${alice[@]}" > receipts/14c-reclaim.json
+singular registry reclaim \
+  --request "$carol_request" \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/14c-reclaim.json
 jq '{outcome, request, returned}' receipts/14c-reclaim.json
 ```

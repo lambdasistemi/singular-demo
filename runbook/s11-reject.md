@@ -5,14 +5,23 @@ What if nobody folds a request? Alice books the key `late` and nobody touches it
 **Alice books `late`** (her passphrase). Nobody will fold it, so the request stays pending.
 
 ```bash
-open-datum insert "${registry[@]}" --key late --payload payload.json "${provider[@]}" "${alice[@]}" > receipts/11a-insert-late.json
+open-datum insert \
+  --key late --payload payload.json \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/11a-insert-late.json
 jq '{request, foldDeadline}' receipts/11a-insert-late.json
 ```
 
 **Bob asks to reject it now**, naming only his address, no key. It is too early, so the program refuses: exit status 10, outcome `client-refusal`, nothing built. The refusal says when the retract window closes: `retractEndsSlot` is the slot where the window closes and `tipSlot` is where the chain is now.
 
 ```bash
-singular registry reject "${registry[@]}" "${provider[@]}" --wallet-address "$bob_addr" --bundle bundles/reject.bundle > receipts/11b-reject-too-early.json
+singular registry reject \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
+  > receipts/11b-reject-too-early.json
 jq '{outcome, pending: [.pendingRequests[] | {request, retractEndsSlot}], tipSlot}' receipts/11b-reject-too-early.json
 ```
 
@@ -31,7 +40,11 @@ wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject
 **Both windows are over.** Bob asks again, the external way. This time the program builds the transaction: it returns the request's locked value to its owner, Alice. Exit status 19, nothing sent yet.
 
 ```bash
-singular registry reject "${registry[@]}" "${provider[@]}" --wallet-address "$bob_addr" --bundle bundles/reject.bundle > receipts/11d-reject.json
+singular registry reject \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
+  > receipts/11d-reject.json
 jq '{outcome, rejected: [.expected.rejected[] | {key, request}]}' receipts/11d-reject.json
 ```
 
@@ -44,6 +57,9 @@ singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bun
 **Send it** and wait until it has landed:
 
 ```bash
-singular submit --witnesses witnesses/reject "${provider[@]}" --receipt receipts/11d-reject.submitted.json bundles/reject.bundle
+singular submit \
+  --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  bundles/reject.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 ```

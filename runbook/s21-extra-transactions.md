@@ -1,4 +1,4 @@
-# Optional: look inside the transactions
+# Extra: look inside the transactions
 
 Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.
 

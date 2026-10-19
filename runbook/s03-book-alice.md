@@ -14,6 +14,11 @@ echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
 - `foldDeadline` is the slot by which it must be folded
 
 ```bash
-open-datum insert "${registry[@]}" --key alice --payload payload.json "${provider[@]}" "${alice[@]}" > receipts/03-insert-alice.json
+open-datum insert \
+  --key alice --payload payload.json \
+  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
+  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
+  --vault alice.vault \
+  > receipts/03-insert-alice.json
 jq '{outcome, request, foldDeadline}' receipts/03-insert-alice.json
 ```
