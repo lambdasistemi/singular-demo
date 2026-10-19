@@ -1,0 +1,252 @@
+name: daily
+
+# Every day: rebuild the Ubuntu kit of the pinned Singular release from flake.lock,
+# prove it by the full 16-step demo in a clean Ubuntu 24.04 container, and publish
+# the kit with the proof to the single rolling release "daily".
+# A pull request builds and tests only; it never publishes.
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UBUNTU_IMAGE: mirror.gcr.io/library/ubuntu:24.04
+
+jobs:
+  kit:
+    name: Build the kit and run the demo in clean Ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            trusted-users = root runner
+
+      - name: Cache-miss guard (nothing may be compiled)
+        run: kit/guard.sh .#kit .#kit-verify .#devShells.x86_64-linux.default
+
+      - name: Shell smoke test
+        run: nix develop --command kit/smoke.sh
+
+      - name: Build the kit
+        run: |
+          nix build .#kit --print-build-logs --out-link kit-result
+          mkdir dist
+          cp kit-result/* dist/
+          ls -l dist
+          cat dist/SHA256SUMS
+          df -h /
+
+      - name: Verify the tarball contents
+        run: nix run .#kit-verify
+
+      - name: Pull the Ubuntu image
+        id: image
+        run: |
+          docker pull "$UBUNTU_IMAGE"
+          ref=$(docker image inspect "$UBUNTU_IMAGE" --format '{{json .RepoDigests}}' \
+            | jq -r --arg r "${UBUNTU_IMAGE%:*}@" '.[] | select(startswith($r))')
+          [ -n "$ref" ] || { echo "no digest for $UBUNTU_IMAGE" >&2; exit 1; }
+          echo "image $ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "digest=${ref#*@}" >> "$GITHUB_OUTPUT"
+
+      - name: Demo in clean Ubuntu 24.04 (16 steps, no /nix, no network)
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          OUT: out
+        run: |
+          TARBALL=$(ls dist/*.tar.gz)
+          export TARBALL
+          kit/container-run.sh good
+
+      - name: Demo with the shortest allowed windows (60 s and 30 s)
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          OUT: out
+        run: |
+          TARBALL=$(ls dist/*.tar.gz)
+          export TARBALL
+          kit/container-run.sh short
+
+      - name: Failing control, windows below the least allowed (must be refused)
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          OUT: out
+        run: |
+          TARBALL=$(ls dist/*.tar.gz)
+          export TARBALL
+          kit/container-run.sh control-window
+
+      - name: Failing control, a library of the programs removed (must fail)
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          OUT: out
+        run: |
+          TARBALL=$(ls dist/*.tar.gz)
+          export TARBALL
+          kit/container-run.sh control-main
+
+      - name: Failing control, a library of cardano-node removed (must fail)
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          OUT: out
+        run: |
+          TARBALL=$(ls dist/*.tar.gz)
+          export TARBALL
+          kit/container-run.sh control-node
+
+      - name: Summary and release files
+        env:
+          DIST: dist
+          LOG: out/container-run-good.log
+          IMAGE_REF: ${{ env.UBUNTU_IMAGE }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          NIX_VERSION=$(nix --version)
+          RUNNER_IMAGE="${ImageOS:-unknown} ${ImageVersion:-unknown}"
+          export NIX_VERSION RUNNER_IMAGE
+          mkdir release
+          kit/summary.sh json > release/run-summary.json
+          cat release/run-summary.json
+          [ "$(jq -r .result release/run-summary.json)" = pass ]
+          SUMMARY=release/run-summary.json kit/summary.sh notes > release/notes.md
+          cp dist/*.tar.gz dist/SHA256SUMS release/
+          cp out/container-run-good.log release/demo-run.log
+          ls -l release
+
+      - name: Keep the files for the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: release/
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Keep the logs and receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: evidence
+          path: |
+            out/
+            !out/**/*.vault
+            !out/**/*.passphrase
+          if-no-files-found: warn
+          retention-days: 14
+
+  runbook:
+    name: Runbook test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # runbook/test.sh arrives with the runbook branch. Until it is on this branch the job
+      # does nothing and says so; once it is there the job runs it with no change to this file.
+      - name: Is runbook/test.sh here?
+        id: present
+        run: |
+          if [ -f runbook/test.sh ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Runbook test not run::runbook/test.sh is not on this branch yet; this job runs it as soon as it is."
+          fi
+
+      - if: steps.present.outputs.present == 'true'
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            trusted-users = root runner
+
+      - name: Cache-miss guard (nothing may be compiled)
+        if: steps.present.outputs.present == 'true'
+        run: kit/guard.sh .#devShells.x86_64-linux.default
+
+      - name: Runbook test (every step of the runbook, pasted into one shell, against a fresh devnet)
+        if: steps.present.outputs.present == 'true'
+        run: nix develop --command bash runbook/test.sh
+
+      - name: Keep the runbook log
+        if: always() && steps.present.outputs.present == 'true'
+        run: |
+          mkdir -p runbook-out
+          cp /tmp/rb-*/log.txt runbook-out/runbook-test.log
+
+      - name: Upload the runbook log
+        if: always() && steps.present.outputs.present == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: runbook-log
+          path: runbook-out/
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    name: Publish to the daily release
+    needs: [kit, runbook]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      # Until the new files are all in place the notes say so, so they never describe files
+      # that are not there. If this job dies half way, that note stays and is true.
+      - name: Mark the release as being updated
+        run: |
+          run_url="${GITHUB_SERVER_URL}/${GH_REPO}/actions/runs/${GITHUB_RUN_ID}"
+          note="Being updated by ${run_url}. Until that run finishes the files here may come from two different days. If this note stays, that run failed while publishing; the last complete day is in the run history."
+          if gh release view daily > /dev/null 2>&1; then
+            gh release edit daily --prerelease --latest=false --notes "$note"
+          else
+            gh release create daily --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "Daily kit" --notes "$note"
+          fi
+
+      - name: Replace the files
+        run: gh release upload daily release/*.tar.gz release/SHA256SUMS release/demo-run.log release/run-summary.json --clobber
+
+      - name: Move the tag to this commit
+        run: gh api --method PATCH "repos/${GH_REPO}/git/refs/tags/daily" -f sha="$GITHUB_SHA" -F force=true
+
+      - name: Write the notes
+        run: |
+          title="Daily kit, $(jq -r '.date[:10]' release/run-summary.json)"
+          gh release edit daily --prerelease --latest=false --title "$title" --notes-file release/notes.md

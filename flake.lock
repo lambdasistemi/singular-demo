@@ -4514,6 +4514,10 @@
     },
     "root": {
       "inputs": {
+        "nixpkgs": [
+          "offchain",
+          "nixpkgs"
+        ],
         "offchain": "offchain",
         "open-datum": "open-datum",
         "open-datum-onchain": "open-datum-onchain",

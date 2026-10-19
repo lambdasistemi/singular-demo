@@ -26,6 +26,9 @@
     open-datum.url = "github:lambdasistemi/singular/v0.12.0?dir=applications/open-datum/offchain";
     # The merged deployment blueprint the release archive carries as onchain/plutus.json.
     open-datum-onchain.url = "github:lambdasistemi/singular/v0.12.0?dir=applications/open-datum/onchain";
+    # The package set the kit's helper tools (static jq and curl, the musl C
+    # compiler, patchelf) come from: the one the programs themselves are built on.
+    nixpkgs.follows = "offchain/nixpkgs";
   };
 
   outputs =
@@ -35,13 +38,40 @@
       offchain,
       open-datum,
       open-datum-onchain,
+      nixpkgs,
     }:
     let
       system = "x86_64-linux";
-      pkgs = offchain.inputs.nixpkgs.legacyPackages.${system};
+      pkgs = nixpkgs.legacyPackages.${system};
       singular = offchain.packages.${system}.singular;
       devnet = offchain.packages.${system}.devnet;
       open-datum-exe = open-datum.packages.${system}.open-datum;
+      cardanoNode = offchain.inputs.cardano-node.packages.${system}.cardano-node;
+
+      txTools = import ./kit/tx-tools.nix { inherit pkgs; };
+
+      # The Ubuntu kit: tarball plus SHA256SUMS, built from this lock only.
+      kit = import ./kit/build.nix {
+        inherit pkgs source blueprint cardanoNode txTools;
+        inherit singular devnet;
+        openDatum = open-datum-exe;
+      };
+
+      # Checks of the built tarball's contents (no container needed).
+      kit-verify = pkgs.writeShellApplication {
+        name = "kit-verify";
+        runtimeInputs = [
+          pkgs.binutils
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.gnutar
+          pkgs.gzip
+        ];
+        text = ''
+          export KIT_DIR=${kit}
+          exec ${pkgs.bash}/bin/bash ${./kit/verify.sh} "$@"
+        '';
+      };
       blueprint = open-datum-onchain.packages.${system}.open-datum-blueprint;
       # The commands look for version.txt beside the contracts file, so the two travel together.
       contracts = pkgs.runCommand "singular-contracts-v0.12.0" { } ''
@@ -51,6 +81,15 @@
       '';
     in
     {
+      packages.${system} = {
+        inherit kit kit-verify;
+      };
+
+      apps.${system}.kit-verify = {
+        type = "app";
+        program = pkgs.lib.getExe kit-verify;
+      };
+
       devShells.${system}.default = pkgs.mkShell {
         name = "singular-demo";
         packages = [
@@ -58,6 +97,7 @@
           open-datum-exe
           devnet
           pkgs.jq
+          txTools
         ];
         shellHook = ''
           # Where the programs find what they need.
@@ -67,7 +107,7 @@
           export TMPDIR=/tmp/singular-demo-$(id -u)
           mkdir -p -m 700 "$TMPDIR"
           echo "Singular v0.12.0, Demo 1 shell"
-          echo "  singular, open-datum, devnet, jq   on the PATH"
+          echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq   on the PATH"
           echo "  \$blueprint          = $blueprint"
           echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"
           echo "  \$TMPDIR             = $TMPDIR"
