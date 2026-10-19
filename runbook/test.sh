@@ -2,6 +2,8 @@
 # Runs every "bash" block of the step files, in order, in one shell, against a fresh private devnet,
 # then checks the receipts. Run it inside the nix shell:
 #   nix develop path:. --command bash runbook/test.sh
+# or, with no Nix, against the unpacked Ubuntu kit (for example inside a clean ubuntu:24.04 container):
+#   KIT_DIR=/path/to/singular-demo-v0.12.0-x86_64-linux bash runbook/test.sh
 # It takes about ten minutes: the reject and the reclaim wait for the chain's own clock.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -9,6 +11,8 @@ work=$(mktemp -d /tmp/rb-XXXXXX)
 for f in "$here"/s*.md; do awk '/^```bash$/{on=1; next} /^```/{on=0} on' "$f"; done > "$work/blocks.sh"
 {
   printf 'export HOME=%q TMPDIR=%q PASSDIR=%q LOGFILE=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp" "$work/pass" "$work/log.txt"
+  # With KIT_DIR set (the unpacked Ubuntu kit, no Nix), the programs and the contracts come from the kit.
+  if [ -n "${KIT_DIR:-}" ]; then printf 'export PATH=%q:"$PATH"\nexport blueprint=%q\n' "$KIT_DIR/bin" "$KIT_DIR/share/plutus.json"; fi
   # The pasted blocks ask for passphrases at a prompt. The test cannot type, so these two
   # functions answer for it: when a command names a vault, the passphrase comes from a file.
   printf 'mkdir -p %q; printf "%%s\\n" "alice test" > %q/alice; printf "%%s\\n" "bob test" > %q/bob\n' "$work/pass" "$work/pass" "$work/pass"
@@ -42,7 +46,7 @@ check receipts/14c-reclaim.json '.outcome=="success"'
 check receipts/15-insert-dave.json '.outcome=="success"'
 check receipts/16b-inspect-dave.json '.leaf=="active"'
 if grep -qE 'jq: error|command not found|curl: [(]' "$LOGFILE"; then echo "FAIL  an error line in the log"; fail=1; else echo "ok    no jq, curl or command error in the log"; fi
-if pgrep -f "$TMPDIR" >/dev/null; then echo "FAIL  a process still uses $TMPDIR"; fail=1; else echo "ok    nothing left running"; fi
+if command -v pgrep >/dev/null && pgrep -f "$TMPDIR" >/dev/null; then echo "FAIL  a process still uses $TMPDIR"; fail=1; else echo "ok    nothing left running"; fi
 echo "RESULT: $([ $fail = 0 ] && echo PASS || echo FAIL)"
 exit $fail
 CHECKS
