@@ -49,6 +49,7 @@
   document.querySelectorAll('.copy').forEach(function (b) {
     b.addEventListener('click', function () {
       var text = b.parentNode.querySelector('code').textContent;
+      if (!/\n$/.test(text)) text += '\n'; // end with a line return, so the last command runs when pasted
       function ok() { b.textContent = 'Copied'; b.classList.add('ok'); setTimeout(function () { b.textContent = 'Copy'; b.classList.remove('ok'); }, 1400); }
       function fallback() {
         var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';

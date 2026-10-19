@@ -47,7 +47,8 @@ for (const s of steps) {
   md += '\n## ' + s.title + '\n';
   for (const p of s.parts) {
     if (p.kind === 'p') md += '\n' + p.text + '\n';
-    else md += '\n```bash\n' + p.lines.join('\n') + '\n```\n';
+    // The empty last line makes GitHub's copy button end the copied text with a line return.
+    else md += '\n```bash\n' + p.lines.join('\n') + '\n\n```\n';
   }
 }
 fs.writeFileSync(path.join(dir, '..', 'DEMO.md'), md);
