@@ -201,8 +201,9 @@ jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: 
   &gt; receipts/06-update.json</code></pre></div>
 <p><strong>Read what it returned:</strong></p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/06-update.json</code></pre></div>
-<p><strong>The root before and after is the same.</strong> An update changes the key's data but not the registry's fingerprint: both lines show the same value.</p>
-<div class="block"><button class="copy" type="button">Copy</button><pre><code>echo "root before: $(jq -r .root receipts/05-inspect.json)"; echo "root after:  $(jq -r .root receipts/06-update.json)"</code></pre></div>
+<p><strong>The payload changed, and the root did not.</strong> The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal (you will see it change in steps 10, 13 and 16). The payload is not part of it: it lives in the key's own output, which is what the update replaced.</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code>echo "payload before: $(jq -c .applicationOutput.payload receipts/05-inspect.json)"; echo "payload after:  $(jq -c .payload receipts/06-update.json)"
+echo "root before:    $(jq -r .root receipts/05-inspect.json)"; echo "root after:     $(jq -r .root receipts/06-update.json)"</code></pre></div>
 </section>
 <section class="step" id="s9">
 <h2><span class="num">10</span>Step 7: read the key back again<label class="done"><input type="checkbox" data-step="9"> done</label></h2>
