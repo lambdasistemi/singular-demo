@@ -39,7 +39,7 @@
   <h1>Singular Demo 1, step by step</h1>
   <p>Release v0.12.0 on a private test chain. Copy a block, paste it into one terminal, run it, go to the next. Nothing touches a public network.</p>
 </header>
-<nav><a href="#s0">Start</a><a href="#s1">Start</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">3</a><a href="#s5">4</a><a href="#s6">5</a><a href="#s7">6</a><a href="#s8">7</a><a href="#s9">8</a><a href="#s10">9</a><a href="#s11">10</a><a href="#s12">11</a><a href="#s13">12</a><a href="#s14">13</a><a href="#s15">14</a><a href="#s16">15</a><a href="#s17">16</a><a href="#s18">End</a></nav>
+<nav><a href="#s0">Start</a><a href="#s1">Start</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">3</a><a href="#s5">4</a><a href="#s6">5</a><a href="#s7">6</a><a href="#s8">7</a><a href="#s9">8</a><a href="#s10">9</a><a href="#s11">10</a><a href="#s12">11</a><a href="#s13">12</a><a href="#s14">13</a><a href="#s15">14</a><a href="#s16">15</a><a href="#s17">16</a><a href="#s18">Optional</a><a href="#s19">End</a></nav>
 <main>
 <section class="step" id="s0">
 <h2><span class="num">1</span>Before you start: open the shell<label class="done"><input type="checkbox" data-step="0"> done</label></h2>
@@ -328,7 +328,27 @@ open-datum inspect "${registry[@]}" --key dave "${provider[@]}" &gt; receipts/16
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json</code></pre></div>
 </section>
 <section class="step" id="s18">
-<h2><span class="num">19</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
+<h2><span class="num">19</span>Optional: look inside the transactions<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
+<p>Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.</p>
+<p>What a prepared transaction is for. Every bundle file lists, in plain words, the effect of each transaction in it, and its deadline:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># A bundle is a JSON file written by a command run with --bundle. "effects" says what each transaction does.
+jq '.transactions[] | {effects, deadline}' bundles/fold-insert.bundle</code></pre></div>
+<p>Which transaction landed, and where. The landing receipt names each transaction by its identity (its hash), the slot and block it is in, and how many blocks have been built on top since:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># "identity" is the transaction's hash: the name to look it up by.
+jq '.submissions[] | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json</code></pre></div>
+<p>Every transaction of the demo, in the order of the receipts:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># Walk all receipts and print the transactions each one landed.
+for f in receipts/*.json; do jq -r --arg f "$f" '.submissions[]? | "\($f)  \(.identity)  slot \(.chainPoint.slot)"' "$f"; done</code></pre></div>
+<p>What the chain says about one of them. The devnet's web API answers the same query a public Koios does:</p>
+<div class="block"><button class="copy" type="button">Copy</button><pre><code># Take the first transaction of the step 4 fold, and ask the chain about it.
+tx=$(jq -r '.submissions[0].identity' receipts/04-fold-insert.submitted.json)
+curl -fsS -X POST "$koios_url/tx_info" -H 'content-type: application/json' -d "{\"_tx_hashes\":[\"$tx\"]}" &gt; receipts/tx-info.json
+# Short form: where the money comes from and goes to, which tokens move, and which outputs carry data.
+jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000)}], outputs: [.outputs[] | {to: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000), tokens: [.asset_list[].asset_name[0:8]], has_data: (.inline_datum != null)}]}' receipts/tx-info.json</code></pre></div>
+<p>The full answer is in <code>receipts/tx-info.json</code>; <code>jq . receipts/tx-info.json</code> prints all of it. The data on an output is shown as raw bytes; <code>open-datum inspect</code> (step 5) prints the same data decoded. This devnet's web API does not report fees or times.</p>
+</section>
+<section class="step" id="s19">
+<h2><span class="num">20</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="19"> done</label></h2>
 <p>The devnet was started in the background. This stops it and its node. The receipts stay in <code>receipts/</code>, the bundles in <code>bundles/</code>, the signatures in <code>witnesses/</code>.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code># Stop the private chain started at the beginning.
 kill "$devnet_pid"</code></pre></div>
