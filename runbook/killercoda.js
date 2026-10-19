@@ -124,7 +124,7 @@ pages.push({
 - \`1\` \`bob\`: Bob's window, in his own directory
 - \`2\` \`chain\`: the private chain
 
-Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`. Whatever you save in the shared settings file (an address, the registry's name) every window reads before each command.
+Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`. Whatever you share with the word \`share\` (an address, the registry's name) is saved in a settings file that every window reads before each command.
 
 Go inside:
 
@@ -172,10 +172,10 @@ Passphrases are not shown while typed. Use \`alice\` for Alice and \`bob\` for B
 alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)
 \`\`\`{{exec}}
 
-The address is public: it is all the chain will ever be told about her. Save it in the shared settings, \`../env.sh\`, where Bob's window reads it too:
+The address is public: it is all the chain will ever be told about her. \`share alice_addr\` saves the variable in the shared settings, a file that every window reads before each command, so Bob's window knows the address too:
 
 \`\`\`bash
-echo "alice_addr=$alice_addr" >> ../env.sh; echo "Alice: $alice_addr"
+share alice_addr
 \`\`\`{{exec}}
 
 ${goTo('bob', '**Now Bob.** ')}
@@ -187,7 +187,7 @@ bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)
 \`\`\`{{exec}}
 
 \`\`\`bash
-echo "bob_addr=$bob_addr" >> ../env.sh; echo "Bob:   $bob_addr"
+share bob_addr
 \`\`\`{{exec}}
 
 **The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It runs in the foreground of its own window and stays there.
@@ -213,10 +213,10 @@ Press \`Ctrl-b ${WINDOW.alice}\` to go back to Alice's window.
 until jq -e .providerUrl ../devnet.out >/dev/null 2>&1; do sleep 1; done; jq . ../devnet.out
 \`\`\`{{exec}}
 
-**Two values to keep** in the shared settings: where the chain answers, and where its clock data is (when each slot happens).
+**Two values to share:** where the chain answers, and where its clock data is (when each slot happens). The line reads both from the settings line and shares them.
 
 \`\`\`bash
-printf 'koios_url=%s\\ntime_dir=%s\\n' "$(jq -r .providerUrl ../devnet.out)" "$(jq -r .networkTimeDirectory ../devnet.out)" >> ../env.sh && echo "$koios_url"
+koios_url=$(jq -r .providerUrl ../devnet.out); time_dir=$(jq -r .networkTimeDirectory ../devnet.out); share koios_url time_dir
 \`\`\`{{exec}}
 `,
 });
@@ -235,9 +235,9 @@ for (const f of stepPages) {
     pg.parts.splice(i, j - i + 1);
     const tok = pg.parts.findIndex((p) => p.code !== undefined && p.code.startsWith('token='));
     if (tok < 0) { console.error('killercoda.js: s01 token block not found'); process.exit(1); }
-    pg.parts[tok].code = 'echo "token=$(jq -r .stateToken receipts/01-create.json)" >> ../env.sh && echo "$token"';
+    pg.parts[tok].code = 'token=$(jq -r .stateToken receipts/01-create.json); share token';
     const k = pg.parts.findIndex((p, n) => n < tok && p.text !== undefined && p.text.includes('From now on every command names the registry'));
-    if (k >= 0) pg.parts[k].text = pg.parts[k].text.replace(/The token is the registry's name, read from the create receipt:?/, "The token is the registry's name, read from the create receipt. It goes into the shared settings, so Bob's window knows it too:");
+    if (k >= 0) pg.parts[k].text = pg.parts[k].text.replace(/The token is the registry's name, read from the create receipt:?/, "The token is the registry's name, read from the create receipt. \`share token\` saves it in the shared settings, so Bob's window knows it too:");
   }
   if (/^s03-/.test(f)) {
     swapCode(pg, `echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json`, `echo '{"constructor":0,"fields":[{"int":42}]}' | tee payload.json ../bob/payload.json`);
@@ -316,6 +316,8 @@ export PATH="/root/${KIT}/bin:$PATH"
 export blueprint="/root/${KIT}/share/plutus.json"
 # wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\\n  done: chain slot %s is past slot %s\\n' "$now" "$1"; }
+# share NAME...: save variables in the shared settings (the file env.sh), which every window reads before each command
+share() { local v; for v; do printf '%s=%q\\n' "$v" "\${!v}" >> /root/singular-demo-run/env.sh; printf 'shared: %s=%s\\n' "$v" "\${!v}"; done; }
 # one word goes to a window
 alice() { tmux select-window -t alice; }
 bob() { tmux select-window -t bob; }
