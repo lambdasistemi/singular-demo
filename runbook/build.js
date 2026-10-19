@@ -8,7 +8,7 @@ const dir = __dirname;
 const files = fs.readdirSync(dir).filter((f) => /^s\d.*\.md$/.test(f)).sort();
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
 function parse(text) {
   const lines = text.split('\n');
@@ -16,7 +16,7 @@ function parse(text) {
   const parts = [];
   let para = [];
   let code = null;
-  const flush = () => { if (para.length) { parts.push({ kind: 'p', text: para.join(' ') }); para = []; } };
+  const flush = () => { if (para.length) { const isList = para.every((l) => l.startsWith('- ')); parts.push({ kind: isList ? 'ul' : 'p', text: para.join(' '), raw: para.slice(), items: isList ? para.map((l) => l.slice(2)) : [] }); para = []; } };
   for (const line of lines) {
     const open = line.match(/^```(\S*)\s*(\S*)$/);
     if (code === null && open && open[1] !== '') {
@@ -46,7 +46,7 @@ let md = '# Singular Demo 1, step by step\n\n' +
 for (const s of steps) {
   md += '\n## ' + s.title + '\n';
   for (const p of s.parts) {
-    if (p.kind === 'p') md += '\n' + p.text + '\n';
+    if (p.kind === 'p' || p.kind === 'ul') md += '\n' + p.raw.join('\n') + '\n';
     // The empty last line makes GitHub's copy button end the copied text with a line return.
     else md += '\n```bash\n' + p.lines.join('\n') + '\n\n```\n';
   }
@@ -59,12 +59,13 @@ steps.forEach((s, i) => {
   html += '<section class="step" id="s' + i + '">\n<h2><span class="num">' + (i + 1) + '</span>' + inline(s.title) +
     '<label class="done"><input type="checkbox" data-step="' + i + '"> done</label></h2>\n';
   for (const p of s.parts) {
-    if (p.kind === 'p') html += '<p>' + inline(p.text) + '</p>\n';
+    if (p.kind === 'ul') html += '<ul>' + p.items.map((it) => '<li>' + inline(it) + '</li>').join('') + '</ul>\n';
+    else if (p.kind === 'p') html += '<p>' + inline(p.text) + '</p>\n';
     else html += '<div class="block"><button class="copy" type="button">Copy</button><pre><code>' + esc(p.lines.join('\n')) + '</code></pre></div>\n';
   }
   html += '</section>\n';
 });
-const label = (t) => /^Step \d+/.test(t) ? t.match(/^Step (\d+)/)[1] : /^Extra:/.test(t) ? t.replace(/^Extra: (look at |look inside |if you open a )?(the )?/, '').slice(0, 14) : /^Before you start: open/.test(t) ? 'Shell' : /^Before you start/.test(t) ? 'Setup' : /^Finish/.test(t) ? 'End' : t.slice(0, 14);
+const label = (t) => /^Step \d+/.test(t) ? t.match(/^Step (\d+)/)[1] : /^Extra:/.test(t) ? t.replace(/^Extra: (look at |look inside |if you open a )?(the )?/, '').slice(0, 14) : /^Before you start: open/.test(t) ? 'Shell' : /^Before you start: two programs/.test(t) ? 'Programs' : /^Before you start/.test(t) ? 'Setup' : /^Finish/.test(t) ? 'End' : t.slice(0, 14);
 const nav = steps.map((s, i) => '<a href="#s' + i + '">' + esc(label(s.title)) + '</a>').join('');
 const template = fs.readFileSync(path.join(dir, 'template.html'), 'utf8');
 const page = template.replace('<!--NAV-->', nav).replace('<!--STEPS-->', html);

@@ -24,6 +24,27 @@ export blueprint="$PWD/share/plutus.json"
 
 ```
 
+## Before you start: two programs, one registry
+
+Two command-line programs are used in this demo, `singular` and `open-datum`. Here is what each is for, so every command later has a reason.
+
+**Singular is a registry of keys on Cardano.** A key exists at most once. A request to add or remove a key is first booked and waits; it becomes part of the registry when someone folds it, and the registry has rules for the waiting: a request that nobody folds can be rejected after its windows, and its owner can take it back inside the second window. Singular does not decide what a key means.
+
+**An application gives the keys their meaning.** It decides what a key holds, who may change it, and what happens to the deposit locked with it. Applications plug into the registry and bring their own rules.
+
+**`open-datum` is the application used here.** In it a key holds a piece of data, the payload, that only the key's controller may replace. The controller's deposit stays locked while the key exists and is released when the key is removed. `open-datum` is built on the registry: its commands create a registry tied to this application, and book, change, remove and read the keys.
+
+Which program a command belongs to follows one rule:
+
+- When the command depends on **what a key holds**, it is an `open-datum` command: `create`, `insert`, `update`, `terminate`, `fold` and `inspect`. It knows how the application lays out its data.
+- When it does **not** depend on that, it is a `singular` command: making a wallet and reading its address (`singular wallet`), signing a prepared transaction and sending it (`singular wallet sign`, `singular submit`), describing the registry (`singular registry describe`), and the two exits for a stuck request, `singular registry reject` and `singular registry reclaim`.
+
+`create` and `fold` exist in both programs. `singular registry create` takes the application to use as an option; `open-datum create` already knows its own. The demo uses the `open-datum` versions, which build the application's outputs.
+
+The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
+
+Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The few options that every command repeats are explained in step 1.
+
 ## Before you start: two wallets and a private chain
 
 A wallet here is a vault: an encrypted key file, opened by a passphrase that is typed when a command asks for it. The key never leaves the vault. Alice and Bob each get one. Nothing here touches a public network.
@@ -39,7 +60,9 @@ kill "$devnet_pid" 2>/dev/null; cd ~ && rm -rf ~/singular-demo-run
 
 **A folder of your own.** Everything the demo writes stays in it:
 
-- `receipts/`: what each command printed, one JSON file per command, kept to read afterwards - `bundles/`: transactions a command has built but not signed (written by `--bundle`) - `witnesses/`: the signatures Bob makes for a bundle (written by `wallet sign`)
+- `receipts/`: what each command printed, one JSON file per command, kept to read afterwards
+- `bundles/`: transactions a command has built but not signed (written by `--bundle`)
+- `witnesses/`: the signatures Bob makes for a bundle (written by `wallet sign`)
 
 ```bash
 mkdir -p ~/singular-demo-run && cd ~/singular-demo-run
@@ -49,7 +72,8 @@ mkdir -p receipts bundles witnesses
 
 **Alice's vault.** `singular wallet create` makes the vault file and prints her address. It asks for a new passphrase twice.
 
-- `--vault alice.vault`: the file to create - `--network-magic 42`: the number of this private test chain (preprod is 1, mainnet 764824073)
+- `--vault alice.vault`: the file to create
+- `--network-magic 42`: the number of this private test chain (preprod is 1, mainnet 764824073)
 
 ```bash
 singular wallet create --vault alice.vault --network-magic 42
@@ -77,7 +101,10 @@ bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
 
 **The private chain**, started in the background. `devnet` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the addresses, never the keys.
 
-- `--fund-address ADDRESS:6:2000000000`: gives the address 6 coins of 2000 ada each (2000000000 lovelace) - `> devnet.out`: its one line of settings goes to this file, its messages to `devnet.err` - `&`: runs it in the background - `devnet_pid=$!`: remembers its process number, so the last step can stop it
+- `--fund-address ADDRESS:6:2000000000`: gives the address 6 coins of 2000 ada each (2000000000 lovelace)
+- `> devnet.out`: its one line of settings goes to this file, its messages to `devnet.err`
+- `&`: runs it in the background
+- `devnet_pid=$!`: remembers its process number, so the last step can stop it
 
 ```bash
 devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" > devnet.out 2> devnet.err &
@@ -100,7 +127,9 @@ The windows are short on purpose, so the waits later last minutes: 120 seconds f
 
 **Two values to keep.** The devnet printed where its web API answers (`providerUrl`) and where its clock data is (`networkTimeDirectory`). Every command below is written out in full and repeats the same groups of options, so these are the only shorthands: plain variables you can print.
 
-- `koios_url`: where the chain's web API answers - `time_dir`: the chain's clock data (when each slot happens) - the last line is a check: both lines it prints must be non-empty. If one is empty, paste the block again.
+- `koios_url`: where the chain's web API answers
+- `time_dir`: the chain's clock data (when each slot happens)
+- the last line is a check: both lines it prints must be non-empty. If one is empty, paste the block again.
 
 ```bash
 koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
@@ -110,11 +139,17 @@ echo "$koios_url"; echo "$time_dir"
 
 **How to read the commands from here on.** Each one has the same layout, one group per line:
 
-- the command's own options (what to do: the key, the payload, the windows) - the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name) - the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number) - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
+- the command's own options (what to do: the key, the payload, the windows)
+- the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name)
+- the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number)
+- the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
 
 **Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.
 
-- `process_ms`: how long the registry has to process a request, in milliseconds - `retract_ms`: how long after that the owner may take a request back - both windows are fixed for the registry's whole life - `seed` in the output is the coin that was spent; `stateToken` is the registry's name
+- `process_ms`: how long the registry has to process a request, in milliseconds
+- `retract_ms`: how long after that the owner may take a request back
+- both windows are fixed for the registry's whole life
+- `seed` in the output is the coin that was spent; `stateToken` is the registry's name
 
 ```bash
 process_ms=120000; retract_ms=60000
@@ -165,7 +200,8 @@ echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
 
 **The booking.** Alice signs from her vault and the command sends it; it asks for her passphrase. The request now waits at the registry and is not part of it until it is folded.
 
-- `request` in the output is the pending request (transaction and output number) - `foldDeadline` is the slot by which it must be folded
+- `request` in the output is the pending request (transaction and output number)
+- `foldDeadline` is the slot by which it must be folded
 
 ```bash
 open-datum insert \
@@ -186,7 +222,9 @@ Then Bob signs the bundle with his vault, and the signed bundle is sent; the sen
 
 **Build the fold into a bundle file.** Bob is named only by his public address; no key is used here.
 
-- `--wallet-address`: who will pay and sign later - `--bundle`: the file the finished, unsigned transactions are written to, in `bundles/` - in the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline
+- `--wallet-address`: who will pay and sign later
+- `--bundle`: the file the finished, unsigned transactions are written to, in `bundles/`
+- in the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline
 
 ```bash
 open-datum fold \
@@ -209,7 +247,8 @@ singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-
 
 **Send the signed bundle** and wait until the chain has accepted it.
 
-- `--receipt`: where the proof of landing is written, in `receipts/` - `slot` in the output is where on the chain it landed
+- `--receipt`: where the proof of landing is written, in `receipts/`
+- `slot` in the output is where on the chain it landed
 
 ```bash
 singular submit \
@@ -661,7 +700,10 @@ jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .p
 
 The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
 
-- `cd ~/singular-demo-run`: back to the demo folder - the two `singular wallet address` lines read the public addresses from the vaults; each asks for its passphrase once - `koios_url` and `time_dir` are the two values of step 1 - `token` is the registry's name, read from the create receipt
+- `cd ~/singular-demo-run`: back to the demo folder
+- the two `singular wallet address` lines read the public addresses from the vaults; each asks for its passphrase once
+- `koios_url` and `time_dir` are the two values of step 1
+- `token` is the registry's name, read from the create receipt
 
 ```bash
 cd ~/singular-demo-run
