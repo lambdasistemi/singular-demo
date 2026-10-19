@@ -41,7 +41,7 @@ check receipts/14b-reclaim-too-early.json '.outcome=="client-refusal"'
 check receipts/14c-reclaim.json '.outcome=="success"'
 check receipts/15-insert-dave.json '.outcome=="success"'
 check receipts/16b-inspect-dave.json '.leaf=="active"'
-if grep -qE 'jq: error|command not found|curl: \\(' "$LOGFILE"; then echo "FAIL  an error line in the log"; fail=1; else echo "ok    no jq, curl or command error in the log"; fi
+if grep -qE 'jq: error|command not found|curl: [(]' "$LOGFILE"; then echo "FAIL  an error line in the log"; fail=1; else echo "ok    no jq, curl or command error in the log"; fi
 if pgrep -f "$TMPDIR" >/dev/null; then echo "FAIL  a process still uses $TMPDIR"; fail=1; else echo "ok    nothing left running"; fi
 echo "RESULT: $([ $fail = 0 ] && echo PASS || echo FAIL)"
 exit $fail
