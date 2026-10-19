@@ -12,7 +12,7 @@ const KIT = 'singular-demo-v0.12.0-x86_64-linux';
 const BASE = 'https://github.com/lambdasistemi/singular-demo/releases/download/v0.12.0';
 
 const files = fs.readdirSync(dir).filter((f) => /^s\d.*\.md$/.test(f)).sort()
-  .filter((f) => !/^s00a/.test(f) && !/^s22/.test(f) && !/^s99/.test(f));
+  .filter((f) => !/^s00a-/.test(f) && !/^s22/.test(f) && !/^s99/.test(f));
 
 function convert(text) {
   const lines = text.split('\n');
@@ -55,7 +55,7 @@ const idx = {
   description: 'Play Singular Demo 1 yourself on a private Cardano test chain: book keys, fold them, change and remove them, reject a stuck request and take one back. Ubuntu, nothing to install.',
   details: {
     intro: { text: 'intro/text.md', foreground: 'intro/foreground.sh', background: 'intro/background.sh' },
-    steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
+    steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: two programs, one registry/, 'Two programs, one registry').replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
     finish: { text: 'finish/text.md' },
   },
   backend: { imageid: 'ubuntu' },
@@ -63,7 +63,7 @@ const idx = {
 w('index.json', JSON.stringify(idx, null, 2) + '\n');
 
 steps.forEach((s, i) => {
-  const lead = i === 0 ? setupIntro : '';
+  const lead = /^s00b/.test(s.file) ? setupIntro : '';
   w(`step${i + 1}/text.md`, lead + s.body);
 });
 

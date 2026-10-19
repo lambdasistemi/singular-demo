@@ -23,6 +23,10 @@
   .num { background:var(--accent); color:#fff; border-radius:999px; min-width:1.7em; text-align:center; font-size:.85rem; padding:1px 8px; }
   .done { margin-left:auto; font-size:.85rem; font-weight:400; color:var(--muted); display:flex; align-items:center; gap:6px; }
   p { margin:8px 0; }
+  ul { margin:8px 0; padding-left:1.3em; }
+  li { margin:3px 0; }
+  li code { background:rgba(127,127,127,.18); padding:1px 5px; border-radius:4px; }
+  strong { font-weight:650; }
   code { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:.9em; }
   p code { background:rgba(127,127,127,.18); padding:1px 5px; border-radius:4px; }
   .block { position:relative; margin:10px 0; }
@@ -39,7 +43,7 @@
   <h1>Singular Demo 1, step by step</h1>
   <p>Release v0.12.0 on a private test chain. Copy a block, paste it into one terminal, run it, go to the next. Nothing touches a public network.</p>
 </header>
-<nav><a href="#s0">Shell</a><a href="#s1">Setup</a><a href="#s2">1</a><a href="#s3">2</a><a href="#s4">3</a><a href="#s5">4</a><a href="#s6">5</a><a href="#s7">6</a><a href="#s8">7</a><a href="#s9">8</a><a href="#s10">9</a><a href="#s11">10</a><a href="#s12">11</a><a href="#s13">12</a><a href="#s14">13</a><a href="#s15">14</a><a href="#s16">15</a><a href="#s17">16</a><a href="#s18">wallets</a><a href="#s19">transactions</a><a href="#s20">a new terminal</a><a href="#s21">End</a></nav>
+<nav><a href="#s0">Shell</a><a href="#s1">Programs</a><a href="#s2">Setup</a><a href="#s3">1</a><a href="#s4">2</a><a href="#s5">3</a><a href="#s6">4</a><a href="#s7">5</a><a href="#s8">6</a><a href="#s9">7</a><a href="#s10">8</a><a href="#s11">9</a><a href="#s12">10</a><a href="#s13">11</a><a href="#s14">12</a><a href="#s15">13</a><a href="#s16">14</a><a href="#s17">15</a><a href="#s18">16</a><a href="#s19">wallets</a><a href="#s20">transactions</a><a href="#s21">a new terminal</a><a href="#s22">End</a></nav>
 <main>
 <section class="step" id="s0">
 <h2><span class="num">1</span>Before you start: open the shell<label class="done"><input type="checkbox" data-step="0"> done</label></h2>
@@ -52,42 +56,54 @@ export PATH="$PWD/bin:$PATH"
 export blueprint="$PWD/share/plutus.json"</code></pre></div>
 </section>
 <section class="step" id="s1">
-<h2><span class="num">2</span>Before you start: two wallets and a private chain<label class="done"><input type="checkbox" data-step="1"> done</label></h2>
+<h2><span class="num">2</span>Before you start: two programs, one registry<label class="done"><input type="checkbox" data-step="1"> done</label></h2>
+<p>Two command-line programs are used in this demo, <code>singular</code> and <code>open-datum</code>. Here is what each is for, so every command later has a reason.</p>
+<p><strong>Singular is a registry of keys on Cardano.</strong> A key exists at most once. A request to add or remove a key is first booked and waits; it becomes part of the registry when someone folds it, and the registry has rules for the waiting: a request that nobody folds can be rejected after its windows, and its owner can take it back inside the second window. Singular does not decide what a key means.</p>
+<p><strong>An application gives the keys their meaning.</strong> It decides what a key holds, who may change it, and what happens to the deposit locked with it. Applications plug into the registry and bring their own rules.</p>
+<p><strong><code>open-datum</code> is the application used here.</strong> In it a key holds a piece of data, the payload, that only the key's controller may replace. The controller's deposit stays locked while the key exists and is released when the key is removed. <code>open-datum</code> is built on the registry: its commands create a registry tied to this application, and book, change, remove and read the keys.</p>
+<p>Which program a command belongs to follows one rule:</p>
+<ul><li>When the command depends on <strong>what a key holds</strong>, it is an <code>open-datum</code> command: <code>create</code>, <code>insert</code>, <code>update</code>, <code>terminate</code>, <code>fold</code> and <code>inspect</code>. It knows how the application lays out its data.</li><li>When it does <strong>not</strong> depend on that, it is a <code>singular</code> command: making a wallet and reading its address (<code>singular wallet</code>), signing a prepared transaction and sending it (<code>singular wallet sign</code>, <code>singular submit</code>), describing the registry (<code>singular registry describe</code>), and the two exits for a stuck request, <code>singular registry reject</code> and <code>singular registry reclaim</code>.</li></ul>
+<p><code>create</code> and <code>fold</code> exist in both programs. <code>singular registry create</code> takes the application to use as an option; <code>open-datum create</code> already knows its own. The demo uses the <code>open-datum</code> versions, which build the application's outputs.</p>
+<p>The relation in one line: <strong><code>singular</code> runs the registry, <code>open-datum</code> is the application that fills it.</strong></p>
+<p>Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The few options that every command repeats are explained in step 1.</p>
+</section>
+<section class="step" id="s2">
+<h2><span class="num">3</span>Before you start: two wallets and a private chain<label class="done"><input type="checkbox" data-step="2"> done</label></h2>
 <p>A wallet here is a vault: an encrypted key file, opened by a passphrase that is typed when a command asks for it. The key never leaves the vault. Alice and Bob each get one. Nothing here touches a public network.</p>
 <p>Passphrases are not shown while typed. Use <code>alice</code> for Alice and <code>bob</code> for Bob, or anything else. The same passphrase is asked again at every command that signs with that vault.</p>
 <p>Running this a second time? A vault from an earlier try is refused ("vault already exists"), and it belongs to the earlier chain's addresses. Start clean first: stop the old devnet and remove the demo folder. Skip this the first time.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>kill "$devnet_pid" 2&gt;/dev/null; cd ~ &amp;&amp; rm -rf ~/singular-demo-run</code></pre></div>
-<p>**A folder of your own.** Everything the demo writes stays in it:</p>
-<p>- <code>receipts/</code>: what each command printed, one JSON file per command, kept to read afterwards - <code>bundles/</code>: transactions a command has built but not signed (written by <code>--bundle</code>) - <code>witnesses/</code>: the signatures Bob makes for a bundle (written by <code>wallet sign</code>)</p>
+<p><strong>A folder of your own.</strong> Everything the demo writes stays in it:</p>
+<ul><li><code>receipts/</code>: what each command printed, one JSON file per command, kept to read afterwards</li><li><code>bundles/</code>: transactions a command has built but not signed (written by <code>--bundle</code>)</li><li><code>witnesses/</code>: the signatures Bob makes for a bundle (written by <code>wallet sign</code>)</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>mkdir -p ~/singular-demo-run &amp;&amp; cd ~/singular-demo-run
 mkdir -p receipts bundles witnesses</code></pre></div>
-<p>**Alice's vault.** <code>singular wallet create</code> makes the vault file and prints her address. It asks for a new passphrase twice.</p>
-<p>- <code>--vault alice.vault</code>: the file to create - <code>--network-magic 42</code>: the number of this private test chain (preprod is 1, mainnet 764824073)</p>
+<p><strong>Alice's vault.</strong> <code>singular wallet create</code> makes the vault file and prints her address. It asks for a new passphrase twice.</p>
+<ul><li><code>--vault alice.vault</code>: the file to create</li><li><code>--network-magic 42</code>: the number of this private test chain (preprod is 1, mainnet 764824073)</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet create --vault alice.vault --network-magic 42</code></pre></div>
-<p>**Bob's vault**, the same way, with his own passphrase:</p>
+<p><strong>Bob's vault</strong>, the same way, with his own passphrase:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet create --vault bob.vault --network-magic 42</code></pre></div>
-<p>**Their public addresses**, read back from the vaults into shell variables. A public address is safe to share. Each command asks for the passphrase once.</p>
+<p><strong>Their public addresses</strong>, read back from the vaults into shell variables. A public address is safe to share. Each command asks for the passphrase once.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)</code></pre></div>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)</code></pre></div>
-<p>**The private chain**, started in the background. <code>devnet</code> runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the addresses, never the keys.</p>
-<p>- <code>--fund-address ADDRESS:6:2000000000</code>: gives the address 6 coins of 2000 ada each (2000000000 lovelace) - <code>&gt; devnet.out</code>: its one line of settings goes to this file, its messages to <code>devnet.err</code> - <code>&amp;</code>: runs it in the background - <code>devnet_pid=$!</code>: remembers its process number, so the last step can stop it</p>
+<p><strong>The private chain</strong>, started in the background. <code>devnet</code> runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the addresses, never the keys.</p>
+<ul><li><code>--fund-address ADDRESS:6:2000000000</code>: gives the address 6 coins of 2000 ada each (2000000000 lovelace)</li><li><code>&gt; devnet.out</code>: its one line of settings goes to this file, its messages to <code>devnet.err</code></li><li><code>&amp;</code>: runs it in the background</li><li><code>devnet_pid=$!</code>: remembers its process number, so the last step can stop it</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" &gt; devnet.out 2&gt; devnet.err &amp;
 devnet_pid=$!</code></pre></div>
-<p>**Wait until the settings line has appeared**, then show it. <code>providerUrl</code> is where the chain's web API answers.</p>
+<p><strong>Wait until the settings line has appeared</strong>, then show it. <code>providerUrl</code> is where the chain's web API answers.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>until jq -e .providerUrl devnet.out &gt;/dev/null 2&gt;&amp;1; do sleep 1; done; jq . devnet.out</code></pre></div>
 </section>
-<section class="step" id="s2">
-<h2><span class="num">3</span>Step 1: create the registry<label class="done"><input type="checkbox" data-step="2"> done</label></h2>
+<section class="step" id="s3">
+<h2><span class="num">4</span>Step 1: create the registry<label class="done"><input type="checkbox" data-step="3"> done</label></h2>
 <p>A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. <code>create</code> picks a suitable coin of Alice's by itself and names it in the receipt. The registry's name is its state token.</p>
 <p>The windows are short on purpose, so the waits later last minutes: 120 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 120 seconds; raise <code>process_ms</code> below if there is a lot to say between the two.</p>
-<p>**Two values to keep.** The devnet printed where its web API answers (<code>providerUrl</code>) and where its clock data is (<code>networkTimeDirectory</code>). Every command below is written out in full and repeats the same groups of options, so these are the only shorthands: plain variables you can print.</p>
-<p>- <code>koios_url</code>: where the chain's web API answers - <code>time_dir</code>: the chain's clock data (when each slot happens) - the last line is a check: both lines it prints must be non-empty. If one is empty, paste the block again.</p>
+<p><strong>Two values to keep.</strong> The devnet printed where its web API answers (<code>providerUrl</code>) and where its clock data is (<code>networkTimeDirectory</code>). Every command below is written out in full and repeats the same groups of options, so these are the only shorthands: plain variables you can print.</p>
+<ul><li><code>koios_url</code>: where the chain's web API answers</li><li><code>time_dir</code>: the chain's clock data (when each slot happens)</li><li>the last line is a check: both lines it prints must be non-empty. If one is empty, paste the block again.</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
 echo "$koios_url"; echo "$time_dir"</code></pre></div>
-<p>**How to read the commands from here on.** Each one has the same layout, one group per line:</p>
-<p>- the command's own options (what to do: the key, the payload, the windows) - the registry: <code>--state-dir</code> (its journal folder), <code>--blueprint</code> (the compiled contracts) and <code>--state-token</code> (its name) - the chain: <code>--koios-url</code>, <code>--network-time</code> and <code>--network-magic 42</code> (this private chain's number) - the wallet that signs: <code>--vault</code> for a wallet that signs in one command (it asks for the passphrase), or <code>--wallet-address</code> with <code>--bundle</code> for the external way</p>
-<p>**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.</p>
-<p>- <code>process_ms</code>: how long the registry has to process a request, in milliseconds - <code>retract_ms</code>: how long after that the owner may take a request back - both windows are fixed for the registry's whole life - <code>seed</code> in the output is the coin that was spent; <code>stateToken</code> is the registry's name</p>
+<p><strong>How to read the commands from here on.</strong> Each one has the same layout, one group per line:</p>
+<ul><li>the command's own options (what to do: the key, the payload, the windows)</li><li>the registry: <code>--state-dir</code> (its journal folder), <code>--blueprint</code> (the compiled contracts) and <code>--state-token</code> (its name)</li><li>the chain: <code>--koios-url</code>, <code>--network-time</code> and <code>--network-magic 42</code> (this private chain's number)</li><li>the wallet that signs: <code>--vault</code> for a wallet that signs in one command (it asks for the passphrase), or <code>--wallet-address</code> with <code>--bundle</code> for the external way</li></ul>
+<p><strong>Create.</strong> It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.</p>
+<ul><li><code>process_ms</code>: how long the registry has to process a request, in milliseconds</li><li><code>retract_ms</code>: how long after that the owner may take a request back</li><li>both windows are fixed for the registry's whole life</li><li><code>seed</code> in the output is the coin that was spent; <code>stateToken</code> is the registry's name</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>process_ms=120000; retract_ms=60000
 open-datum create \
   --process-time "$process_ms" --retract-time "$retract_ms" \
@@ -96,13 +112,13 @@ open-datum create \
   --vault alice.vault \
   &gt; receipts/01-create.json
 jq '{outcome, seed, stateToken}' receipts/01-create.json</code></pre></div>
-<p>**From now on every command names the registry by its state token**, as <code>--state-token "$token"</code>. The token is the registry's name, read from the create receipt:</p>
+<p><strong>From now on every command names the registry by its state token</strong>, as <code>--state-token "$token"</code>. The token is the registry's name, read from the create receipt:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>token=$(jq -r .stateToken receipts/01-create.json)
 echo "$token"</code></pre></div>
 <p>Want to see the seed coin before it is spent? Add <code>--preview</code> and use <code>--wallet-address "$alice_addr"</code> instead of the vault: it reads the chain and writes nothing.</p>
 </section>
-<section class="step" id="s3">
-<h2><span class="num">4</span>Step 2: read the registry's page<label class="done"><input type="checkbox" data-step="3"> done</label></h2>
+<section class="step" id="s4">
+<h2><span class="num">5</span>Step 2: read the registry's page<label class="done"><input type="checkbox" data-step="4"> done</label></h2>
 <p>The registry describes itself: which registry this is, which release of Singular runs it, its rules and what it holds now. It needs no key and no wallet, because reading is free. The page is read from the chain's provider, so it is what the chain says and not a signed statement.</p>
 <p>The create receipt prints this exact command in its field <code>describeCommand</code>. It is written out here: the contracts, the registry's name, and the chain.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular registry describe \
@@ -110,13 +126,13 @@ echo "$token"</code></pre></div>
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   | tee receipts/02-describe.txt</code></pre></div>
 </section>
-<section class="step" id="s4">
-<h2><span class="num">5</span>Step 3: book the key "alice" (Alice)<label class="done"><input type="checkbox" data-step="4"> done</label></h2>
+<section class="step" id="s5">
+<h2><span class="num">6</span>Step 3: book the key "alice" (Alice)<label class="done"><input type="checkbox" data-step="5"> done</label></h2>
 <p>Alice adds a key. She books <code>alice</code> with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.</p>
-<p>**The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.</p>
+<p><strong>The payload</strong>: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>echo '{"constructor":0,"fields":[{"int":42}]}' &gt; payload.json</code></pre></div>
-<p>**The booking.** Alice signs from her vault and the command sends it; it asks for her passphrase. The request now waits at the registry and is not part of it until it is folded.</p>
-<p>- <code>request</code> in the output is the pending request (transaction and output number) - <code>foldDeadline</code> is the slot by which it must be folded</p>
+<p><strong>The booking.</strong> Alice signs from her vault and the command sends it; it asks for her passphrase. The request now waits at the registry and is not part of it until it is folded.</p>
+<ul><li><code>request</code> in the output is the pending request (transaction and output number)</li><li><code>foldDeadline</code> is the slot by which it must be folded</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key alice --payload payload.json \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -125,31 +141,31 @@ echo "$token"</code></pre></div>
   &gt; receipts/03-insert-alice.json
 jq '{outcome, request, foldDeadline}' receipts/03-insert-alice.json</code></pre></div>
 </section>
-<section class="step" id="s5">
-<h2><span class="num">6</span>Step 4: fold it (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="5"> done</label></h2>
+<section class="step" id="s6">
+<h2><span class="num">7</span>Step 4: fold it (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="6"> done</label></h2>
 <p>A fold moves pending requests into the registry for good. Anyone may do it, and here Bob does, the external way: his command only names his address and a bundle file. It builds the transactions, writes them into that file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. It is not an error.</p>
 <p>Then Bob signs the bundle with his vault, and the signed bundle is sent; the send waits until the transactions have landed. Run the three pieces before the fold deadline of step 3.</p>
-<p>**Build the fold into a bundle file.** Bob is named only by his public address; no key is used here.</p>
-<p>- <code>--wallet-address</code>: who will pay and sign later - <code>--bundle</code>: the file the finished, unsigned transactions are written to, in <code>bundles/</code> - in the output, <code>settling</code> is what the fold will settle and <code>msLeft</code> the time left before the fold deadline</p>
+<p><strong>Build the fold into a bundle file.</strong> Bob is named only by his public address; no key is used here.</p>
+<ul><li><code>--wallet-address</code>: who will pay and sign later</li><li><code>--bundle</code>: the file the finished, unsigned transactions are written to, in <code>bundles/</code></li><li>in the output, <code>settling</code> is what the fold will settle and <code>msLeft</code> the time left before the fold deadline</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum fold \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   &gt; receipts/04-fold-insert.json
 jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/04-fold-insert.json</code></pre></div>
-<p>**Bob signs the bundle with his vault** (witnesses are signatures). His key is used inside the command and never leaves it. It asks for Bob's passphrase.</p>
-<p>- <code>--out</code>: where the signatures are written, in <code>witnesses/</code></p>
+<p><strong>Bob signs the bundle with his vault</strong> (witnesses are signatures). His key is used inside the command and never leaves it. It asks for Bob's passphrase.</p>
+<ul><li><code>--out</code>: where the signatures are written, in <code>witnesses/</code></li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-insert.bundle</code></pre></div>
-<p>**Send the signed bundle** and wait until the chain has accepted it.</p>
-<p>- <code>--receipt</code>: where the proof of landing is written, in <code>receipts/</code> - <code>slot</code> in the output is where on the chain it landed</p>
+<p><strong>Send the signed bundle</strong> and wait until the chain has accepted it.</p>
+<ul><li><code>--receipt</code>: where the proof of landing is written, in <code>receipts/</code></li><li><code>slot</code> in the output is where on the chain it landed</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular submit \
   --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s6">
-<h2><span class="num">7</span>Step 5: read the key back<label class="done"><input type="checkbox" data-step="6"> done</label></h2>
+<section class="step" id="s7">
+<h2><span class="num">8</span>Step 5: read the key back<label class="done"><input type="checkbox" data-step="7"> done</label></h2>
 <p>Reading is free and needs no key and no wallet: anyone can check. <code>inspect</code> asks the chain for the key's state and prints what it found. The key is now active, with its payload (42), its owner and the deposit that stays locked with it. <code>root</code> is a fingerprint of the whole registry.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum inspect \
   --key alice \
@@ -158,12 +174,12 @@ jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-i
   &gt; receipts/05-inspect.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/05-inspect.json</code></pre></div>
 </section>
-<section class="step" id="s7">
-<h2><span class="num">8</span>Step 6: change the data (Alice)<label class="done"><input type="checkbox" data-step="7"> done</label></h2>
+<section class="step" id="s8">
+<h2><span class="num">9</span>Step 6: change the data (Alice)<label class="done"><input type="checkbox" data-step="8"> done</label></h2>
 <p>Alice, as the key's controller, replaces the payload with 43. Only she may; nobody else's signature would be accepted. An update is immediate, with no booking and no fold, and the registry's root does not change.</p>
-<p>**The new payload**: the integer 43.</p>
+<p><strong>The new payload</strong>: the integer 43.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>echo '{"constructor":0,"fields":[{"int":43}]}' &gt; payload-new.json</code></pre></div>
-<p>**The update.** It asks for Alice's passphrase and takes effect at once.</p>
+<p><strong>The update.</strong> It asks for Alice's passphrase and takes effect at once.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum update \
   --key alice --payload payload-new.json \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -171,11 +187,11 @@ jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: 
   --vault alice.vault \
   &gt; receipts/06-update.json
 jq '{outcome, payload}' receipts/06-update.json</code></pre></div>
-<p>**The root before and after is the same.** An update changes the key's data but not the registry's fingerprint: both lines show the same value.</p>
+<p><strong>The root before and after is the same.</strong> An update changes the key's data but not the registry's fingerprint: both lines show the same value.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>echo "root before: $(jq -r .root receipts/05-inspect.json)"; echo "root after:  $(jq -r .root receipts/06-update.json)"</code></pre></div>
 </section>
-<section class="step" id="s8">
-<h2><span class="num">9</span>Step 7: read the key back again<label class="done"><input type="checkbox" data-step="8"> done</label></h2>
+<section class="step" id="s9">
+<h2><span class="num">10</span>Step 7: read the key back again<label class="done"><input type="checkbox" data-step="9"> done</label></h2>
 <p>The same read as step 5. The payload is now 43; the owner and the deposit are unchanged.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum inspect \
   --key alice \
@@ -184,8 +200,8 @@ jq '{outcome, payload}' receipts/06-update.json</code></pre></div>
   &gt; receipts/07-inspect.json
 jq '{state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/07-inspect.json</code></pre></div>
 </section>
-<section class="step" id="s9">
-<h2><span class="num">10</span>Step 8: book the removal of the key (Alice)<label class="done"><input type="checkbox" data-step="9"> done</label></h2>
+<section class="step" id="s10">
+<h2><span class="num">11</span>Step 8: book the removal of the key (Alice)<label class="done"><input type="checkbox" data-step="10"> done</label></h2>
 <p>Removing a key is also two stages. Alice books the termination of <code>alice</code>. Like an insertion, it waits as a pending request. It asks for Alice's passphrase.</p>
 <p>In the output, <code>released</code> is the output the fold will release and <code>deposit</code> is what comes back to Alice.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum terminate \
@@ -196,27 +212,27 @@ jq '{state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOut
   &gt; receipts/08-terminate.json
 jq '{outcome, request, released, deposit, foldDeadline}' receipts/08-terminate.json</code></pre></div>
 </section>
-<section class="step" id="s10">
-<h2><span class="num">11</span>Step 9: fold the removal (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="10"> done</label></h2>
+<section class="step" id="s11">
+<h2><span class="num">12</span>Step 9: fold the removal (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="11"> done</label></h2>
 <p>Bob folds the termination, the external way again: build (exit status 19), sign, send. When it lands, the key's token is burned and the deposit goes back to Alice. Run the three pieces before the fold deadline of step 8.</p>
-<p>**Build the bundle**, as in step 4: nothing is signed or sent.</p>
+<p><strong>Build the bundle</strong>, as in step 4: nothing is signed or sent.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum fold \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-terminate.bundle \
   &gt; receipts/09-fold-terminate.json
 jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/09-fold-terminate.json</code></pre></div>
-<p>**Bob signs it** with his vault (his passphrase):</p>
+<p><strong>Bob signs it</strong> with his vault (his passphrase):</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet sign --vault bob.vault --out witnesses/fold-terminate bundles/fold-terminate.bundle</code></pre></div>
-<p>**Send it** and wait until it has landed:</p>
+<p><strong>Send it</strong> and wait until it has landed:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular submit \
   --witnesses witnesses/fold-terminate --receipt receipts/09-fold-terminate.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-terminate.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s11">
-<h2><span class="num">12</span>Step 10: read the removed key<label class="done"><input type="checkbox" data-step="11"> done</label></h2>
+<section class="step" id="s12">
+<h2><span class="num">13</span>Step 10: read the removed key<label class="done"><input type="checkbox" data-step="12"> done</label></h2>
 <p>The key <code>alice</code> is now terminal: gone for good, it can never be used again, and nothing holds it any more.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum inspect \
   --key alice \
@@ -225,10 +241,10 @@ jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-t
   &gt; receipts/10-inspect.json
 jq '{state: .leaf, root}' receipts/10-inspect.json</code></pre></div>
 </section>
-<section class="step" id="s12">
-<h2><span class="num">13</span>Step 11: a request nobody folded: wait out its windows, then reject it<label class="done"><input type="checkbox" data-step="12"> done</label></h2>
+<section class="step" id="s13">
+<h2><span class="num">14</span>Step 11: a request nobody folded: wait out its windows, then reject it<label class="done"><input type="checkbox" data-step="13"> done</label></h2>
 <p>What if nobody folds a request? Alice books the key <code>late</code> and nobody touches it. A request that stays pending past its two windows (processing, then retract) blocks the registry, and the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.</p>
-<p>**Alice books <code>late</code>** (her passphrase). Nobody will fold it, so the request stays pending.</p>
+<p><strong>Alice books <code>late</code></strong> (her passphrase). Nobody will fold it, so the request stays pending.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key late --payload payload.json \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -236,37 +252,37 @@ jq '{state: .leaf, root}' receipts/10-inspect.json</code></pre></div>
   --vault alice.vault \
   &gt; receipts/11a-insert-late.json
 jq '{request, foldDeadline}' receipts/11a-insert-late.json</code></pre></div>
-<p>**Bob asks to reject it now**, naming only his address, no key. It is too early, so the program refuses: exit status 10, outcome <code>client-refusal</code>, nothing built. The refusal says when the retract window closes: <code>retractEndsSlot</code> is the slot where the window closes and <code>tipSlot</code> is where the chain is now.</p>
+<p><strong>Bob asks to reject it now</strong>, naming only his address, no key. It is too early, so the program refuses: exit status 10, outcome <code>client-refusal</code>, nothing built. The refusal says when the retract window closes: <code>retractEndsSlot</code> is the slot where the window closes and <code>tipSlot</code> is where the chain is now.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular registry reject \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   &gt; receipts/11b-reject-too-early.json
 jq '{outcome, pending: [.pendingRequests[] | {request, retractEndsSlot}], tipSlot}' receipts/11b-reject-too-early.json</code></pre></div>
-<p>**A small helper that waits for the chain's own clock.** <code>wait_for_slot N</code> asks the chain for its latest slot every 2 seconds until it is past <code>N</code>. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.</p>
+<p><strong>A small helper that waits for the chain's own clock.</strong> <code>wait_for_slot N</code> asks the chain for its latest slot every 2 seconds until it is past <code>N</code>. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') &amp;&amp; [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }</code></pre></div>
-<p>**Wait until the tip passes the end of the retract window**, named in the refusal. About three minutes.</p>
+<p><strong>Wait until the tip passes the end of the retract window</strong>, named in the refusal. About three minutes.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject-too-early.json)"</code></pre></div>
-<p>**Both windows are over.** Bob asks again, the external way. This time the program builds the transaction: it returns the request's locked value to its owner, Alice. Exit status 19, nothing sent yet.</p>
+<p><strong>Both windows are over.</strong> Bob asks again, the external way. This time the program builds the transaction: it returns the request's locked value to its owner, Alice. Exit status 19, nothing sent yet.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular registry reject \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   &gt; receipts/11d-reject.json
 jq '{outcome, rejected: [.expected.rejected[] | {key, request}]}' receipts/11d-reject.json</code></pre></div>
-<p>**Bob signs** (his passphrase):</p>
+<p><strong>Bob signs</strong> (his passphrase):</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bundle</code></pre></div>
-<p>**Send it** and wait until it has landed:</p>
+<p><strong>Send it</strong> and wait until it has landed:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s13">
-<h2><span class="num">14</span>Step 12: book the key "bob" (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="13"> done</label></h2>
+<section class="step" id="s14">
+<h2><span class="num">15</span>Step 12: book the key "bob" (Bob signs outside the program)<label class="done"><input type="checkbox" data-step="14"> done</label></h2>
 <p>The registry takes requests again. This time Bob adds a key, with his own wallet and the external flow from the start: his command names his address and a bundle file instead of a vault, and the bundle holds the booking. Build (exit status 19, nothing sent), sign, send.</p>
-<p>**Build the bundle:**</p>
+<p><strong>Build the bundle:</strong></p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key bob --payload payload.json \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -274,17 +290,17 @@ jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/11d-rejec
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
   &gt; receipts/12-insert-bob.json
 jq '{outcome, request: .expected.request, foldDeadline: .expected.foldDeadline}' receipts/12-insert-bob.json</code></pre></div>
-<p>**Bob signs** (his passphrase):</p>
+<p><strong>Bob signs</strong> (his passphrase):</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert-bob.bundle</code></pre></div>
-<p>**Send it** and wait until it has landed:</p>
+<p><strong>Send it</strong> and wait until it has landed:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular submit \
   --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/insert-bob.bundle
 jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json</code></pre></div>
 </section>
-<section class="step" id="s14">
-<h2><span class="num">15</span>Step 13: fold Bob's key (Alice, vault in one command)<label class="done"><input type="checkbox" data-step="14"> done</label></h2>
+<section class="step" id="s15">
+<h2><span class="num">16</span>Step 13: fold Bob's key (Alice, vault in one command)<label class="done"><input type="checkbox" data-step="15"> done</label></h2>
 <p>Anyone may fold, and here Alice does. The fold is a single command, because it is her vault that signs and sends it: build, sign, send and wait, with her passphrase. It prints its receipt when it has landed. Run it before the fold deadline of step 12.</p>
 <p>In the output, <code>settled</code> lists the requests now part of the registry and <code>root</code> is the registry's new fingerprint.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum fold \
@@ -294,11 +310,11 @@ jq '.submissions[] | {slot: .chainPoint.slot, confirmations}' receipts/12-insert
   &gt; receipts/13-fold-bob.json
 jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.json</code></pre></div>
 </section>
-<section class="step" id="s15">
-<h2><span class="num">16</span>Step 14: take back a request: wait for the retract window, then reclaim it<label class="done"><input type="checkbox" data-step="15"> done</label></h2>
+<section class="step" id="s16">
+<h2><span class="num">17</span>Step 14: take back a request: wait for the retract window, then reclaim it<label class="done"><input type="checkbox" data-step="16"> done</label></h2>
 <p>The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books <code>carol</code>, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.</p>
 <p><code>wait_for_slot</code> was defined in step 11. In a new terminal, define it again from there.</p>
-<p>**Alice books <code>carol</code>** (her passphrase). The receipt names the request, which she needs to take it back: <code>carol_request</code> keeps it, and <code>carol_opens</code> keeps the slot after which the retract window opens.</p>
+<p><strong>Alice books <code>carol</code></strong> (her passphrase). The receipt names the request, which she needs to take it back: <code>carol_request</code> keeps it, and <code>carol_opens</code> keeps the slot after which the retract window opens.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key carol --payload payload.json \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -307,7 +323,7 @@ jq '{outcome, settled: [.settled[] | {key, edge}], root}' receipts/13-fold-bob.j
   &gt; receipts/14a-insert-carol.json
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 jq '{request, foldDeadline}' receipts/14a-insert-carol.json</code></pre></div>
-<p>**Try to reclaim right away.** Refused (exit status 10, <code>client-refusal</code>): the retract window has not opened yet.</p>
+<p><strong>Try to reclaim right away.</strong> Refused (exit status 10, <code>client-refusal</code>): the retract window has not opened yet.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular registry reclaim \
   --request "$carol_request" \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -315,9 +331,9 @@ jq '{request, foldDeadline}' receipts/14a-insert-carol.json</code></pre></div>
   --vault alice.vault \
   &gt; receipts/14b-reclaim-too-early.json
 jq '{outcome, reason}' receipts/14b-reclaim-too-early.json</code></pre></div>
-<p>**Wait for the chain's clock** to pass the end of the processing window. About two minutes.</p>
+<p><strong>Wait for the chain's clock</strong> to pass the end of the processing window. About two minutes.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>wait_for_slot "$carol_opens"</code></pre></div>
-<p>**Reclaim**, with one command (her passphrase). Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.</p>
+<p><strong>Reclaim</strong>, with one command (her passphrase). Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular registry reclaim \
   --request "$carol_request" \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -326,8 +342,8 @@ jq '{outcome, reason}' receipts/14b-reclaim-too-early.json</code></pre></div>
   &gt; receipts/14c-reclaim.json
 jq '{outcome, request, returned}' receipts/14c-reclaim.json</code></pre></div>
 </section>
-<section class="step" id="s16">
-<h2><span class="num">17</span>Step 15: book the key "dave" (Alice)<label class="done"><input type="checkbox" data-step="16"> done</label></h2>
+<section class="step" id="s17">
+<h2><span class="num">18</span>Step 15: book the key "dave" (Alice)<label class="done"><input type="checkbox" data-step="17"> done</label></h2>
 <p>The reclaimed request no longer blocks anything, so the registry takes requests again. Alice books one more key, <code>dave</code> (her passphrase).</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key dave --payload payload.json \
@@ -337,24 +353,24 @@ jq '{outcome, request, returned}' receipts/14c-reclaim.json</code></pre></div>
   &gt; receipts/15-insert-dave.json
 jq '{outcome, request, foldDeadline}' receipts/15-insert-dave.json</code></pre></div>
 </section>
-<section class="step" id="s17">
-<h2><span class="num">18</span>Step 16: fold "dave" (Bob signs outside the program), then read it<label class="done"><input type="checkbox" data-step="17"> done</label></h2>
+<section class="step" id="s18">
+<h2><span class="num">19</span>Step 16: fold "dave" (Bob signs outside the program), then read it<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
 <p>Bob folds <code>dave</code>, external signing as before: build (exit status 19), sign, send. Afterwards an independent read asks the chain for the key and finds it active. That is the last proof that the whole journey worked.</p>
-<p>**Build the bundle**, as in steps 4 and 9: nothing is sent yet.</p>
+<p><strong>Build the bundle</strong>, as in steps 4 and 9: nothing is sent yet.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum fold \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
   &gt; receipts/16a-fold-dave.json
 jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.remainingMs}' receipts/16a-fold-dave.json</code></pre></div>
-<p>**Bob signs** (his passphrase):</p>
+<p><strong>Bob signs</strong> (his passphrase):</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-dave.bundle</code></pre></div>
-<p>**Send it** and wait until it has landed:</p>
+<p><strong>Send it</strong> and wait until it has landed:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
   --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-dave.bundle</code></pre></div>
-<p>**Read <code>dave</code> back**, the independent check. It should be active.</p>
+<p><strong>Read <code>dave</code> back</strong>, the independent check. It should be active.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum inspect \
   --key dave \
   --state-dir reg --blueprint "$blueprint" --state-token "$token" \
@@ -362,39 +378,39 @@ jq '{outcome, settling: [.expected.settled[] | {key, edge}], msLeft: .expected.r
   &gt; receipts/16b-inspect-dave.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json</code></pre></div>
 </section>
-<section class="step" id="s18">
-<h2><span class="num">19</span>Extra: look at the wallets<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
+<section class="step" id="s19">
+<h2><span class="num">20</span>Extra: look at the wallets<label class="done"><input type="checkbox" data-step="19"> done</label></h2>
 <p>The next three pages are optional extras. Skip them in a short demo; the journey is complete without them.</p>
 <p>A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.</p>
-<p>**A small helper** that asks the chain for the outputs at an address and prints a short form. <code>total_ada</code> is what the wallet holds; each line of <code>utxos</code> is one output: the transaction that made it, its index, its ada and any tokens.</p>
+<p><strong>A small helper</strong> that asks the chain for the outputs at an address and prints a short form. <code>total_ada</code> is what the wallet holds; each line of <code>utxos</code> is one output: the transaction that made it, its index, its ada and any tokens.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>wallet_show() { curl -fsS -X POST "$koios_url/address_utxos" -H 'content-type: application/json' -d "{\"_addresses\":[\"$1\"]}" | jq '{outputs: length, total_ada: ([.[] | (.value|tonumber)] | add / 1000000), utxos: [.[] | {tx: .tx_hash[0:12], ix: .tx_index, ada: ((.value|tonumber)/1000000), tokens: [.asset_list[]? | .asset_name[0:8]]}]}'; }</code></pre></div>
-<p>**Alice's wallet**, from her public address. No passphrase is needed to look. At the start she holds six outputs of 2000 ada.</p>
+<p><strong>Alice's wallet</strong>, from her public address. No passphrase is needed to look. At the start she holds six outputs of 2000 ada.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>wallet_show "$alice_addr"</code></pre></div>
-<p>**Bob's wallet**, the same way:</p>
+<p><strong>Bob's wallet</strong>, the same way:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>wallet_show "$bob_addr"</code></pre></div>
-<p>**The chain's own clock**, for reference. It is what the program uses to judge windows: the slot is the chain's unit of time.</p>
+<p><strong>The chain's own clock</strong>, for reference. It is what the program uses to judge windows: the slot is the chain's unit of time.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot, block_no}'</code></pre></div>
 </section>
-<section class="step" id="s19">
-<h2><span class="num">20</span>Extra: look inside the transactions<label class="done"><input type="checkbox" data-step="19"> done</label></h2>
+<section class="step" id="s20">
+<h2><span class="num">21</span>Extra: look inside the transactions<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
 <p>Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.</p>
-<p>**What a prepared transaction is for.** A bundle is a JSON file written by a command run with <code>--bundle</code>. Its <code>effects</code> say in plain words what each transaction does, and <code>deadline</code> is the slot by which it must be sent.</p>
+<p><strong>What a prepared transaction is for.</strong> A bundle is a JSON file written by a command run with <code>--bundle</code>. Its <code>effects</code> say in plain words what each transaction does, and <code>deadline</code> is the slot by which it must be sent.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>jq '.transactions[] | {effects, deadline}' bundles/fold-insert.bundle</code></pre></div>
-<p>**Which transaction landed, and where.** The landing receipt names each transaction by its <code>identity</code> (its hash, the name to look it up by), the slot and block it is in, and how many blocks have been built on top since.</p>
+<p><strong>Which transaction landed, and where.</strong> The landing receipt names each transaction by its <code>identity</code> (its hash, the name to look it up by), the slot and block it is in, and how many blocks have been built on top since.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>jq '.submissions[] | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json</code></pre></div>
-<p>**Every transaction of the demo**, in the order of the receipts. The loop walks all receipts and prints the transactions each one landed.</p>
+<p><strong>Every transaction of the demo</strong>, in the order of the receipts. The loop walks all receipts and prints the transactions each one landed.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>for f in receipts/*.json; do jq -r --arg f "$f" '.submissions[]? | "\($f)  \(.identity)  slot \(.chainPoint.slot)"' "$f"; done</code></pre></div>
-<p>**What the chain says about one of them.** The devnet's web API answers the same query a public Koios does. Take the first transaction of the step 4 fold and ask the chain about it. The full answer is kept in <code>receipts/tx-info.json</code>.</p>
+<p><strong>What the chain says about one of them.</strong> The devnet's web API answers the same query a public Koios does. Take the first transaction of the step 4 fold and ask the chain about it. The full answer is kept in <code>receipts/tx-info.json</code>.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>tx=$(jq -r '.submissions[0].identity' receipts/04-fold-insert.submitted.json)
 curl -fsS -X POST "$koios_url/tx_info" -H 'content-type: application/json' -d "{\"_tx_hashes\":[\"$tx\"]}" &gt; receipts/tx-info.json</code></pre></div>
 <p>The short form shows where the money comes from and goes to, which tokens move, and which outputs carry data:</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000)}], outputs: [.outputs[] | {to: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000), tokens: [.asset_list[].asset_name[0:8]], has_data: (.inline_datum != null)}]}' receipts/tx-info.json</code></pre></div>
 <p><code>jq . receipts/tx-info.json</code> prints all of it. The data on an output is shown as raw bytes; <code>open-datum inspect</code> (step 5) prints the same data decoded. This devnet's web API does not report fees or times.</p>
 </section>
-<section class="step" id="s20">
-<h2><span class="num">21</span>Extra: a new terminal in the middle<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
+<section class="step" id="s21">
+<h2><span class="num">22</span>Extra: a new terminal in the middle<label class="done"><input type="checkbox" data-step="21"> done</label></h2>
 <p>The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.</p>
-<p>- <code>cd ~/singular-demo-run</code>: back to the demo folder - the two <code>singular wallet address</code> lines read the public addresses from the vaults; each asks for its passphrase once - <code>koios_url</code> and <code>time_dir</code> are the two values of step 1 - <code>token</code> is the registry's name, read from the create receipt</p>
+<ul><li><code>cd ~/singular-demo-run</code>: back to the demo folder</li><li>the two <code>singular wallet address</code> lines read the public addresses from the vaults; each asks for its passphrase once</li><li><code>koios_url</code> and <code>time_dir</code> are the two values of step 1</li><li><code>token</code> is the registry's name, read from the create receipt</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>cd ~/singular-demo-run
 alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)
 bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
@@ -402,8 +418,8 @@ koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirecto
 token=$(jq -r .stateToken receipts/01-create.json)</code></pre></div>
 <p>Steps 11 and 14 also use the <code>wait_for_slot</code> helper; paste its block from step 11 if it is missing.</p>
 </section>
-<section class="step" id="s21">
-<h2><span class="num">22</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="21"> done</label></h2>
+<section class="step" id="s22">
+<h2><span class="num">23</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="22"> done</label></h2>
 <p>The devnet was started in the background at the beginning. This stops it and its node. The receipts stay in <code>receipts/</code>, the bundles in <code>bundles/</code>, the signatures in <code>witnesses/</code>.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>kill "$devnet_pid"</code></pre></div>
 </section>
