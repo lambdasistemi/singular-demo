@@ -43,7 +43,28 @@ Without the caches nix compiles the Haskell stack on the machine. Accept the fla
 
 On a multi-user nix install a user that is not in `trusted-users` cannot add substituters from a flake, even with `--accept-flake-config`. Then either add the user to `trusted-users` in `/etc/nix/nix.conf`, or list the two caches under `trusted-substituters` and keep the command as it is.
 
+## Without Nix: the Ubuntu kit
+
+A tarball for Ubuntu 24.04 on x86_64 carries the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
+
+```bash
+curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/v0.12.0/singular-demo-v0.12.0-x86_64-linux.tar.gz
+curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/v0.12.0/SHA256SUMS
+sha256sum -c SHA256SUMS
+tar xzf singular-demo-v0.12.0-x86_64-linux.tar.gz
+cd singular-demo-v0.12.0-x86_64-linux
+./demo.sh
+```
+
+`./demo.sh` runs the 16 steps on a private devnet and takes about 8 minutes, two of them real waits on the chain. Everything is a private test chain; nothing touches a public network.
+
+- `STEP_PAUSE=yes ./demo.sh` waits for Enter between steps.
+- `DEVNET_MODE=other-terminal ./demo.sh` leaves the devnet to a second terminal.
+- `WORK=/some/folder ./demo.sh` chooses where vaults, receipts and bundles are kept.
+
+The kit was run in a clean `ubuntu:24.04` container with no `/nix`: exit 0, all 16 steps. A kit with one library removed fails, as it should. It was not independently audited.
+
 ## Limits
 
-- `x86_64-linux` only. Other systems are not built or tested.
-- This shell needs Nix on the machine. Running without Nix is not covered here.
+- The nix shell is `x86_64-linux` only. Other systems are not built or tested.
+- The kit is Ubuntu 24.04 on x86_64. Other distributions and ARM are not tested.
