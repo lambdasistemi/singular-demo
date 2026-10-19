@@ -58,7 +58,7 @@ const idx = {
     steps: steps.map((s, i) => ({ title: s.title.replace(/^Before you start: two programs, one registry/, 'Two programs, one registry').replace(/^Before you start: two ways to sign/, 'Two ways to sign').replace(/^Before you start: /, 'Setup: '), text: `step${i + 1}/text.md` })),
     finish: { text: 'finish/text.md' },
   },
-  backend: { imageid: 'ubuntu' },
+  backend: { imageid: 'ubuntu-4GB' },
 };
 w('index.json', JSON.stringify(idx, null, 2) + '\n');
 
