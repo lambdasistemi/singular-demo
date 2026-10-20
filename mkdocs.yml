@@ -1,5 +1,5 @@
 site_name: Singular demos
-site_description: Demonstrations of Singular on a private Cardano test chain: read a run, play it in the browser, or play it in a Codespace.
+site_description: "Demonstrations of Singular on a private Cardano test chain: read a run, play it in the browser, or play it in a Codespace."
 site_url: https://lambdasistemi.github.io/singular-demo/
 repo_url: https://github.com/lambdasistemi/singular-demo
 docs_dir: docs
@@ -30,3 +30,5 @@ nav:
       - A run: demo1/run.md
       - The annotated script, as it ran: demo1/script-run.md
       - The tutorial: demo1/tutorial.md
+exclude_docs: |
+  build.sh
