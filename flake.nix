@@ -1,5 +1,5 @@
 {
-  description = "Singular v0.12.0, Demo 1: a shell with singular, open-datum, devnet, the blueprint and the genesis in place";
+  description = "Singular v0.13.1, Demo 1: a shell with singular, open-datum, devnet, the blueprint and the genesis in place";
 
   # Binary caches. The programs are built by the project's CI and pushed to
   # paolino.cachix.org (public); cardano-node is also in cache.iog.io. Without
@@ -18,14 +18,14 @@
   inputs = {
     # The tagged source tree: the devnet's genesis files live in it.
     source = {
-      url = "github:lambdasistemi/singular/v0.12.0";
+      url = "github:lambdasistemi/singular/v0.13.1";
       flake = false;
     };
     # The three programs, built by the release's own flakes at the same tag.
-    offchain.url = "github:lambdasistemi/singular/v0.12.0?dir=offchain";
-    open-datum.url = "github:lambdasistemi/singular/v0.12.0?dir=applications/open-datum/offchain";
+    offchain.url = "github:lambdasistemi/singular/v0.13.1?dir=offchain";
+    open-datum.url = "github:lambdasistemi/singular/v0.13.1?dir=applications/open-datum/offchain";
     # The merged deployment blueprint the release archive carries as onchain/plutus.json.
-    open-datum-onchain.url = "github:lambdasistemi/singular/v0.12.0?dir=applications/open-datum/onchain";
+    open-datum-onchain.url = "github:lambdasistemi/singular/v0.13.1?dir=applications/open-datum/onchain";
     # The package set the kit's helper tools (static jq and curl, the musl C
     # compiler, patchelf) come from: the one the programs themselves are built on.
     nixpkgs.follows = "offchain/nixpkgs";
@@ -74,7 +74,7 @@
       };
       blueprint = open-datum-onchain.packages.${system}.open-datum-blueprint;
       # The commands look for version.txt beside the contracts file, so the two travel together.
-      contracts = pkgs.runCommand "singular-contracts-v0.12.0" { } ''
+      contracts = pkgs.runCommand "singular-contracts-v0.13.1" { } ''
         mkdir -p $out
         cp ${blueprint} $out/plutus.json
         cp ${source}/version.txt $out/version.txt
@@ -106,7 +106,7 @@
           # A short temporary directory: the devnet's node socket path has a length limit.
           export TMPDIR=/tmp/singular-demo-$(id -u)
           mkdir -p -m 700 "$TMPDIR"
-          echo "Singular v0.12.0, Demo 1 shell"
+          echo "Singular v0.13.1, Demo 1 shell"
           echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq   on the PATH"
           echo "  \$blueprint          = $blueprint"
           echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"

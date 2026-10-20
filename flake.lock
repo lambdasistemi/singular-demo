@@ -4333,17 +4333,17 @@
       },
       "locked": {
         "dir": "offchain",
-        "lastModified": 1792330849,
-        "narHash": "sha256-JsOc4pGWTIB4UOmNMNtBh8j5jSShEgG6yxAeAfOE49c=",
+        "lastModified": 1792478974,
+        "narHash": "sha256-OeMVigIt0iV9IcwgR6rdAlz4dXzCGK3FaClej0gPNd4=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "abf2ad2ec7bc537a6aaf9205fcd01024aa567d7d",
+        "rev": "994f3aabdcdeaec949f779b585de2003142df22d",
         "type": "github"
       },
       "original": {
         "dir": "offchain",
         "owner": "lambdasistemi",
-        "ref": "v0.12.0",
+        "ref": "v0.13.1",
         "repo": "singular",
         "type": "github"
       }
@@ -4466,17 +4466,17 @@
       },
       "locked": {
         "dir": "applications/open-datum/offchain",
-        "lastModified": 1792330849,
-        "narHash": "sha256-JsOc4pGWTIB4UOmNMNtBh8j5jSShEgG6yxAeAfOE49c=",
+        "lastModified": 1792478974,
+        "narHash": "sha256-OeMVigIt0iV9IcwgR6rdAlz4dXzCGK3FaClej0gPNd4=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "abf2ad2ec7bc537a6aaf9205fcd01024aa567d7d",
+        "rev": "994f3aabdcdeaec949f779b585de2003142df22d",
         "type": "github"
       },
       "original": {
         "dir": "applications/open-datum/offchain",
         "owner": "lambdasistemi",
-        "ref": "v0.12.0",
+        "ref": "v0.13.1",
         "repo": "singular",
         "type": "github"
       }
@@ -4497,17 +4497,17 @@
       },
       "locked": {
         "dir": "applications/open-datum/onchain",
-        "lastModified": 1792330849,
-        "narHash": "sha256-JsOc4pGWTIB4UOmNMNtBh8j5jSShEgG6yxAeAfOE49c=",
+        "lastModified": 1792478974,
+        "narHash": "sha256-OeMVigIt0iV9IcwgR6rdAlz4dXzCGK3FaClej0gPNd4=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "abf2ad2ec7bc537a6aaf9205fcd01024aa567d7d",
+        "rev": "994f3aabdcdeaec949f779b585de2003142df22d",
         "type": "github"
       },
       "original": {
         "dir": "applications/open-datum/onchain",
         "owner": "lambdasistemi",
-        "ref": "v0.12.0",
+        "ref": "v0.13.1",
         "repo": "singular",
         "type": "github"
       }
@@ -4731,16 +4731,16 @@
     "source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792330849,
-        "narHash": "sha256-JsOc4pGWTIB4UOmNMNtBh8j5jSShEgG6yxAeAfOE49c=",
+        "lastModified": 1792478974,
+        "narHash": "sha256-OeMVigIt0iV9IcwgR6rdAlz4dXzCGK3FaClej0gPNd4=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "abf2ad2ec7bc537a6aaf9205fcd01024aa567d7d",
+        "rev": "994f3aabdcdeaec949f779b585de2003142df22d",
         "type": "github"
       },
       "original": {
         "owner": "lambdasistemi",
-        "ref": "v0.12.0",
+        "ref": "v0.13.1",
         "repo": "singular",
         "type": "github"
       }

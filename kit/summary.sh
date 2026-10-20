@@ -38,7 +38,7 @@ case "${1:?json|notes}" in
       + "| container image | \(.container_image_digest) |\n"
       + "| nix | \(.nix_version) |\n"
       + "| runner | \(.runner_image) |\n\n"
-      + "This release is overwritten every day; the fixed release is v0.12.0.\n\n"
+      + "This release is overwritten every day; the fixed release is v0.13.1.\n\n"
       + "Use: download the tarball and SHA256SUMS, then\n\n"
       + "```\nsha256sum -c SHA256SUMS\ntar xzf \(.tarball)\ncd \($dir)\n./demo.sh\n```\n\n"
       + "demo-run.log is the full output of the run; run-summary.json holds the table above."' "${SUMMARY:?run-summary.json}"
