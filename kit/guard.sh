@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Cache-miss guard: refuse to go on if nix would compile anything beyond the
 # trivial local derivations (the kit, the shell, the verifier, the unpacking of
-# the two transaction tools) and the two fixed-output downloads of those tools
+# the two transaction tools; and the small derivations that change with every
+# Singular tag: copies of the tagged source, the package list, the devnet wrapper
+# script and the contract blueprints, which the project's cache does not always
+# hold for a new tag and none of which compiles Haskell) and the two fixed-output
+# downloads of those tools
 # (release executables from GitHub, checked against a hash: downloads, not
 # compiles). The Haskell stack takes hours to build; a missing cache entry must
 # fail the run at once and name the derivation, not start compiling.
@@ -9,7 +13,7 @@
 #   GUARD_ALLOW   extended regex for the derivation names that may be built
 #   NIX_ARGS      extra arguments for nix (for example --store DIR --option substituters URL)
 set -uo pipefail
-GUARD_ALLOW=${GUARD_ALLOW:-'^(singular-demo-kit-[0-9.]+|singular-demo(-env)?|kit-verify|singular-contracts-v[0-9.]+|cardano-tx-tools-[0-9.]+|tx-(inspect|diff)-[0-9.]+-x86_64-linux-musl\.tar\.gz)\.drv$'}
+GUARD_ALLOW=${GUARD_ALLOW:-'^(singular-demo-kit-[0-9.]+|singular-demo(-env)?|kit-verify|singular-contracts-v[0-9.]+|cardano-tx-tools-[0-9.]+|tx-(inspect|diff)-[0-9.]+-x86_64-linux-musl\.tar\.gz|source|packages\.toml|devnet|(registry|open-datum)-plutus-blueprint-[0-9.]+|open-datum-deployment-blueprint)\.drv$'}
 [ $# -gt 0 ] || { echo "usage: guard.sh INSTALLABLE..." >&2; exit 2; }
 
 plan=$(mktemp); trap 'rm -f "$plan"' EXIT
