@@ -218,7 +218,7 @@ tail -n 20 ../devnet.log
 });
 
 // -- the steps
-const stepPages = [...pick(/^s(0[1-9]|1[0-6])-/), ...pick(/^s2[01]-/)];
+const stepPages = [...pick(/^s(0[1-9]|1[0-7])-/), ...pick(/^s2[01]-/)];
 for (const f of stepPages) {
   const pg = read(f);
 

@@ -43,7 +43,7 @@
   <h1>Singular Demo 1, step by step</h1>
   <p>Release v0.13.0 on a private test chain. Copy a block, paste it into one terminal, run it, go to the next. Nothing touches a public network.</p>
 </header>
-<nav><a href="#s0">Shell</a><a href="#s1">Programs</a><a href="#s2">Signing</a><a href="#s3">Setup</a><a href="#s4">1</a><a href="#s5">2</a><a href="#s6">3</a><a href="#s7">4</a><a href="#s8">5</a><a href="#s9">6</a><a href="#s10">7</a><a href="#s11">8</a><a href="#s12">9</a><a href="#s13">10</a><a href="#s14">11</a><a href="#s15">12</a><a href="#s16">13</a><a href="#s17">14</a><a href="#s18">15</a><a href="#s19">16</a><a href="#s20">wallets</a><a href="#s21">transactions</a><a href="#s22">a new terminal</a><a href="#s23">End</a></nav>
+<nav><a href="#s0">Shell</a><a href="#s1">Programs</a><a href="#s2">Signing</a><a href="#s3">Setup</a><a href="#s4">1</a><a href="#s5">2</a><a href="#s6">3</a><a href="#s7">4</a><a href="#s8">5</a><a href="#s9">6</a><a href="#s10">7</a><a href="#s11">8</a><a href="#s12">9</a><a href="#s13">10</a><a href="#s14">11</a><a href="#s15">12</a><a href="#s16">13</a><a href="#s17">14</a><a href="#s18">15</a><a href="#s19">16</a><a href="#s20">17</a><a href="#s21">wallets</a><a href="#s22">transactions</a><a href="#s23">a new terminal</a><a href="#s24">End</a></nav>
 <main>
 <section class="step" id="s0">
 <h2><span class="num">1</span>Before you start: open the shell<label class="done"><input type="checkbox" data-step="0"> done</label></h2>
@@ -252,7 +252,7 @@ jq '{state: .leaf, root}' receipts/10-inspect.json</code></pre></div>
 </section>
 <section class="step" id="s14">
 <h2><span class="num">15</span>Step 11: a request nobody folded: wait out its windows, then reject it<label class="done"><input type="checkbox" data-step="14"> done</label></h2>
-<p>What if nobody folds a request? Alice books the key <code>late</code> and nobody touches it. A request that stays pending past its two windows (processing, then retract) blocks the registry, and the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.</p>
+<p>What if nobody folds a request? Alice books the key <code>late</code> and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.</p>
 <p><strong>Alice books <code>late</code></strong> (her passphrase). Nobody will fold it, so the request stays pending.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key late --payload payload.json \
@@ -341,7 +341,7 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 </section>
 <section class="step" id="s18">
 <h2><span class="num">19</span>Step 15: book the key "dave" (Alice)<label class="done"><input type="checkbox" data-step="18"> done</label></h2>
-<p>The reclaimed request no longer blocks anything, so the registry takes requests again. Alice books one more key, <code>dave</code> (her passphrase).</p>
+<p>The reclaimed request is settled: its deposit is back with Alice. She books one more key, <code>dave</code> (her passphrase).</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>open-datum insert \
   --key dave --payload payload.json \
   --vault alice.vault \
@@ -371,7 +371,19 @@ jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' re
 <p>If the first command is refused because the window ended, the recovery is at the end of step 4 for a booking of a key (Alice reclaims while the retract window is open) and at the end of step 9 for the reject.</p>
 </section>
 <section class="step" id="s20">
-<h2><span class="num">21</span>Extra: look at the wallets<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
+<h2><span class="num">21</span>Step 17: where this design stops<label class="done"><input type="checkbox" data-step="20"> done</label></h2>
+<p>The steps above show what Demo 1 does. Some limits of its design cannot be seen in a command, or only as a refusal. They are stated here as they hold in this release (v0.13.0). Each one says how it is known: shown in the steps, tried on a private chain like this one without being part of the steps, or taken from the project's documentation.</p>
+<p><strong>A booking reserves nothing.</strong> Tried on a private chain. Two people can book the same key, and both bookings succeed. Only the fold decides: it takes one of the two requests and leaves the other out, and its receipt names the reason (<code>key-in-batch</code>: an earlier included request names the same key). In the run that was tried, the fold took the request booked first. The request left out stays pending with its deposit locked, until its owner takes it back with a reclaim while the retract window is open.</p>
+<p><strong>A stuck request is cleared with all the others or not at all.</strong> Tried on a private chain. A reject takes every pending request. While any one of them is still inside its processing window or its retract window, the program refuses to build the reject, even when another request is long past both windows and could be rejected alone. A stale request can therefore wait for a moment when nothing else is inside a window. Two things limit the damage: the owner can take the request back with a reclaim while the retract window is open, and a stale request does not stop the registry. A fold of another key went through while one was pending, and the fold's receipt listed the stale request as left out. The reject itself is a known limit of this release, tracked in https://github.com/lambdasistemi/singular/issues/487</p>
+<p><strong>Folding is open to everyone and required of no one.</strong> Shown in the steps. Bob folds Alice's request and Alice folds Bob's, and a request nobody folds, like <code>late</code>, stays pending. The design does not promise that a request is ever folded. It gives its owner the two ways out seen above, the reclaim and the reject.</p>
+<p><strong>A fold has a capacity.</strong> Shown in the fold's receipt, which states the capacity as nine requests and calls it "an estimate, not a measurement: about nine requests fit in a fold under preprod's execution budget of 14 million memory units, bound by trie-proof verification". The steps fold one request at a time and never come near it.</p>
+<p><strong>A booking that never lands is not recovered by waiting.</strong> From the documentation. A fold carries a deadline; a booking does not. A booking that did not reach the chain, or was rolled back and not included again, stays unresolved however far the chain moves on, and every later write stops on it. The documentation calls this a known limit of the commands: https://github.com/lambdasistemi/singular/blob/v0.13.0/docs/cli-recovery.md The steps above did not meet it.</p>
+<p><strong>A key does not come back.</strong> Shown in the steps. A key is added once and can be ended for good; nothing returns it to unknown, and <code>alice</code> stays terminal. Reusable names are not part of this release.</p>
+<p><strong>The application protects the payload and the deposit, nothing more.</strong> From the documentation. <code>open-datum</code> is a demonstration of the registry's mechanics, not a way to guard names or secrets.</p>
+<p><strong>This is one play on a private chain.</strong> The windows here are three minutes and one minute so that the waits stay short; the defaults are ten minutes and five. The programs read the chain through a provider (here the devnet's own, which answers like a Koios): its answers are taken as claims, and the several reads behind one command need not come from one chain state. Most of this journey has also been played on the public preprod network. What has run where, and what has not, is listed at https://github.com/lambdasistemi/singular/blob/main/docs/demo1-preprod.md</p>
+</section>
+<section class="step" id="s21">
+<h2><span class="num">22</span>Extra: look at the wallets<label class="done"><input type="checkbox" data-step="21"> done</label></h2>
 <p>The next three pages are optional extras. Skip them in a short demo; the journey is complete without them.</p>
 <p>A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.</p>
 <p><strong>A small helper</strong> that asks the chain for the outputs at an address and prints a short form. <code>total_ada</code> is what the wallet holds; each line of <code>utxos</code> is one output: the transaction that made it, its index, its ada and any tokens.</p>
@@ -383,8 +395,8 @@ jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' re
 <p><strong>The chain's own clock</strong>, for reference. It is what the program uses to judge windows: the slot is the chain's unit of time.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot, block_no}'</code></pre></div>
 </section>
-<section class="step" id="s21">
-<h2><span class="num">22</span>Extra: look inside the transactions<label class="done"><input type="checkbox" data-step="21"> done</label></h2>
+<section class="step" id="s22">
+<h2><span class="num">23</span>Extra: look inside the transactions<label class="done"><input type="checkbox" data-step="22"> done</label></h2>
 <p>Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.</p>
 <p><strong>What a prepared transaction is for.</strong> A bundle is a JSON file written by a command run with <code>--bundle</code>. Its <code>effects</code> say in plain words what each transaction does, and <code>deadline</code> is the slot by which it must be sent.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>jq '.transactions[] | {effects, deadline}' bundles/fold-insert.bundle</code></pre></div>
@@ -399,8 +411,8 @@ curl -fsS -X POST "$koios_url/tx_info" -H 'content-type: application/json' -d "{
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000)}], outputs: [.outputs[] | {to: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000), tokens: [.asset_list[].asset_name[0:8]], has_data: (.inline_datum != null)}]}' receipts/tx-info.json</code></pre></div>
 <p><code>jq . receipts/tx-info.json</code> prints all of it. The data on an output is shown as raw bytes; <code>open-datum inspect</code> (step 5) prints the same data decoded. This devnet's web API does not report fees or times.</p>
 </section>
-<section class="step" id="s22">
-<h2><span class="num">23</span>Extra: a new terminal in the middle<label class="done"><input type="checkbox" data-step="22"> done</label></h2>
+<section class="step" id="s23">
+<h2><span class="num">24</span>Extra: a new terminal in the middle<label class="done"><input type="checkbox" data-step="23"> done</label></h2>
 <p>The values below live only in the terminal where they were pasted: the two addresses and <code>koios_url</code>. The chain, the contracts and the registry's name are in <code>singular.json</code>, so they survive a new terminal. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds the rest from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.</p>
 <ul><li><code>cd ~/singular-demo-run</code>: back to the demo folder, where <code>singular.json</code> is</li><li>the two <code>singular wallet address</code> lines read the public addresses from the vaults; each asks for its passphrase once</li><li><code>koios_url</code> is the web API's address, read from the devnet's line</li></ul>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>cd ~/singular-demo-run
@@ -411,8 +423,8 @@ alice_addr=$(singular wallet address --vault alice.vault --network-magic 42)</co
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>koios_url=$(jq -r .providerUrl devnet.out)</code></pre></div>
 <p>Steps 11 and 14 also use the <code>wait_for_slot</code> helper; paste its block from step 11 if it is missing.</p>
 </section>
-<section class="step" id="s23">
-<h2><span class="num">24</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="23"> done</label></h2>
+<section class="step" id="s24">
+<h2><span class="num">25</span>Finish: stop the devnet<label class="done"><input type="checkbox" data-step="24"> done</label></h2>
 <p>The devnet was started in the background at the beginning. This stops it and its node. The receipts stay in <code>receipts/</code>, the bundles in <code>bundles/</code>, the signatures in <code>witnesses/</code>.</p>
 <div class="block"><button class="copy" type="button">Copy</button><pre><code>kill "$devnet_pid"</code></pre></div>
 </section>
