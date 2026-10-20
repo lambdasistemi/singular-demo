@@ -10,7 +10,13 @@ A key is booked, folded into the registry, read back, changed and removed. A req
 
 https://lambdasistemi.github.io/singular-demo/demo1/run/
 
-**Play it in the browser, on Killercoda.** An Ubuntu machine opens in the browser, with nothing to install, and each command runs with a click. The scenarios are in the course `Singular demos` on https://killercoda.com/paolino
+**Play it in the browser, on Killercoda.** An Ubuntu machine opens in the browser, with nothing to install, and each command runs with a click. The scenarios are in the course `Singular demos`:
+
+https://killercoda.com/paolino/course/killercoda
+
+The tutorial step by step, as Alice and as Bob in two tmux windows: https://killercoda.com/paolino/course/killercoda/demo1-steps
+
+The kit's annotated script, run in one go: https://killercoda.com/paolino/course/killercoda/demo1-script
 
 **Play it in a Codespace.** The same lessons beside a terminal, in your own GitHub Codespace (it uses your own Codespaces quota):
 
