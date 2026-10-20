@@ -19,4 +19,4 @@ The relation in one line: **`singular` runs the registry, `open-datum` is the ap
 
 Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.
 
-The code is in the project's repository: the contracts at https://github.com/lambdasistemi/singular/tree/v0.13.0/onchain, the programs at https://github.com/lambdasistemi/singular/tree/v0.13.0/offchain and https://github.com/lambdasistemi/singular/tree/v0.13.0/applications/open-datum. Every command and setting is described at https://lambdasistemi.github.io/singular/docs/singular-node/
+The code is in the project's repository: the contracts at https://github.com/lambdasistemi/singular/tree/@VERSION@/onchain, the programs at https://github.com/lambdasistemi/singular/tree/@VERSION@/offchain and https://github.com/lambdasistemi/singular/tree/@VERSION@/applications/open-datum. Every command and setting is described at https://lambdasistemi.github.io/singular/docs/singular-node/

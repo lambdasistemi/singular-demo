@@ -1,0 +1,111 @@
+{
+  "title": "Singular Demo 1, step by step on a private chain",
+  "description": "Play Singular Demo 1 yourself on a private Cardano test chain, as Alice and as Bob in two tmux windows: book keys, fold them, change and remove them, reject a stuck request and take one back. Ubuntu, nothing to install.",
+  "details": {
+    "intro": {
+      "text": "intro/text.md",
+      "foreground": "intro/foreground.sh",
+      "background": "intro/background.sh"
+    },
+    "steps": [
+      {
+        "title": "tmux, in three words",
+        "text": "step1/text.md"
+      },
+      {
+        "title": "Two programs, one registry",
+        "text": "step2/text.md"
+      },
+      {
+        "title": "Two ways to sign",
+        "text": "step3/text.md"
+      },
+      {
+        "title": "Setup: two wallets and a private chain",
+        "text": "step4/text.md"
+      },
+      {
+        "title": "Step 1: create the registry",
+        "text": "step5/text.md"
+      },
+      {
+        "title": "Step 2: read the registry's page",
+        "text": "step6/text.md"
+      },
+      {
+        "title": "Step 3: book the key \"alice\" (Alice)",
+        "text": "step7/text.md"
+      },
+      {
+        "title": "Step 4: fold it (Bob signs outside the program)",
+        "text": "step8/text.md"
+      },
+      {
+        "title": "Step 5: read the key back",
+        "text": "step9/text.md"
+      },
+      {
+        "title": "Step 6: change the data (Alice)",
+        "text": "step10/text.md"
+      },
+      {
+        "title": "Step 7: read the key back again",
+        "text": "step11/text.md"
+      },
+      {
+        "title": "Step 8: book the removal of the key (Alice)",
+        "text": "step12/text.md"
+      },
+      {
+        "title": "Step 9: fold the removal (Bob signs outside the program)",
+        "text": "step13/text.md"
+      },
+      {
+        "title": "Step 10: read the removed key",
+        "text": "step14/text.md"
+      },
+      {
+        "title": "Step 11: a request nobody folded: wait out its windows, then reject it",
+        "text": "step15/text.md"
+      },
+      {
+        "title": "Step 12: book the key \"bob\" (Bob signs outside the program)",
+        "text": "step16/text.md"
+      },
+      {
+        "title": "Step 13: fold Bob's key (Alice, vault in one command)",
+        "text": "step17/text.md"
+      },
+      {
+        "title": "Step 14: take back a request: wait for the retract window, then reclaim it",
+        "text": "step18/text.md"
+      },
+      {
+        "title": "Step 15: book the key \"dave\" (Alice)",
+        "text": "step19/text.md"
+      },
+      {
+        "title": "Step 16: fold \"dave\" (Bob signs outside the program), then read it",
+        "text": "step20/text.md"
+      },
+      {
+        "title": "Step 17: where this design stops",
+        "text": "step21/text.md"
+      },
+      {
+        "title": "Extra: look at the wallets",
+        "text": "step22/text.md"
+      },
+      {
+        "title": "Extra: look inside the transactions",
+        "text": "step23/text.md"
+      }
+    ],
+    "finish": {
+      "text": "finish/text.md"
+    }
+  },
+  "backend": {
+    "imageid": "ubuntu-4GB"
+  }
+}

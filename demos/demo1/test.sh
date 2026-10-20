@@ -3,7 +3,7 @@
 # then checks the receipts. Run it inside the nix shell:
 #   nix develop path:. --command bash runbook/test.sh
 # or, with no Nix, against the unpacked Ubuntu kit (for example inside a clean ubuntu:24.04 container):
-#   KIT_DIR=/path/to/singular-demo-v0.13.0-x86_64-linux bash runbook/test.sh
+#   KIT_DIR=/path/to/singular-demo-VERSION-x86_64-linux bash runbook/test.sh
 # It takes about ten minutes: the reject and the reclaim wait for the chain's own clock.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)

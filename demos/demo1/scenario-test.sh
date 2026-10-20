@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs a generated Killercoda scenario the way Killercoda runs it, on a clean Ubuntu with no Nix, in REAL tmux windows:
-#   node runbook/killercoda.js /tmp/scenario
+#   node demos/demo1/killercoda.js /tmp/out
 #   docker run --rm --memory 8g -v /tmp/scenario:/scenario:ro -v "$PWD":/repo:ro ubuntu:24.04 \
-#     bash /repo/runbook/scenario-test.sh /scenario
+#     bash /repo/demos/demo1/scenario-test.sh /scenario     (/scenario is /tmp/out/killercoda/demo1-steps)
 # 1. the machine gets curl (Killercoda's has it); the scenario's intro/background.sh runs (kit, tmux, settings files),
 #    then intro/foreground.sh (the three tmux windows)
 # 2. the click-to-run blocks of every step, in the order of index.json, then of the finish page, are TYPED into the
@@ -11,7 +11,8 @@
 #    window, which keeps its prompt); passphrase prompts are answered when they appear on the screen, as a person would;
 #    the chain is stopped at the end by the block of the finish page (kill %1)
 # 3. the receipts of Alice's and Bob's directories are checked
-# KIT_BASE=file:///dir takes the kit from a folder instead of the release page (a kit not published yet)
+# KIT_BASE=file:///dir takes the kit from a folder instead of the release page (a kit not published yet); the
+# setup script reads it as PLAY_KIT_BASE
 set -u
 scenario=$(cd "${1:?usage: scenario-test.sh SCENARIO_DIR}" && pwd)
 here=$(cd "$(dirname "$0")" && pwd)
@@ -22,7 +23,7 @@ if ! command -v curl >/dev/null; then apt-get update -qq && apt-get install -y -
 work=$(mktemp -d /tmp/sc-XXXXXX)
 # KIT_BASE=file:///dir (a folder with the kit tarball and SHA256SUMS) tests a kit that is not published yet
 background="$scenario/intro/background.sh"
-if [ -n "${KIT_BASE:-}" ]; then background="$work/background-local.sh"; sed "s|^base=.*|base=$KIT_BASE|" "$scenario/intro/background.sh" > "$background"; fi
+[ -z "${KIT_BASE:-}" ] || export PLAY_KIT_BASE="$KIT_BASE"
 if ! bash "$background" > "$work/background.log" 2>&1 || [ ! -f /tmp/finished ]; then
   echo "FAIL  intro/background.sh did not finish"; tail -8 "$work/background.log"; exit 1
 fi

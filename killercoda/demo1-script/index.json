@@ -1,0 +1,23 @@
+{
+  "title": "Singular Demo 1 on a private devnet",
+  "description": "The Demo 1 script of Singular v0.13.1 on a private Cardano test chain, on Ubuntu, with nothing to install.",
+  "details": {
+    "intro": {
+      "text": "intro/text.md",
+      "foreground": "intro/foreground.sh",
+      "background": "intro/background.sh"
+    },
+    "steps": [
+      {
+        "title": "Run the demo",
+        "text": "step1/text.md"
+      }
+    ],
+    "finish": {
+      "text": "finish/text.md"
+    }
+  },
+  "backend": {
+    "imageid": "ubuntu-4GB"
+  }
+}

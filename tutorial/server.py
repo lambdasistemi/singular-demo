@@ -23,7 +23,8 @@ STATIC = ROOT / "tutorial/static"
 
 
 def load_lessons():
-    directory = ROOT / "singular-demo-steps"
+    # the scenario this tutorial plays: the Killercoda scenario generated in this repository (TUTORIAL_SCENARIO names another)
+    directory = ROOT / os.environ.get("TUTORIAL_SCENARIO", "killercoda/demo1-steps")
     index = json.loads((directory / "index.json").read_text())
     pages = [("Start here", ROOT / "tutorial/welcome.md")]
     pages += [(step["title"], directory / step["text"]) for step in index["details"]["steps"]]

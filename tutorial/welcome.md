@@ -12,7 +12,7 @@ When a wallet asks for a passphrase, type it in the terminal and press Enter. Ch
 
 ## Ready to begin
 
-The Singular kit is prepared during Codespaces setup. Click below to prepare the three windows for the v0.13.0 walkthrough. If a previous demo folder exists, it is saved under a dated name before the new one is created:
+The Singular kit is prepared during Codespaces setup. Click below to prepare the three windows for the walkthrough. If a previous demo folder exists, it is saved under a dated name before the new one is created:
 
 ```bash
 bash "$TUTORIAL_ROOT/tutorial/prepare-demo.sh"

@@ -1,5 +1,5 @@
 // Builds a Killercoda scenario (Ubuntu, no Nix) from the runbook step files.
-//   node runbook/killercoda.js OUTDIR
+//   node demos/demo1/killercoda.js ROOT   writes ROOT/killercoda/demo1-steps and ROOT/killercoda/demo1-script, and the two structure.json files
 //
 // The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `chain` (the private
 // chain, a background job of its window), each person in a directory of their own with their own vault, receipts and
@@ -12,11 +12,15 @@ const fs = require('fs');
 const path = require('path');
 
 const dir = __dirname;
-const out = process.argv[2];
-if (!out) { console.error('usage: node killercoda.js OUTDIR'); process.exit(2); }
+const root = process.argv[2];
+if (!root) { console.error('usage: node killercoda.js ROOT'); process.exit(2); }
+// Killercoda reads a course (a directory of scenarios) named by structure.json; everything else in the repository is ignored.
+const course = path.join(root, 'killercoda');
+const out = path.join(course, 'demo1-steps');
 
-const KIT = 'singular-demo-v0.13.0-x86_64-linux';
-const BASE = 'https://github.com/lambdasistemi/singular-demo/releases/download/v0.13.0';
+const VERSION = require('./version.js');
+const KIT = `singular-demo-${VERSION}-x86_64-linux`;
+const BASE = `https://github.com/lambdasistemi/singular-demo/releases/download/${VERSION}`;
 const RUN = '~/singular-demo-run';
 
 // ---- reading the step files
@@ -41,7 +45,7 @@ function parse(text) {
   return { title, parts };
 }
 
-const read = (f) => parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+const read = (f) => parse(fs.readFileSync(path.join(dir, f), 'utf8').split('@VERSION@').join(VERSION));
 const stepFiles = fs.readdirSync(dir).filter((f) => /^s\d.*\.md$/.test(f)).sort();
 const pick = (re) => stepFiles.filter((f) => re.test(f));
 
@@ -271,6 +275,9 @@ for (const f of stepPages) {
 // ---- output
 
 fs.rmSync(out, { recursive: true, force: true });
+fs.mkdirSync(course, { recursive: true });
+fs.writeFileSync(path.join(root, 'structure.json'), JSON.stringify({ items: [{ path: 'killercoda', title: 'Singular demos' }] }, null, 2) + '\n');
+fs.writeFileSync(path.join(course, 'structure.json'), JSON.stringify({ items: [{ path: 'demo1-steps' }, { path: 'demo1-script' }] }, null, 2) + '\n');
 const w = (p, s) => { fs.mkdirSync(path.dirname(path.join(out, p)), { recursive: true }); fs.writeFileSync(path.join(out, p), s); };
 
 w('index.json', JSON.stringify({
@@ -301,46 +308,30 @@ The machine lasts one hour at most and is deleted when you close this tab. The w
 A kit with the programs, and tmux, are being installed in the background. When the terminal says \`Ready\`, start.
 `);
 
+// The scripts of the play are the files in play/: the Codespaces tutorial runs the same ones. The setup of the
+// machine writes them out as they are and runs them.
+const PLAYFILES = ['install-kit.sh', 'prepare.sh', 'windows.rc', 'windows.sh'];
+const embed = (files) => files.map((f) => {
+  const text = fs.readFileSync(path.join(dir, 'play', f), 'utf8');
+  if (text.includes('PLAY_EOF')) { console.error('killercoda.js: play/' + f + ' contains the heredoc delimiter'); process.exit(1); }
+  return "cat > /root/play/" + f + " <<'PLAY_EOF'\n" + text.replace(/\n*$/, '\n') + "PLAY_EOF\n";
+}).join('');
+
 w('intro/background.sh', `#!/bin/bash
 set -x
-cd /root
-base=${BASE}
-curl -fsSLO "$base/${KIT}.tar.gz"
-curl -fsSLO "$base/SHA256SUMS"
-sha256sum -c SHA256SUMS
-tar xzf ${KIT}.tar.gz
-# tmux holds the three windows
 export DEBIAN_FRONTEND=noninteractive
+mkdir -p /root/play
+${embed(PLAYFILES)}bash /root/play/install-kit.sh ${VERSION} /root
+# tmux holds the three windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-# one directory for each person (with the folders for their receipts, bundles and witnesses)
-mkdir -p /root/singular-demo-run/alice/receipts /root/singular-demo-run/alice/bundles /root/singular-demo-run/alice/witnesses \\
-  /root/singular-demo-run/bob/receipts /root/singular-demo-run/bob/bundles /root/singular-demo-run/bob/witnesses
-# the settings file Alice's and Bob's windows share; step 1 fills it
-echo '{}' > /root/singular-demo-run/singular.json
-# what every window starts with: the usual bash setup, the programs, the shared settings file and the waiting helper
-cat > /root/singular-demo-run/windows.rc <<'RCEOF'
-[ -f ~/.bashrc ] && . ~/.bashrc
-export PATH="/root/${KIT}/bin:$PATH"
-export blueprint="/root/${KIT}/share/plutus.json"
-export SINGULAR_CONFIG=/root/singular-demo-run/singular.json
-# wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
-wait_for_slot() { local now; until now=$(curl -fsS "$(jq -r .providerUrl /root/singular-demo-run/devnet.out)/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\\n  done: chain slot %s is past slot %s\\n' "$now" "$1"; }
-# one word goes to a window
-alice() { tmux select-window -t alice; }
-bob() { tmux select-window -t bob; }
-chain() { tmux select-window -t chain; }
-RCEOF
-echo 'set -g default-command "bash --rcfile /root/singular-demo-run/windows.rc"' > /root/singular-demo-run/tmux.conf
+bash /root/play/prepare.sh /root/${KIT} /root/singular-demo-run
 touch /tmp/finished
 `);
 
 w('intro/foreground.sh', `echo "Downloading and checking the demo kit, and installing tmux..."
 while [ ! -f /tmp/finished ]; do sleep 1; done
-# the three windows: 0 alice, 1 bob, 2 chain
-tmux -f /root/singular-demo-run/tmux.conf new-session -d -s demo -n alice -c /root/singular-demo-run/alice
-tmux new-window -d -t demo -n bob -c /root/singular-demo-run/bob
-tmux new-window -d -t demo -n chain -c /root/singular-demo-run
+bash /root/play/windows.sh /root/singular-demo-run
 echo "Ready."
 `);
 
@@ -362,3 +353,55 @@ The chain's messages are in \`~/singular-demo-run/devnet.log\`. Alice's receipts
 `);
 
 console.log('scenario written to ' + out + ': ' + pages.length + ' steps');
+
+// ---- the second scenario: the kit's annotated script, run as it is
+const script = path.join(course, 'demo1-script');
+fs.rmSync(script, { recursive: true, force: true });
+const ws = (p, t) => { fs.mkdirSync(path.dirname(path.join(script, p)), { recursive: true }); fs.writeFileSync(path.join(script, p), t); };
+ws('index.json', JSON.stringify({
+  title: 'Singular Demo 1 on a private devnet',
+  description: `The Demo 1 script of Singular ${VERSION} on a private Cardano test chain, on Ubuntu, with nothing to install.`,
+  details: {
+    intro: { text: 'intro/text.md', foreground: 'intro/foreground.sh', background: 'intro/background.sh' },
+    steps: [{ title: 'Run the demo', text: 'step1/text.md' }],
+    finish: { text: 'finish/text.md' },
+  },
+  backend: { imageid: 'ubuntu-4GB' },
+}, null, 2) + '\n');
+ws('intro/text.md', `This machine is a plain Ubuntu. A kit with the Singular programs, a private Cardano test chain and an annotated script of Demo 1 is being downloaded and unpacked in the background; nothing is installed on the system.
+
+When the terminal says \`Ready\`, go to the next step.
+`);
+ws('intro/background.sh', `#!/bin/bash
+set -x
+mkdir -p /root/play
+${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${VERSION} /root
+touch /tmp/finished
+`);
+ws('intro/foreground.sh', `echo "Downloading and checking the demo kit..."
+while [ ! -f /tmp/finished ]; do sleep 1; done
+echo "Ready."
+`);
+ws('step1/text.md', `Run the annotated script. It starts a private test chain, creates two wallets, and plays all 16 steps of Demo 1, explaining each one as it goes. It takes about 5 minutes, two of them real waits on the chain (the registry's windows are set to 60 and 30 seconds here).
+
+The script runs in the background and writes everything to a log, and the terminal follows the log. So pressing Ctrl+C, or copying text with it, only stops the following: the demo carries on.
+
+\`\`\`bash
+cd ~/${KIT} && (PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 setsid nohup ./demo.sh > demo.log 2>&1 &) ; sleep 1; tail -n +1 -f demo.log
+\`\`\`{{exec}}
+
+To copy text from the terminal, select it and use Ctrl+Shift+C, or right-click.
+
+If you stopped following, pick the log up again from the start:
+
+\`\`\`bash
+tail -n +1 -f ~/${KIT}/demo.log
+\`\`\`{{exec}}
+
+The script asks nothing; the wallets use throwaway passphrases. When the log ends with the last step, the run is over and the chain it started has been stopped.
+`);
+ws('finish/text.md', `That was all 16 steps: a key booked, folded, changed and removed; a stuck request rejected; a request taken back. Everything ran on a private test chain.
+
+The receipts are in \`~/${KIT}/singular-demo-run/receipts\`.
+`);
+console.log('script scenario written to ' + script);

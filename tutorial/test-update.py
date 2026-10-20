@@ -4,7 +4,9 @@ from pathlib import Path
 repo=Path(__file__).resolve().parent.parent
 with tempfile.TemporaryDirectory(prefix='tutorial-update-') as temp:
     root=Path(temp); tutorial=root/'tutorial'; tutorial.mkdir()
-    shutil.copytree(repo/'singular-demo-steps',root/'singular-demo-steps')
+    shutil.copytree(repo/'killercoda/demo1-steps',root/'killercoda/demo1-steps')
+    shutil.copytree(repo/'demos/demo1/play',root/'demos/demo1/play')
+    shutil.copy(repo/'demos/demo1/version.js',root/'demos/demo1/version.js'); shutil.copy(repo/'flake.nix',root/'flake.nix')
     for name in ['server.py','shell-rc.sh','start.sh','open.sh','stop.py','update.sh','install-kit.sh','welcome.md','finish.md','requirements.txt','package.json']:
         shutil.copy(repo/'tutorial'/name,tutorial/name)
     (tutorial/'.venv').symlink_to(repo/'tutorial/.venv',target_is_directory=True)
@@ -13,8 +15,9 @@ with tempfile.TemporaryDirectory(prefix='tutorial-update-') as temp:
     # Stub only package installation; use the real server and update lifecycle.
     (tutorial/'setup.sh').write_text("#!/bin/bash\nset -e\necho installed >> setup-calls\nsha256sum requirements.txt package.json setup.sh | sha256sum | cut -d ' ' -f1 > .setup-fingerprint\n")
     home=root/'home'; home.mkdir()
-    kit=home/'singular-demo-v0.13.0-x86_64-linux'; (kit/'bin').mkdir(parents=True)
-    (kit/'bin/singular').write_text('#!/bin/sh\n');(kit/'bin/singular').chmod(0o755);(kit/'.tutorial-verified').touch()
+    version=subprocess.run(['node','-p',"require('"+str(root/'demos/demo1/version.js')+"')"],capture_output=True,text=True,check=True).stdout.strip()
+    kit=home/('singular-demo-'+version+'-x86_64-linux'); (kit/'bin').mkdir(parents=True)
+    (kit/'bin/singular').write_text('#!/bin/sh\n');(kit/'bin/singular').chmod(0o755);(kit/'.verified').touch()
     (home/'keep-me').write_text('existing learner file')
     env={**os.environ,'HOME':str(home),'CODESPACE_NAME':'upgrade-test'}
     def run(name):

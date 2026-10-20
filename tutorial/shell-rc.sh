@@ -8,6 +8,3 @@ PROMPT_COMMAND=__tutorial_prompt
 trap '[[ $BASH_COMMAND == __tutorial_prompt ]] || printf 0 > "$TUTORIAL_STATE_DIR/$BASHPID.ready"' DEBUG
 trap 'jobs -pr | xargs -r kill 2>/dev/null || true' EXIT
 tmux() { command tmux -L "$TUTORIAL_TMUX_SOCKET" "$@"; }
-alice() { tmux select-window -t demo:alice; }
-bob() { tmux select-window -t demo:bob; }
-chain() { tmux select-window -t demo:chain; }
