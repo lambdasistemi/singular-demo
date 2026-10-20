@@ -1,25 +1,25 @@
 """Single-user tutorial runner. Keep the Codespaces forwarded port PRIVATE."""
+
 import asyncio
 import codecs
 import fcntl
 import json
 import os
-from pathlib import Path
 import pty
 import re
 import secrets
-import signal
 import shutil
-import subprocess
+import signal
 import struct
+import subprocess
 import tempfile
 import termios
+from pathlib import Path
 
 from aiohttp import web
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "tutorial/static"
-
 
 
 def load_lessons():
@@ -37,7 +37,7 @@ def load_lessons():
             source += (ROOT / "tutorial/finish.md").read_text()
         for match in pattern.finditer(source):
             if match.start() > end:
-                blocks.append({"kind": "markdown", "text": source[end:match.start()]})
+                blocks.append({"kind": "markdown", "text": source[end : match.start()]})
             command_id = str(len(commands)) if match[3] else None
             if command_id is not None:
                 commands[command_id] = match[2]
@@ -65,8 +65,12 @@ class Shell:
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             os.chdir(ROOT)
-            os.environ.update(TERM="xterm-256color", TUTORIAL_ROOT=str(ROOT),
-                              TUTORIAL_STATE_DIR=self.state_dir.name, TUTORIAL_TMUX_SOCKET=self.tmux_socket)
+            os.environ.update(
+                TERM="xterm-256color",
+                TUTORIAL_ROOT=str(ROOT),
+                TUTORIAL_STATE_DIR=self.state_dir.name,
+                TUTORIAL_TMUX_SOCKET=self.tmux_socket,
+            )
             os.execvp("bash", ["bash", "--rcfile", self.rc, "-i"])
         os.set_blocking(self.fd, False)
         asyncio.get_running_loop().add_reader(self.fd, self.read)
@@ -99,13 +103,21 @@ class Shell:
         text = self.decoder.decode(data)
         self.history = (self.history + text)[-262144:]
         self.emit({"type": "output", "data": text})
+
     async def watch_prompt(self):
         while not self.exited:
             active_pid = self.pid
             if shutil.which("tmux"):
                 process = await asyncio.create_subprocess_exec(
-                    "tmux", "-L", self.tmux_socket, "list-clients", "-F", "#{pane_pid}",
-                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+                    "tmux",
+                    "-L",
+                    self.tmux_socket,
+                    "list-clients",
+                    "-F",
+                    "#{pane_pid}",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
                 output, _ = await process.communicate()
                 if output.strip().isdigit():
                     active_pid = int(output.strip())
@@ -117,7 +129,7 @@ class Shell:
             if ready != self.ready:
                 self.ready = ready
                 self.emit({"type": "state", "ready": ready, "exited": False})
-            await asyncio.sleep(.1)
+            await asyncio.sleep(0.1)
 
     def mark_busy(self):
         self.ready = False
@@ -142,8 +154,11 @@ class Shell:
         self.monitor.cancel()
         await asyncio.gather(self.monitor, return_exceptions=True)
         if shutil.which("tmux"):
-            subprocess.run(["tmux", "-L", self.tmux_socket, "kill-server"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                ["tmux", "-L", self.tmux_socket, "kill-server"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         asyncio.get_running_loop().remove_reader(self.fd)
         try:
             os.kill(self.pid, signal.SIGHUP)
@@ -156,7 +171,7 @@ class Shell:
                     break
             except ChildProcessError:
                 break
-            await asyncio.sleep(.05)
+            await asyncio.sleep(0.05)
         self.state_dir.cleanup()
 
 
@@ -173,7 +188,9 @@ def make_app():
     @web.middleware
     async def boundary(request, handler):
         if request.host not in hosts:
-            raise web.HTTPForbidden(text="Unexpected host. Use the private Codespaces port or localhost.")
+            raise web.HTTPForbidden(
+                text="Unexpected host. Use the private Codespaces port or localhost."
+            )
         if request.headers.get("Origin") and request.headers["Origin"] not in origins:
             raise web.HTTPForbidden(text="Cross-origin access denied.")
         response = await handler(request)
@@ -200,14 +217,24 @@ def make_app():
         return web.json_response({"lessons": lessons, "token": token})
 
     async def health(request):
-        return web.json_response({"service": "singular-tutorial", "shell_alive": not shell.exited,
-                                  "pid": os.getpid(), "directory": str(ROOT / "tutorial")})
+        return web.json_response(
+            {
+                "service": "singular-tutorial",
+                "shell_alive": not shell.exited,
+                "pid": os.getpid(),
+                "directory": str(ROOT / "tutorial"),
+            }
+        )
 
     async def websocket(request):
-        if request.headers.get("Origin") not in origins or not secrets.compare_digest(request.query.get("token", ""), token):
+        if request.headers.get("Origin") not in origins or not secrets.compare_digest(
+            request.query.get("token", ""), token
+        ):
             raise web.HTTPForbidden(text="Open the tutorial page before connecting.")
         if shell.clients:
-            raise web.HTTPConflict(text="Terminal already open in another tab. Close that tab first.")
+            raise web.HTTPConflict(
+                text="Terminal already open in another tab. Close that tab first."
+            )
         ws = web.WebSocketResponse(max_msg_size=65536, heartbeat=20)
         await ws.prepare(request)
         queue = asyncio.Queue(maxsize=128)
@@ -231,14 +258,22 @@ def make_app():
                 try:
                     event = json.loads(message.data)
                     if event["type"] == "resize":
-                        shell.resize(max(2, min(500, int(event["cols"]))), max(1, min(200, int(event["rows"]))))
+                        shell.resize(
+                            max(2, min(500, int(event["cols"]))),
+                            max(1, min(200, int(event["rows"]))),
+                        )
                     elif event["type"] == "input":
                         if "\r" in event["data"] or "\n" in event["data"]:
                             shell.mark_busy()
                         await shell.write(event["data"])
                     elif event["type"] == "run":
                         if not shell.ready:
-                            await ws.send_json({"type": "error", "message": "The shell is busy. Finish its prompt or press Ctrl+C."})
+                            await ws.send_json(
+                                {
+                                    "type": "error",
+                                    "message": "The shell is busy. Finish its prompt or press Ctrl+C.",
+                                }
+                            )
                             continue
                         command = commands[event["id"]]
                         shell.mark_busy()

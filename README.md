@@ -65,6 +65,16 @@ Killercoda and Codespaces run the same scripts of the play, in `demos/demo1/play
 
 A new demo is a folder `demos/demoN/` beside `demo1`, with its steps, its generator and its tests, and a page in `docs/`.
 
+## Working on this repository
+
+```bash
+nix develop .#dev --command just ci
+```
+
+`just ci` formats nothing and changes nothing: it checks the formatting of every file we write (`nixfmt`, `shfmt`, `biome`, `ruff`), lints them (`shellcheck`, `biome`, `ruff`, `actionlint`), checks that the committed Killercoda scenarios are the ones the step files generate and that this README names the pinned Singular version, and builds the flake checks. `just format` fixes the formatting; `just generate` regenerates the scenarios. The tutorial is edited only in `demos/demo1/s*.md` and its generators, never in `killercoda/`.
+
+A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the three jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the Killercoda scenarios and the Codespaces tutorial. A push to main publishes the daily release and the site; a tag `vX.Y.Z`, which must name the pinned Singular version, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
+
 ## Binary caches
 
 The programs are built by the project's CI and stored in a public Cachix cache. The flake names its caches in `nixConfig`:

@@ -9,15 +9,17 @@
 set -euo pipefail
 case "${1:?json|notes}" in
   json)
-    tarball=$(ls "$DIST"/*.tar.gz); sha=$(cut -d' ' -f1 "$DIST/SHA256SUMS")
+    tarball=$(ls "$DIST"/*.tar.gz)
+    sha=$(cut -d' ' -f1 "$DIST/SHA256SUMS")
     version=$(tar xzf "$tarball" --wildcards '*/VERSION' -O)
     steps=$(grep -c '^━━ Step [0-9]* of 16 ' "$LOG")
-    passed=false; grep -q '^All 16 steps passed\.' "$LOG" && passed=true
+    passed=false
+    grep -q '^All 16 steps passed\.' "$LOG" && passed=true
     jq -n \
       --arg date "$(date -u +%FT%TZ)" --arg run "$RUN_URL" \
-      --arg tag "$(sed -n 's/^singular //p' <<< "$version")" \
-      --arg commit "$(sed -n 's/^commit //p' <<< "$version")" \
-      --arg node "$(sed -n 's/^cardano-node //p' <<< "$version")" \
+      --arg tag "$(sed -n 's/^singular //p' <<<"$version")" \
+      --arg commit "$(sed -n 's/^commit //p' <<<"$version")" \
+      --arg node "$(sed -n 's/^cardano-node //p' <<<"$version")" \
       --arg nix "$NIX_VERSION" --arg runner "$RUNNER_IMAGE" --arg kit "${KIT_COMMIT:-}" \
       --arg image "$IMAGE_REF" --arg digest "$IMAGE_DIGEST" \
       --arg tarball "$(basename "$tarball")" --arg sha "$sha" \
@@ -52,5 +54,8 @@ case "${1:?json|notes}" in
       + "sha256 of `\(.tarball)`: `\(.tarball_sha256)`\n\n"
       + "demo-run.log is the full output of the run; run-summary.json holds the facts above."' "${SUMMARY:?run-summary.json}"
     ;;
-  *) echo "usage: summary.sh json|notes|release-notes" >&2; exit 2;;
+  *)
+    echo "usage: summary.sh json|notes|release-notes" >&2
+    exit 2
+    ;;
 esac

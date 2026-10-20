@@ -1,56 +1,146 @@
-name: kit
+name: CI
 
-# The build and the proofs shared by the daily run and the release run: build the Ubuntu kit of the
-# pinned Singular release from flake.lock, check it, run the 16-step demo in a clean Ubuntu 24.04
-# container (and the failing controls), and run the runbook test. It publishes nothing; the callers do.
+# Every pull request builds the Ubuntu kit of the pinned Singular release, checks the repository, proves the
+# kit in a clean Ubuntu, plays the tutorial and both of its environments (the Killercoda scenarios and the
+# Codespaces tutorial) on that kit, and builds the documentation site from the logs of those runs. publish.yml
+# and release.yml call this workflow and publish what it produced.
+#
+# Jobs that need Nix run on the self-hosted nixos runners, after the Build Gate has built everything once.
+# Three jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
+# have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the Killercoda scenarios (they
+# run on an Ubuntu machine) and the Codespaces tutorial (it runs in an Ubuntu container).
 
 on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
   workflow_call:
 
 permissions:
   contents: read
 
+# A new push to a pull request supersedes its running checks. A run called from another workflow has no pull
+# request number and gets a group of its own.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 env:
   UBUNTU_IMAGE: mirror.gcr.io/library/ubuntu:24.04
 
 jobs:
-  kit:
-    name: Build the kit and run the demo in clean Ubuntu
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    permissions:
-      contents: read
+  build-gate:
+    name: Build Gate
+    runs-on: nixos
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
         with:
-          github_access_token: ${{ github.token }}
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            accept-flake-config = true
-            trusted-users = root runner
+          name: paolino
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Nothing may be compiled
+        run: kit/guard.sh .#kit .#kit-verify .#docs-env .#devShells.x86_64-linux.default .#devShells.x86_64-linux.dev
+      - name: Build everything the jobs below use
+        run: >-
+          nix build --quiet --no-link
+          .#kit
+          .#kit-verify
+          .#docs-env
+          .#devShells.x86_64-linux.default.inputDerivation
+          .#devShells.x86_64-linux.dev.inputDerivation
 
-      - name: Cache-miss guard (nothing may be compiled)
-        run: kit/guard.sh .#kit .#kit-verify .#devShells.x86_64-linux.default
+  checks:
+    name: CI checks
+    needs: build-gate
+    runs-on: nixos
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: paolino
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Flake checks (format, lint, generated files, the README's version)
+        run: nix flake check --no-eval-cache
 
-      - name: Shell smoke test
+  kit:
+    name: CI kit
+    needs: build-gate
+    runs-on: nixos
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: paolino
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: The shell starts
         run: nix develop --command kit/smoke.sh
-
       - name: Build the kit
         run: |
           nix build .#kit --print-build-logs --out-link kit-result
           mkdir dist
           cp kit-result/* dist/
+          nix --version > dist/nix-version.txt
           ls -l dist
           cat dist/SHA256SUMS
-          df -h /
-
       - name: Verify the tarball contents
         run: nix run .#kit-verify
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kit
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3
 
+  runbook:
+    name: CI runbook
+    needs: build-gate
+    runs-on: nixos
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: paolino
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Every step of the tutorial, pasted into one shell, against a fresh devnet
+        run: nix develop --command bash demos/demo1/test.sh
+      - name: Keep the log of the run
+        if: always()
+        run: |
+          mkdir -p runbook-out
+          cp /tmp/rb-*/log.txt runbook-out/runbook-test.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: runbook-log
+          path: runbook-out/
+          if-no-files-found: warn
+          retention-days: 14
+
+  clean-room:
+    name: CI clean Ubuntu
+    needs: kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kit
+          path: dist
       - name: Pull the Ubuntu image
         id: image
         run: |
@@ -61,52 +151,31 @@ jobs:
           echo "image $ref"
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "digest=${ref#*@}" >> "$GITHUB_OUTPUT"
-
       - name: Demo in clean Ubuntu 24.04 (16 steps, no /nix, no network)
         env:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
-        run: |
-          TARBALL=$(ls dist/*.tar.gz)
-          export TARBALL
-          kit/container-run.sh good
-
+        run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh good
       - name: Demo with the shortest allowed windows (60 s and 30 s)
         env:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
-        run: |
-          TARBALL=$(ls dist/*.tar.gz)
-          export TARBALL
-          kit/container-run.sh short
-
+        run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh short
       - name: Failing control, windows below the least allowed (must be refused)
         env:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
-        run: |
-          TARBALL=$(ls dist/*.tar.gz)
-          export TARBALL
-          kit/container-run.sh control-window
-
+        run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh control-window
       - name: Failing control, a library of the programs removed (must fail)
         env:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
-        run: |
-          TARBALL=$(ls dist/*.tar.gz)
-          export TARBALL
-          kit/container-run.sh control-main
-
+        run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh control-main
       - name: Failing control, a library of cardano-node removed (must fail)
         env:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
-        run: |
-          TARBALL=$(ls dist/*.tar.gz)
-          export TARBALL
-          kit/container-run.sh control-node
-
+        run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh control-node
       - name: Summary and release files
         env:
           DIST: dist
@@ -116,7 +185,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           KIT_COMMIT: ${{ github.sha }}
         run: |
-          NIX_VERSION=$(nix --version)
+          NIX_VERSION=$(cat dist/nix-version.txt)
           RUNNER_IMAGE="${ImageOS:-unknown} ${ImageVersion:-unknown}"
           export NIX_VERSION RUNNER_IMAGE
           mkdir release
@@ -128,18 +197,14 @@ jobs:
           cp dist/*.tar.gz dist/SHA256SUMS release/
           cp out/container-run-good.log release/demo-run.log
           ls -l release
-
-      - name: Keep the files for the publish job
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release
           path: release/
           if-no-files-found: error
           retention-days: 3
-
-      - name: Keep the logs and receipts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: evidence
           path: |
@@ -149,156 +214,66 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  runbook:
-    name: Runbook test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
-        with:
-          github_access_token: ${{ github.token }}
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            accept-flake-config = true
-            trusted-users = root runner
-
-      - name: Cache-miss guard (nothing may be compiled)
-        run: kit/guard.sh .#devShells.x86_64-linux.default
-
-      - name: Runbook test (every step of the tutorial, pasted into one shell, against a fresh devnet)
-        run: nix develop --command bash demos/demo1/test.sh
-
-      - name: Keep the log of the run
-        if: always()
-        run: |
-          mkdir -p runbook-out
-          cp /tmp/rb-*/log.txt runbook-out/runbook-test.log
-
-      - name: Upload the log of the run
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: runbook-log
-          path: runbook-out/
-          if-no-files-found: warn
-          retention-days: 14
-
-  # What is committed must be what the sources generate, and the repository must agree with itself.
-  checks:
-    name: Generated files and versions agree with the sources
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "22"
-
-      - name: Lint the step files
-        run: bash demos/demo1/lint.sh demos/demo1/s*.md
-
-      - name: The Killercoda scenarios in the repository are the generated ones
-        run: |
-          node demos/demo1/killercoda.js "$RUNNER_TEMP/generated"
-          diff -r "$RUNNER_TEMP/generated/killercoda" killercoda
-          diff "$RUNNER_TEMP/generated/structure.json" structure.json
-
-      - name: The README names the pinned Singular version
-        run: |
-          v=$(node -p "require('./demos/demo1/version.js')")
-          grep -q "^version=$v\$" README.md
-          grep -q "Singular release used is $v\." README.md
-
-  # The Killercoda scenarios, played the way Killercoda plays them, on the kit built in this run.
   scenarios:
-    name: Killercoda scenarios in a clean Ubuntu
+    name: CI scenarios
     needs: kit
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: release
-          path: release
-
+          name: kit
+          path: dist
       - name: The step-by-step scenario (real tmux windows, every click-to-run block typed in)
         run: |
           docker run --rm --memory 12g -e KIT_BASE=file:///kit \
-            -v "$PWD/killercoda/demo1-steps:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/release:/kit:ro" \
+            -v "$PWD/killercoda/demo1-steps:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/dist:/kit:ro" \
             ubuntu:24.04 bash /repo/demos/demo1/scenario-test.sh /scenario
-
       - name: The annotated-script scenario
         run: |
           docker run --rm --memory 12g -e KIT_BASE=file:///kit \
-            -v "$PWD/killercoda/demo1-script:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/release:/kit:ro" \
+            -v "$PWD/killercoda/demo1-script:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/dist:/kit:ro" \
             ubuntu:24.04 bash /repo/demos/demo1/script-scenario-test.sh /scenario
 
-  # The Codespaces tutorial: its own tests, then the whole demo through its buttons, on the kit built in this run.
   tutorial:
-    name: Codespaces tutorial
+    name: CI tutorial
     needs: kit
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: release
-          path: release
-
+          name: kit
+          path: dist
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
-
       - name: Install the tutorial's dependencies
         run: bash tutorial/setup.sh
-
       - name: The persistent shell and the access boundaries
         run: tutorial/.venv/bin/python tutorial/test_runner.py
-
       - name: Updating without rebuilding
         run: tutorial/.venv/bin/python tutorial/test-update.py
-
       - name: Install the browser
         working-directory: tutorial
         run: npx playwright install --with-deps chromium
-
-      - name: The browser experience
+      - name: The browser experience, the terminal theme
         working-directory: tutorial
         run: npm run test:browser
-
       - name: The whole demo through the browser
         working-directory: tutorial
         env:
-          PLAY_KIT_BASE: file://${{ github.workspace }}/release
+          PLAY_KIT_BASE: file://${{ github.workspace }}/dist
         run: node test-demo.cjs
-
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -307,40 +282,29 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # The documentation site, built from the logs of the runs above. The caller publishes it.
   docs:
-    name: Documentation site
-    needs: [kit, runbook]
-    runs-on: ubuntu-24.04
+    name: Docs build
+    needs: [runbook, clean-room]
+    runs-on: nixos
     timeout-minutes: 15
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
         with:
-          github_access_token: ${{ github.token }}
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            accept-flake-config = true
-            trusted-users = root runner
-
+          name: paolino
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release
           path: release
-
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: runbook-log
           path: runbook-out
-
       - name: Build the site (mkdocs, --strict)
         run: nix shell .#docs-env --command bash docs/build.sh runbook-out/runbook-test.log release/demo-run.log
-
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site/

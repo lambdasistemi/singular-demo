@@ -7,7 +7,7 @@ if curl -fsS http://127.0.0.1:8765/health >/dev/null 2>&1; then
 fi
 nohup .venv/bin/python server.py >server.log 2>&1 &
 echo "$!" >server.pid
-for attempt in {1..60}; do
+for _ in {1..60}; do
   if curl -fsS http://127.0.0.1:8765/health >/dev/null 2>&1; then
     bash ./open.sh
     exit 0

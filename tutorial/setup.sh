@@ -17,4 +17,4 @@ cp node_modules/@xterm/xterm/css/xterm.css static/vendor/
 cp node_modules/@xterm/addon-fit/lib/addon-fit.js static/vendor/
 cp node_modules/marked/lib/marked.umd.js static/vendor/
 printf '\nTutorial dependencies installed.\n'
-sha256sum requirements.txt package.json setup.sh | sha256sum | cut -d ' ' -f1 > .setup-fingerprint
+sha256sum requirements.txt package.json setup.sh | sha256sum | cut -d ' ' -f1 >.setup-fingerprint

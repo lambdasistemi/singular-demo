@@ -1,11 +1,12 @@
 """Stop only the tutorial process recorded by start.sh, never an unrelated PID."""
+
 import json
 import os
-from pathlib import Path
 import signal
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 root = Path(__file__).resolve().parent
 pidfile = root / "server.pid"
@@ -40,16 +41,18 @@ if pidfile.exists():
                 os.kill(pid, 0)
             except ProcessLookupError:
                 pidfile.unlink(missing_ok=True)
-                raise SystemExit(0)
+                raise SystemExit(0) from None
     if not owned:
-        raise SystemExit("Recorded PID belongs to another process; leaving it untouched. Remove tutorial/server.pid after checking it.")
+        raise SystemExit(
+            "Recorded PID belongs to another process; leaving it untouched. Remove tutorial/server.pid after checking it."
+        )
     print("Restarting the tutorial: the live shell and private chain will end; files remain.")
     os.kill(pid, signal.SIGTERM)
     for _ in range(100):
         current = health()
         if not current or (current.get("pid") is not None and current["pid"] != pid):
             break
-        time.sleep(.05)
+        time.sleep(0.05)
     else:
         raise SystemExit("Tutorial did not stop. Check its terminal before retrying.")
     pidfile.unlink(missing_ok=True)

@@ -45,8 +45,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$run"/{alice,bob}/{receipts,bundles,witnesses}
 run=$(cd "$run" && pwd)
 # the settings file Alice's and Bob's windows share; step 1 fills it
-[ -f "$run/singular.json" ] || echo '{}' > "$run/singular.json"
-printf 'PLAY_KIT=%q\nPLAY_RUN=%q\n' "$kit" "$run" > "$run/play.env"
+[ -f "$run/singular.json" ] || echo '{}' >"$run/singular.json"
+printf 'PLAY_KIT=%q\nPLAY_RUN=%q\n' "$kit" "$run" >"$run/play.env"
 cp "$here/windows.rc" "$run/windows.rc"
 echo "The folders of the play are ready: $run"
 PLAY_EOF
@@ -61,7 +61,14 @@ export PATH="$PLAY_KIT/bin:$PATH"
 export blueprint="$PLAY_KIT/share/plutus.json"
 export SINGULAR_CONFIG="$PLAY_RUN/singular.json"
 # wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
-wait_for_slot() { local now; until now=$(curl -fsS "$(jq -r .providerUrl "$PLAY_RUN/devnet.out")/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }
+wait_for_slot() {
+  local now
+  until now=$(curl -fsS "$(jq -r .providerUrl "$PLAY_RUN/devnet.out")/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do
+    printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"
+    sleep 2
+  done
+  printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"
+}
 # one word goes to a window
 alice() { tmux select-window -t alice; }
 bob() { tmux select-window -t bob; }

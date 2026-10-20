@@ -12,11 +12,12 @@ node demos/demo1/build.js
 cp demos/demo1/DEMO.md docs/demo1/tutorial.md
 cp demos/demo1/demo.html docs/demo1/interactive.html
 node demos/demo1/record.js "$runbook_log" docs/demo1/run.md
+# shellcheck disable=SC2016 # the backticks in the text are Markdown, not command substitution
 {
   printf '# The annotated script, as it ran\n\n'
   printf 'The kit'"'"'s own script, `demo.sh`, played all 16 steps of Demo 1 in a clean Ubuntu 24.04 container with no Nix and no network. Its log, unedited:\n\n'
   printf '```text\n'
   sed 's/\r$//' "$demo_log"
   printf '```\n'
-} > docs/demo1/script-run.md
+} >docs/demo1/script-run.md
 mkdocs build --strict -d site

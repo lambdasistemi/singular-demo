@@ -13,7 +13,10 @@ for f in "$@"; do
       for (c=1; c<cmds; c++) if (C[c] ~ /--vault/) { printf "%s:%d: a command that asks for a passphrase is followed by %d more in the same block\n", f, start, cmds-c; break }
       inb=0; next }
     inb { L[++n]=$0 }' "$f")
-  [ -z "$out" ] || { echo "$out"; fail=1; }
+  [ -z "$out" ] || {
+    echo "$out"
+    fail=1
+  }
 done
 [ $fail = 0 ] && echo "ok    no block has a passphrase prompt followed by another command"
 exit $fail

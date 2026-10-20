@@ -1,11 +1,12 @@
 """Integration checks against a real Bash PTY and HTTP/WebSocket server."""
+
 import asyncio
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 import aiohttp
 
@@ -19,7 +20,8 @@ class TutorialTest(unittest.IsolatedAsyncioTestCase):
         self.process = subprocess.Popen(
             [sys.executable, str(ROOT / "server.py")],
             env={**os.environ, "HOME": self.home.name},
-            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
         )
         self.session = aiohttp.ClientSession()
         for _ in range(100):
@@ -28,7 +30,7 @@ class TutorialTest(unittest.IsolatedAsyncioTestCase):
                     self.data = await response.json()
                 break
             except aiohttp.ClientError:
-                await asyncio.sleep(.05)
+                await asyncio.sleep(0.05)
         else:
             self.fail("Server did not become ready")
         self.url = BASE + "/ws?token=" + self.data["token"]
@@ -59,17 +61,31 @@ class TutorialTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.data["lessons"]), 25)
         ws, _ = await self.connect()
         await ws.send_json({"type": "resize", "cols": 100, "rows": 30})
-        await ws.send_json({"type": "input", "data": "printf 'Hello from your Singular tutorial!\\n'\r"})
+        await ws.send_json(
+            {"type": "input", "data": "printf 'Hello from your Singular tutorial!\\n'\r"}
+        )
         self.assertIn("Hello from your Singular tutorial!\r\n", await self.until_ready(ws))
-        await ws.send_json({"type": "input", "data": "export learner='Cardano explorer'; mkdir -p ~/tutorial-playground; cd ~/tutorial-playground\r"})
+        await ws.send_json(
+            {
+                "type": "input",
+                "data": "export learner='Cardano explorer'; mkdir -p ~/tutorial-playground; cd ~/tutorial-playground\r",
+            }
+        )
         await self.until_ready(ws)
-        await ws.send_json({"type": "input", "data": 'printf "Welcome, %s\\n%s\\n" "$learner" "$PWD"\r'})
+        await ws.send_json(
+            {"type": "input", "data": 'printf "Welcome, %s\\n%s\\n" "$learner" "$PWD"\r'}
+        )
         output = await self.until_ready(ws)
         self.assertIn("Welcome, Cardano explorer", output)
         self.assertIn(self.home.name + "/tutorial-playground", output)
 
         # The click must not enqueue another command into a password prompt.
-        await ws.send_json({"type": "input", "data": "read -r -s -p 'Type a throwaway word, then Enter: ' practice; printf '\\nReceived %s characters.\\n' \"${#practice}\"; unset practice\r"})
+        await ws.send_json(
+            {
+                "type": "input",
+                "data": "read -r -s -p 'Type a throwaway word, then Enter: ' practice; printf '\\nReceived %s characters.\\n' \"${#practice}\"; unset practice\r",
+            }
+        )
         while True:
             event = await asyncio.wait_for(ws.receive_json(), 5)
             if event["type"] == "output" and "then Enter: " in event["data"]:
@@ -86,20 +102,22 @@ class TutorialTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("testing-secret", output)
 
         await ws.close()
-        await asyncio.sleep(.05)
+        await asyncio.sleep(0.05)
         ws, history = await self.connect()
         self.assertIn("Welcome, Cardano explorer", history)
         self.assertNotIn("testing-secret", history)
         await ws.send_json({"type": "input", "data": "printf 'still:%s\\n' \"$learner\"\r"})
         self.assertIn("still:Cardano explorer", await self.until_ready(ws))
         await ws.send_json({"type": "input", "data": "sleep 60\r"})
-        await asyncio.sleep(.1)
+        await asyncio.sleep(0.1)
         await ws.send_json({"type": "input", "data": "\x03"})
         await self.until_ready(ws)
         await ws.close()
 
     async def test_origin_token_and_second_tab(self):
-        async with self.session.get(BASE + "/api/lessons", headers={"Origin": "https://evil.example"}) as r:
+        async with self.session.get(
+            BASE + "/api/lessons", headers={"Origin": "https://evil.example"}
+        ) as r:
             self.assertEqual(r.status, 403)
         async with self.session.get(BASE + "/", headers={"Host": "evil.example"}) as r:
             self.assertEqual(r.status, 403)

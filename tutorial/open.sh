@@ -6,7 +6,7 @@ if [[ -n "${CODESPACE_NAME:-}" ]]; then
   url="https://${CODESPACE_NAME}-8765.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
 fi
 printf '\n  SINGULAR — YOUR TUTORIAL\n\n  %s\n\n  Open this link in a browser to begin.\n  When finished, stop your Codespace at https://github.com/codespaces\n\n' "$url"
-cat > START-HERE.md <<EOF2
+cat >START-HERE.md <<EOF2
 # Your Singular tutorial is ready
 
 [Open your tutorial]($url)

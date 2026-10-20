@@ -8,9 +8,7 @@
     "cpus": 2,
     "memory": "8gb"
   },
-  "forwardPorts": [
-    8765
-  ],
+  "forwardPorts": [8765],
   "portsAttributes": {
     "8765": {
       "label": "Singular tutorial \u2014 open in browser",
@@ -23,9 +21,7 @@
   "postAttachCommand": "bash tutorial/open.sh --show",
   "customizations": {
     "codespaces": {
-      "openFiles": [
-        "tutorial/START-HERE.md"
-      ]
+      "openFiles": ["tutorial/START-HERE.md"]
     }
   }
 }

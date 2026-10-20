@@ -12,6 +12,7 @@
   body { margin:0; background:var(--bg); color:var(--fg); font:17px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
   header { padding:20px 16px 8px; max-width:980px; margin:0 auto; }
   h1 { font-size:1.5rem; margin:0 0 4px; }
+  p { margin:8px 0; }
   header p { margin:0; color:var(--muted); }
   nav { position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--line); padding:8px 16px; display:flex; flex-wrap:wrap; gap:6px; z-index:2; max-width:980px; margin:0 auto; }
   nav a { color:var(--accent); text-decoration:none; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-size:.85rem; }
@@ -22,12 +23,11 @@
   h2 { font-size:1.15rem; margin:0 0 8px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
   .num { background:var(--accent); color:#fff; border-radius:999px; min-width:1.7em; text-align:center; font-size:.85rem; padding:1px 8px; }
   .done { margin-left:auto; font-size:.85rem; font-weight:400; color:var(--muted); display:flex; align-items:center; gap:6px; }
-  p { margin:8px 0; }
   ul { margin:8px 0; padding-left:1.3em; }
   li { margin:3px 0; }
+  code { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:.9em; }
   li code { background:rgba(127,127,127,.18); padding:1px 5px; border-radius:4px; }
   strong { font-weight:650; }
-  code { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:.9em; }
   p code { background:rgba(127,127,127,.18); padding:1px 5px; border-radius:4px; }
   .block { position:relative; margin:10px 0; }
   pre { background:var(--code); color:var(--codefg); border-radius:8px; padding:14px 90px 14px 14px; margin:0; overflow-x:auto; font-size:.92rem; line-height:1.5; }
@@ -48,27 +48,27 @@
 <!--STEPS-->
 </main>
 <script>
-(function () {
-  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
-  document.querySelectorAll('.copy').forEach(function (b) {
-    b.addEventListener('click', function () {
+(() => {
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (_e) { return null; } }
+  document.querySelectorAll('.copy').forEach((b) => {
+    b.addEventListener('click', () => {
       var text = b.parentNode.querySelector('code').textContent;
       if (!/\n$/.test(text)) text += '\n'; // end with a line return, so the last command runs when pasted
-      function ok() { b.textContent = 'Copied'; b.classList.add('ok'); setTimeout(function () { b.textContent = 'Copy'; b.classList.remove('ok'); }, 1400); }
+      function ok() { b.textContent = 'Copied'; b.classList.add('ok'); setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('ok'); }, 1400); }
       function fallback() {
         var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
         document.body.appendChild(t); t.select();
-        try { document.execCommand('copy'); ok(); } catch (e) { b.textContent = 'Select and copy'; }
+        try { document.execCommand('copy'); ok(); } catch (_e) { b.textContent = 'Select and copy'; }
         document.body.removeChild(t);
       }
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
     });
   });
-  document.querySelectorAll('input[data-step]').forEach(function (c) {
-    var i = c.getAttribute('data-step'), sec = document.getElementById('s' + i), link = document.querySelectorAll('nav a')[i];
+  document.querySelectorAll('input[data-step]').forEach((c) => {
+    var i = c.getAttribute('data-step'), sec = document.getElementById(`s${i}`), link = document.querySelectorAll('nav a')[i];
     function apply() { sec.classList.toggle('is-done', c.checked); if (link) link.classList.toggle('done', c.checked); }
-    c.checked = store('singular-demo-step-' + i) === '1'; apply();
-    c.addEventListener('change', function () { store('singular-demo-step-' + i, c.checked ? '1' : '0'); apply(); });
+    c.checked = store(`singular-demo-step-${i}`) === '1'; apply();
+    c.addEventListener('change', () => { store(`singular-demo-step-${i}`, c.checked ? '1' : '0'); apply(); });
   });
 })();
 </script>
