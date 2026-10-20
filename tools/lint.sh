@@ -24,7 +24,7 @@ step "python (ruff)"
 ruff check tutorial || fail=1
 
 step "workflows (actionlint)"
-actionlint .github/workflows/*.yml || fail=1
+actionlint -config-file .github/actionlint.yaml .github/workflows/*.yml || fail=1
 
 step "the step files (lint.sh of the demo)"
 bash demos/demo1/lint.sh demos/demo1/s*.md || fail=1
