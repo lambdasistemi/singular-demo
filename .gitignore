@@ -9,3 +9,12 @@ tutorial/screenshots/
 /tutorial/START-HERE.md
 
 /tutorial/.setup-fingerprint
+
+# the pages made from real runs, and the site built from them
+/docs/demo1/tutorial.md
+/docs/demo1/run.md
+/docs/demo1/script-run.md
+/docs/demo1/interactive.html
+/site/
+/demos/demo1/DEMO.md
+/demos/demo1/demo.html

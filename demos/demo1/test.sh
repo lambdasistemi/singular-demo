@@ -9,7 +9,8 @@ set -u
 here=$(cd "$(dirname "$0")" && pwd)
 bash "$here/lint.sh" "$here"/s*.md || exit 1
 work=$(mktemp -d /tmp/rb-XXXXXX)
-for f in "$here"/s*.md; do awk '/^```bash$/{on=1; next} /^```/{on=0} on' "$f"; done > "$work/blocks.sh"
+# A marker line comes before each block, so record.js can pair every command with what it printed.
+for f in "$here"/s*.md; do awk -v f="$(basename "$f")" '/^```bash$/{on=1; n++; print "echo \"@@ BLOCK " f " " n "\""; next} /^```/{on=0} on' "$f"; done > "$work/blocks.sh"
 {
   printf 'export HOME=%q TMPDIR=%q PASSDIR=%q LOGFILE=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp" "$work/pass" "$work/log.txt"
   # With KIT_DIR set (the unpacked Ubuntu kit, no Nix), the programs and the contracts come from the kit.

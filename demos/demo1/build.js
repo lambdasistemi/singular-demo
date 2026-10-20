@@ -42,8 +42,8 @@ const steps = files.map((f) => ({ file: f, ...parse(fs.readFileSync(path.join(di
 
 // DEMO.md: GitHub shows a copy button on every code block.
 let md = '# Singular Demo 1, step by step\n\n' +
-  'Every grey block has a copy button on GitHub: copy it, paste it into the terminal, run the next one. ' +
-  'The blocks are meant to be pasted in order into one terminal. A page with bigger buttons and a done mark per step is in `demo.html`.\n\n' +
+  'Every block has a copy button: copy it, paste it into the terminal, run the next one. ' +
+  'The blocks are meant to be pasted in order into one terminal. [A page with bigger buttons and a done mark per step](interactive.html) is the same tutorial.\n\n' +
   'Release ' + VERSION + '. Everything runs on a private test chain. The project is at ' + 'https://github.com/lambdasistemi/singular' + ' and its documentation at ' + 'https://lambdasistemi.github.io/singular/' + '.\n';
 for (const s of steps) {
   md += '\n## ' + s.title + '\n';
