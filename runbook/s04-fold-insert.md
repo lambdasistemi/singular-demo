@@ -33,7 +33,7 @@ singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-ins
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
 ```
 
-**If the first command was refused because the window ended.**
+**If the first command was refused because the window ended.** The documentation on recovery is at https://lambdasistemi.github.io/singular/docs/cli-recovery/
 
 The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected. See where the chain is compared with the booking's deadline:
 

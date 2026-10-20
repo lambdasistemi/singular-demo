@@ -2,7 +2,7 @@
 
 Every grey block has a copy button on GitHub: copy it, paste it into the terminal, run the next one. The blocks are meant to be pasted in order into one terminal. A page with bigger buttons and a done mark per step is in `demo.html`.
 
-Release v0.13.0. Everything runs on a private test chain.
+Release v0.13.0. Everything runs on a private test chain. The project is at https://github.com/lambdasistemi/singular and its documentation at https://lambdasistemi.github.io/singular/.
 
 ## Before you start: open the shell
 
@@ -45,6 +45,8 @@ The relation in one line: **`singular` runs the registry, `open-datum` is the ap
 
 Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.
 
+The code is in the project's repository: the contracts at https://github.com/lambdasistemi/singular/tree/v0.13.0/onchain, the programs at https://github.com/lambdasistemi/singular/tree/v0.13.0/offchain and https://github.com/lambdasistemi/singular/tree/v0.13.0/applications/open-datum. Every command and setting is described at https://lambdasistemi.github.io/singular/docs/singular-node/
+
 ## Before you start: two ways to sign
 
 Every write in this demo is signed by a wallet, and a command takes exactly one signer. The demo shows two of the ways to give it one, and each of the two people uses one of them throughout.
@@ -53,6 +55,8 @@ Every write in this demo is signed by a wallet, and a command takes exactly one 
 - **By bundle, in three commands (Bob).** The command names only the wallet's public address and a file: `--wallet-address …` and `--bundle …`. It builds the transactions into the file, signs nothing, sends nothing, and exits with status 19, which means "waiting for signatures". Then `singular wallet sign` signs the bundle and `singular submit` sends it. The program that builds the transactions never touches the key, so the signing can happen wherever the key is. Here it is Bob's vault, on the same machine.
 
 **It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side. When you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
+
+Both routes are described in the documentation: the vault at https://lambdasistemi.github.io/singular/docs/singular-node/#keeping-your-signing-key-in-an-encrypted-vault and the bundle at https://lambdasistemi.github.io/singular/docs/singular-node/#signing-a-bundle-of-unsigned-transactions-offline
 
 ## Before you start: two wallets and a private chain
 
@@ -127,9 +131,9 @@ until jq -e .providerUrl devnet.out >/dev/null 2>&1; do sleep 1; done; jq . devn
 
 A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. `create` picks a suitable coin of Alice's by itself and names it in the receipt. The registry's name is its state token.
 
-The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two.
+The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two. The documentation on choosing the windows: https://lambdasistemi.github.io/singular/docs/singular-node/#choosing-a-registrys-windows
 
-**The settings.** The commands need the same settings again and again: where the chain answers, the chain's clock data and number, the compiled contracts, a folder for the registry's journal and, once it exists, the registry's name. Each can be given as an option on the command (`--koios-url URL`), as an environment variable (`SINGULAR_KOIOS_URL=URL`) or as a key in a JSON file (`"koios-url": "URL"`). The first one present wins: option, then variable, then file.
+**The settings.** The commands need the same settings again and again: where the chain answers, the chain's clock data and number, the compiled contracts, a folder for the registry's journal and, once it exists, the registry's name. Each can be given as an option on the command (`--koios-url URL`), as an environment variable (`SINGULAR_KOIOS_URL=URL`) or as a key in a JSON file (`"koios-url": "URL"`). The first one present wins: option, then variable, then file. The full description is at https://lambdasistemi.github.io/singular/docs/singular-node/#giving-the-chain-the-contracts-and-the-registry-once
 
 **For this tutorial, the JSON file**, `singular.json`, so that no command below repeats them. You could override a value with a variable or an option, or skip the file and give every setting that way. The devnet's settings line has two of the values; `jq` builds the file from it.
 
@@ -185,7 +189,7 @@ jq . singular.json
 
 The registry describes itself: which registry this is, which release of Singular runs it, its rules and what it holds now. It needs no key and no wallet, because reading is free. The page is read from the chain's provider, so it is what the chain says and not a signed statement.
 
-The command needs nothing typed: `singular.json` gives it the contracts, the registry's name and the chain. The create receipt prints the same command in its field `describeCommand`, written out in full.
+The command needs nothing typed: `singular.json` gives it the contracts, the registry's name and the chain. The create receipt prints the same command in its field `describeCommand`, written out in full. What each part of the page means: https://lambdasistemi.github.io/singular/docs/registry-page/
 
 ```bash
 singular registry describe | tee receipts/02-describe.txt
@@ -196,7 +200,7 @@ singular registry describe | tee receipts/02-describe.txt
 
 Alice adds a key. She books `alice` with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
 
-**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. The price is the wait: until a fold, the request is pending and the key does not exist yet.
+**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. The price is the wait: until a fold, the request is pending and the key does not exist yet. The documentation is at https://lambdasistemi.github.io/singular/docs/singular-node/#booking-and-folding; the contracts that hold a request and fold it are https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/validators/request.ak and https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/lib/registry/fold.ak
 
 **Before you book, read this once.** The next page folds the booking, and its three commands must all run before the fold deadline, so everything that needs explaining is here.
 
@@ -273,7 +277,7 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-
 
 ```
 
-**If the first command was refused because the window ended.**
+**If the first command was refused because the window ended.** The documentation on recovery is at https://lambdasistemi.github.io/singular/docs/cli-recovery/
 
 The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected. See where the chain is compared with the booking's deadline:
 
@@ -446,7 +450,7 @@ jq '{state: .leaf, root}' receipts/10-inspect.json
 
 ## Step 11: a request nobody folded: wait out its windows, then reject it
 
-What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.
+What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#rejecting-expired-requests; the contract that settles the refund of a rejected request is https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/lib/registry/settlement.ak
 
 **Alice books `late`** (her passphrase). Nobody will fold it, so the request stays pending.
 
@@ -573,7 +577,7 @@ If the fold is refused because the window ended, the recovery is the one at the 
 
 ## Step 14: take back a request: wait for the retract window, then reclaim it
 
-The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.
+The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#reclaiming-your-pending-request
 
 `wait_for_slot` was defined in step 11. In a new terminal, define it again from there.
 
@@ -709,13 +713,13 @@ The steps above show what Demo 1 does. Some limits of its design cannot be seen 
 
 **A fold has a capacity.** Shown in the fold's receipt, which states the capacity as nine requests and calls it "an estimate, not a measurement: about nine requests fit in a fold under preprod's execution budget of 14 million memory units, bound by trie-proof verification". The steps fold one request at a time and never come near it.
 
-**A booking that never lands is not recovered by waiting.** From the documentation. A fold carries a deadline; a booking does not. A booking that did not reach the chain, or was rolled back and not included again, stays unresolved however far the chain moves on, and every later write stops on it. The documentation calls this a known limit of the commands: https://github.com/lambdasistemi/singular/blob/v0.13.0/docs/cli-recovery.md The steps above did not meet it.
+**A booking that never lands is not recovered by waiting.** From the documentation. A fold carries a deadline; a booking does not. A booking that did not reach the chain, or was rolled back and not included again, stays unresolved however far the chain moves on, and every later write stops on it. The documentation calls this a known limit of the commands: https://lambdasistemi.github.io/singular/docs/cli-recovery/#when-a-transaction-can-never-land The steps above did not meet it.
 
-**A key does not come back.** Shown in the steps. A key is added once and can be ended for good; nothing returns it to unknown, and `alice` stays terminal. Reusable names are not part of this release.
+**A key does not come back.** Shown in the steps. A key is added once and can be ended for good; nothing returns it to unknown, and `alice` stays terminal. Reusable names are not part of this release; the contract admits only these two changes: https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/validators/state.ak
 
-**The application protects the payload and the deposit, nothing more.** From the documentation. `open-datum` is a demonstration of the registry's mechanics, not a way to guard names or secrets.
+**The application protects the payload and the deposit, nothing more.** From the documentation. `open-datum` is a demonstration of the registry's mechanics, not a way to guard names or secrets. The project says the same: https://lambdasistemi.github.io/singular/docs/demo1-devnet/#what-this-does-not-claim
 
-**This is one play on a private chain.** The windows here are three minutes and one minute so that the waits stay short; the defaults are ten minutes and five. The programs read the chain through a provider (here the devnet's own, which answers like a Koios): its answers are taken as claims, and the several reads behind one command need not come from one chain state. Most of this journey has also been played on the public preprod network. What has run where, and what has not, is listed at https://github.com/lambdasistemi/singular/blob/main/docs/demo1-preprod.md
+**This is one play on a private chain.** The windows here are three minutes and one minute so that the waits stay short; the defaults are ten minutes and five. The programs read the chain through a provider (here the devnet's own, which answers like a Koios): its answers are taken as claims, and the several reads behind one command need not come from one chain state. Most of this journey has also been played on the public preprod network. What has run where, and what has not, is listed at https://lambdasistemi.github.io/singular/docs/demo1-preprod/
 
 ## Extra: look at the wallets
 

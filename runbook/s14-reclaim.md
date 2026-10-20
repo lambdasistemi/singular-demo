@@ -1,6 +1,6 @@
 # Step 14: take back a request: wait for the retract window, then reclaim it
 
-The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.
+The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#reclaiming-your-pending-request
 
 `wait_for_slot` was defined in step 11. In a new terminal, define it again from there.
 
