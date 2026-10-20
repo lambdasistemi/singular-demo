@@ -14,7 +14,7 @@ esac
 
 find_files() {
   find . -type f "$@" \
-    -not -path './.git/*' -not -path './killercoda/*' -not -path './site/*' -not -path './result*' \
+    -not -path './.git/*' -not -path './.specify/*' -not -path './killercoda/*' -not -path './site/*' -not -path './result*' \
     -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/static/vendor/*' | sort
 }
 
