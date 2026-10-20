@@ -297,21 +297,6 @@ for (const f of stepPages) {
       "The devnet's settings line has two of the values; `jq` builds the file from it. Here the file's name is in the variable `SINGULAR_CONFIG`.",
     );
   }
-  if (/^s04-/.test(f)) {
-    swapCode(pg, 'jq -r .providerUrl devnet.out', 'jq -r .providerUrl ../devnet.out');
-  }
-  if (/^s14-/.test(f)) {
-    // the waiting helper is in every window: the page's note about defining it again does not apply
-    const n = pg.parts.findIndex((p) => p.text?.includes('was defined in step 11'));
-    if (n < 0) {
-      console.error('killercoda.js: s14 helper note not found');
-      process.exit(1);
-    }
-    pg.parts[n].text = pg.parts[n].text.replace(
-      /`wait_for_slot` was defined in step 11\. In a new terminal, define it again from there\.\n*/,
-      '',
-    );
-  }
   if (/^s12-/.test(f)) {
     // Bob's directory has no payload file: his booking uses the one Alice wrote
     swapCode(pg, '--key bob --payload payload.json', '--key bob --payload ../alice/payload.json');
@@ -325,41 +310,21 @@ for (const f of stepPages) {
       "**Build the bundle**, with Alice's payload file:",
     );
   }
-  if (/^s11-/.test(f)) {
-    // the waiting helper is defined by the setup in both windows: drop its definition from the page
-    const d = pg.parts.findIndex((p) => p.code?.includes('wait_for_slot()'));
-    if (d < 0) {
-      console.error('killercoda.js: wait_for_slot definition not found');
-      process.exit(1);
-    }
-    const lead = d - 1;
-    if (pg.parts[lead].text === undefined || !pg.parts[lead].text.includes('wait_for_slot')) {
-      console.error('killercoda.js: lead of the helper not found');
-      process.exit(1);
-    }
-    pg.parts.splice(lead, 2, {
-      text: "\n**The waiting helper.** `wait_for_slot N` is ready to use: it asks the chain for its latest slot every 2 seconds until it is past `N`, by the chain's clock, like the program does.\n",
-    });
-  }
-  if (/^s21-/.test(f)) {
-    // this page moves between the windows, and only Alice's keeps the variable: read the chain's address where it is used
-    swapCode(pg, '"$koios_url/tx_info"', '"$(jq -r .providerUrl ../devnet.out)/tx_info"');
-  }
   if (/^s20-/.test(f)) {
-    // the addresses are in files and the chain's address in the devnet's line: this window reads them into variables
-    const h = pg.parts.findIndex((p) => p.text?.includes('**A small helper**'));
+    // the addresses are in files: this window reads them into variables
+    const h = pg.parts.findIndex((p) => p.text?.includes('`wallet_show ADDRESS`'));
     if (h < 0) {
-      console.error('killercoda.js: s20 helper paragraph not found');
+      console.error('killercoda.js: s20 wallet_show paragraph not found');
       process.exit(1);
     }
     pg.parts.splice(
       h,
       0,
       {
-        text: "**Read the addresses and the chain's address.** The addresses were written to files when the wallets were made, and the chain's address is in the devnet's settings line. Read them into variables, in this window:\n",
+        text: '**Read the addresses.** They were written to files when the wallets were made. Read them into variables, in this window:\n',
       },
       {
-        code: 'alice_addr=$(cat ../alice/alice.address); bob_addr=$(cat ../bob/bob.address); koios_url=$(jq -r .providerUrl ../devnet.out)',
+        code: 'alice_addr=$(cat ../alice/alice.address); bob_addr=$(cat ../bob/bob.address)',
         skip: false,
       },
     );
@@ -429,7 +394,7 @@ A kit with the programs, and tmux, are being installed in the background. When t
 
 // The scripts of the play are the files in play/: the Codespaces tutorial runs the same ones. The setup of the
 // machine writes them out as they are and runs them.
-const PLAYFILES = ['install-kit.sh', 'prepare.sh', 'windows.rc', 'windows.sh'];
+const PLAYFILES = ['install-kit.sh', 'prepare.sh', 'helpers.sh', 'windows.rc', 'windows.sh'];
 const embed = (files) =>
   files
     .map((f) => {

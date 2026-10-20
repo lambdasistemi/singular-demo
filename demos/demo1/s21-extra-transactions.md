@@ -24,7 +24,7 @@ for f in receipts/*.json; do jq -r --arg f "$f" '.submissions[]? | "\($f)  \(.id
 
 ```bash
 tx=$(jq -r '.submissions[0].identity' receipts/04-fold-insert.submitted.json)
-curl -fsS -X POST "$koios_url/tx_info" -H 'content-type: application/json' -d "{\"_tx_hashes\":[\"$tx\"]}" > receipts/tx-info.json
+curl -fsS -X POST "$(koios_url)/tx_info" -H 'content-type: application/json' -d "{\"_tx_hashes\":[\"$tx\"]}" > receipts/tx-info.json
 ```
 
 The short form shows where the money comes from and goes to, which tokens move, and which outputs carry data:

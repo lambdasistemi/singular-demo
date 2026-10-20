@@ -9,4 +9,6 @@ shell="exec bash --rcfile $run/windows.rc -i"
 $t new-session -d -s demo -n alice -c "$run/alice" "$shell"
 $t new-window -d -t demo -n bob -c "$run/bob" "$shell"
 $t new-window -d -t demo -n chain -c "$run" "$shell"
+# the mouse switches windows and scrolls
+$t set-option -g mouse on
 echo "The windows alice, bob and chain are ready."

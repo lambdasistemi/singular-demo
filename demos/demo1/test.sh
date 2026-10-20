@@ -25,6 +25,8 @@ _with_pass() { local prog=$1 a v=""; shift; for a in "$@"; do case "$a" in *.vau
 singular() { _with_pass singular "$@"; }
 open-datum() { _with_pass open-datum "$@"; }
 WRAP
+  # The helpers every window of the play has (koios_url, wait_for_slot, wallet_show), as the play loads them.
+  printf 'PLAY_RUN="$HOME/singular-demo-run"\n. %q\n' "$here/play/helpers.sh"
   cat "$work/blocks.sh"
   cat "$here/checks.sh"
 } >"$work/run.sh"

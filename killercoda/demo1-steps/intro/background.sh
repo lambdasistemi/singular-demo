@@ -47,12 +47,35 @@ run=$(cd "$run" && pwd)
 # the settings file Alice's and Bob's windows share; step 1 fills it
 [ -f "$run/singular.json" ] || echo '{}' >"$run/singular.json"
 printf 'PLAY_KIT=%q\nPLAY_RUN=%q\n' "$kit" "$run" >"$run/play.env"
-cp "$here/windows.rc" "$run/windows.rc"
+cp "$here/windows.rc" "$here/helpers.sh" "$run/"
 echo "The folders of the play are ready: $run"
+PLAY_EOF
+cat > /root/play/helpers.sh <<'PLAY_EOF'
+# shellcheck shell=bash
+# The helpers every window of the play has, and the runbook test too. They need PLAY_RUN (the demo folder), jq and curl.
+
+# koios_url: where the chain's web API answers, read from the devnet's settings line
+koios_url() { jq -r .providerUrl "$PLAY_RUN/devnet.out"; }
+
+# wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
+wait_for_slot() {
+  local now
+  until now=$(curl -fsS "$(koios_url)/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do
+    printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"
+    sleep 2
+  done
+  printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"
+}
+
+# wallet_show ADDRESS: the outputs at an address, in a short form
+wallet_show() {
+  curl -fsS -X POST "$(koios_url)/address_utxos" -H 'content-type: application/json' -d "{\"_addresses\":[\"$1\"]}" |
+    jq '{outputs: length, total_ada: ([.[] | (.value|tonumber)] | add / 1000000), utxos: [.[] | {tx: .tx_hash[0:12], ix: .tx_index, ada: ((.value|tonumber)/1000000), tokens: [.asset_list[]? | .asset_name[0:8]]}]}'
+}
 PLAY_EOF
 cat > /root/play/windows.rc <<'PLAY_EOF'
 # What every window of the play starts with: the usual bash setup, the programs, the shared settings
-# file, the waiting helper, and one word for each window. prepare.sh copies this file next to play.env.
+# file, the helpers, and one word for each window. prepare.sh copies this file and helpers.sh next to play.env.
 [ -f ~/.bashrc ] && . ~/.bashrc
 . "$(dirname "${BASH_SOURCE[0]}")/play.env"
 # an environment that needs more in its windows (the Codespaces tutorial's prompt tracking) names its file here
@@ -60,15 +83,8 @@ cat > /root/play/windows.rc <<'PLAY_EOF'
 export PATH="$PLAY_KIT/bin:$PATH"
 export blueprint="$PLAY_KIT/share/plutus.json"
 export SINGULAR_CONFIG="$PLAY_RUN/singular.json"
-# wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
-wait_for_slot() {
-  local now
-  until now=$(curl -fsS "$(jq -r .providerUrl "$PLAY_RUN/devnet.out")/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do
-    printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"
-    sleep 2
-  done
-  printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"
-}
+# the helpers of the play: koios_url, wait_for_slot, wallet_show
+. "$(dirname "${BASH_SOURCE[0]}")/helpers.sh"
 # one word goes to a window
 alice() { tmux select-window -t alice; }
 bob() { tmux select-window -t bob; }
@@ -86,6 +102,8 @@ shell="exec bash --rcfile $run/windows.rc -i"
 $t new-session -d -s demo -n alice -c "$run/alice" "$shell"
 $t new-window -d -t demo -n bob -c "$run/bob" "$shell"
 $t new-window -d -t demo -n chain -c "$run" "$shell"
+# the mouse switches windows and scrolls
+$t set-option -g mouse on
 echo "The windows alice, bob and chain are ready."
 PLAY_EOF
 bash /root/play/install-kit.sh v0.13.1 /root
