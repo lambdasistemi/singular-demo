@@ -26,7 +26,7 @@ singular submit \
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json
 ```
 
-**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim (the project's page says updates and deletions cannot be retracted), so the way out is the reject of step 11. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
+**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim, so the way out is a reject. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
 
 ```bash skip
 singular registry reject \

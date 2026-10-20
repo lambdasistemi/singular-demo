@@ -43,7 +43,7 @@ Which program a command belongs to follows one rule:
 
 The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
 
-Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The chain, the contracts and the registry are not repeated on every command: they come from one settings file, written in step 1.
+Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.
 
 ## Before you start: two ways to sign
 
@@ -52,14 +52,7 @@ Every write in this demo is signed by a wallet, and a command takes exactly one 
 - **By vault, in one command (Alice).** The command names the vault: `--vault alice.vault`. It builds the transactions, asks for the passphrase, signs, sends, and waits until they have landed.
 - **By bundle, in three commands (Bob).** The command names only the wallet's public address and a file: `--wallet-address …` and `--bundle …`. It builds the transactions into the file, signs nothing, sends nothing, and exits with status 19, which means "waiting for signatures". Then `singular wallet sign` signs the bundle and `singular submit` sends it. The program that builds the transactions never touches the key, so the signing can happen wherever the key is. Here it is Bob's vault, on the same machine.
 
-A third way, a plain key file (`--wallet-skey`), exists and is not used here.
-
-**It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side:
-
-- the same command appears in both modes: `open-datum fold` is Bob's bundle in steps 4, 9 and 16 and Alice's vault in step 13, and `open-datum insert` is Alice's vault in step 3 and Bob's bundle in step 12;
-- when you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
-
-**Hardware wallets: not verified.** The bundle and the signature files are standard Cardano text envelopes, so signing on a hardware device may be possible. It has not been tried, and the project does not say it is supported.
+**It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side. When you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
 
 ## Before you start: two wallets and a private chain
 
@@ -136,7 +129,9 @@ A registry is created from one unspent coin, the seed: whoever holds that coin c
 
 The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two.
 
-**The settings, written once.** Every command needs the same few things: where the chain answers, the compiled contracts and a folder for the registry's journal. They go in a file named `singular.json`, which the commands read by themselves, so no command below repeats them. The devnet's settings line has two of the values; `jq` builds the file from it.
+**The settings.** The commands need the same settings again and again: where the chain answers, the chain's clock data and number, the compiled contracts, a folder for the registry's journal and, once it exists, the registry's name. Each can be given as an option on the command (`--koios-url URL`), as an environment variable (`SINGULAR_KOIOS_URL=URL`) or as a key in a JSON file (`"koios-url": "URL"`). The first one present wins: option, then variable, then file.
+
+**For this tutorial, the JSON file**, `singular.json`, so that no command below repeats them. You could override a value with a variable or an option, or skip the file and give every setting that way. The devnet's settings line has two of the values; `jq` builds the file from it.
 
 - `koios-url`: where the chain's web API answers (`providerUrl` in the devnet's line)
 - `network-time`: the chain's clock data, when each slot happens (`networkTimeDirectory`)
@@ -150,19 +145,10 @@ jq . singular.json
 
 ```
 
-A few commands below ask the chain's web API directly (its clock, the extras). They use the variable `koios_url`:
-
-```bash
-koios_url=$(jq -r .providerUrl devnet.out)
-
-```
-
 **How to read the commands from here on.** The chain, the contracts and the journal folder come from `singular.json`, so each command shows only what it does:
 
 - its own options: the key, the payload, the windows
 - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
-
-An option typed on a command still wins over the file.
 
 **Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed.
 
@@ -195,8 +181,6 @@ jq . singular.json
 
 ```
 
-Want to see the seed coin before it is spent? Add `--preview` and use `--wallet-address "$alice_addr"` instead of the vault: it reads the chain and writes nothing.
-
 ## Step 2: read the registry's page
 
 The registry describes itself: which registry this is, which release of Singular runs it, its rules and what it holds now. It needs no key and no wallet, because reading is free. The page is read from the chain's provider, so it is what the chain says and not a signed statement.
@@ -212,12 +196,12 @@ singular registry describe | tee receipts/02-describe.txt
 
 Alice adds a key. She books `alice` with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
 
-**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. (On Cardano an output can be spent once, so a single shared state output is exactly what everybody would otherwise queue for.) The price is the wait: until a fold, the request is pending and the key does not exist yet.
+**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. The price is the wait: until a fold, the request is pending and the key does not exist yet.
 
 **Before you book, read this once.** The next page folds the booking, and its three commands must all run before the fold deadline, so everything that needs explaining is here.
 
 - **A fold** moves pending requests into the registry for good. It is its own command, `open-datum fold`, and anyone may run it: the wallet that folds need not be the one that booked, and the fold's receipt names the requests it settles.
-- **Why Bob, and not Alice?** Nothing requires it. The demo has Bob fold Alice's booking to show that a fold is open to every wallet, and to show the second way of signing, Bob's, next to Alice's. Alice could fold her own booking: `open-datum insert` takes a `--fold` switch that books and folds in one command with one wallet. Step 13 has Alice fold Bob's request.
+- **Why Bob, and not Alice?** Nothing requires it. The demo has Bob fold Alice's booking to show that a fold is open to every wallet, and to show the second way of signing, Bob's, next to Alice's.
 - **Bob signs outside the program.** His fold command only names his address and a bundle file: it builds the transactions, writes them to the file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. That is not an error. Then `singular wallet sign` signs the bundle with his vault (the signatures are called witnesses), and `singular submit` sends it and waits until it has landed.
 - **The options on the fold.** `--wallet-address` names who will pay and sign later; `--bundle` is the file the finished, unsigned transactions go to (in `bundles/`); `--out` is where the signatures go (in `witnesses/`); `--receipt` is where the proof of landing goes (in `receipts/`).
 - **The clock starts at the booking.** The fold must run within the registry's processing window (3 minutes here). Book, then go straight to the next page and run its three commands without stopping to read.
@@ -291,7 +275,7 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-
 
 **If the first command was refused because the window ended.**
 
-The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected, which is what steps 11 and 14 show. See where the chain is compared with the booking's deadline:
+The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected. See where the chain is compared with the booking's deadline:
 
 ```bash
 jq '{request, foldDeadline}' receipts/03-insert-alice.json
@@ -299,12 +283,12 @@ jq '{request, foldDeadline}' receipts/03-insert-alice.json
 ```
 
 ```bash
-curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
+curl -fsS "$(jq -r .providerUrl devnet.out)/tip" | jq '.[0] | {abs_slot}'
 
 ```
 
 - While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
-- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (the command of step 14, her passphrase). Then book again (step 3) and fold at once:
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (her passphrase). Then book again (step 3) and fold at once:
 
 ```bash
 singular registry reclaim \
@@ -314,7 +298,7 @@ singular registry reclaim \
 
 ```
 
-- If the retract window has ended too, the reclaim is refused, and the way out is the reject of step 11: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
+- If the retract window has ended too, the reclaim is refused, and the way out is a reject: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
 
 ## Step 5: read the key back
 
@@ -356,7 +340,7 @@ jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/
 
 ```
 
-**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal (you will see it change in steps 10, 13 and 16). The payload is not part of it: it lives in the key's own output, which is what the update replaced.
+**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal. The payload is not part of it: it lives in the key's own output, which is what the update replaced.
 
 ```bash
 echo "payload before: $(jq -c .applicationOutput.payload receipts/05-inspect.json)"; echo "payload after:  $(jq -c .payload receipts/06-update.json)"
@@ -428,7 +412,7 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-
 
 ```
 
-**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim (the project's page says updates and deletions cannot be retracted), so the way out is the reject of step 11. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
+**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim, so the way out is a reject. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
 
 ```bash
 singular registry reject \
@@ -494,6 +478,7 @@ jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}
 **A small helper that waits for the chain's own clock.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.
 
 ```bash
+koios_url=$(jq -r .providerUrl devnet.out)
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }
 
 ```
@@ -734,7 +719,7 @@ The steps above show what Demo 1 does. Some limits of its design cannot be seen 
 
 ## Extra: look at the wallets
 
-The next three pages are optional extras. Skip them in a short demo; the journey is complete without them.
+The pages that follow are optional extras. Skip them in a short demo; the journey is complete without them.
 
 A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.
 

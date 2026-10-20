@@ -29,6 +29,7 @@ jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}
 **A small helper that waits for the chain's own clock.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.
 
 ```bash
+koios_url=$(jq -r .providerUrl devnet.out)
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }
 ```
 

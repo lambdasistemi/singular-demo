@@ -17,4 +17,4 @@ Which program a command belongs to follows one rule:
 
 The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
 
-Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The chain, the contracts and the registry are not repeated on every command: they come from one settings file, written in step 1.
+Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.

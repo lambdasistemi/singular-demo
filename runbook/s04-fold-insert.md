@@ -35,18 +35,18 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-
 
 **If the first command was refused because the window ended.**
 
-The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected, which is what steps 11 and 14 show. See where the chain is compared with the booking's deadline:
+The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected. See where the chain is compared with the booking's deadline:
 
 ```bash skip
 jq '{request, foldDeadline}' receipts/03-insert-alice.json
 ```
 
 ```bash skip
-curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
+curl -fsS "$(jq -r .providerUrl devnet.out)/tip" | jq '.[0] | {abs_slot}'
 ```
 
 - While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
-- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (the command of step 14, her passphrase). Then book again (step 3) and fold at once:
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (her passphrase). Then book again (step 3) and fold at once:
 
 ```bash skip
 singular registry reclaim \
@@ -55,4 +55,4 @@ singular registry reclaim \
   > receipts/04-reclaim.json
 ```
 
-- If the retract window has ended too, the reclaim is refused, and the way out is the reject of step 11: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
+- If the retract window has ended too, the reclaim is refused, and the way out is a reject: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.

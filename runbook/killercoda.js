@@ -125,7 +125,7 @@ pages.push({
 - \`1\` \`bob\`: Bob's window, in his own directory
 - \`2\` \`chain\`: the private chain
 
-Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`. The two of them also share one settings file, \`singular.json\`, which the Singular commands read by themselves; step 1 writes it.
+Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`.
 
 Go inside:
 
@@ -133,7 +133,7 @@ Go inside:
 tmux attach -t demo
 \`\`\`{{exec}}
 
-From here on every command you click runs in the window you are in. To change window, type the window's name: \`alice\`, \`bob\` or \`chain\` (the setup made these three words into commands). Wherever the story passes from one person to the other, the page gives you the word to click.
+From here on every command you click runs in the window you are in. To change window, type the window's name: \`alice\`, \`bob\` or \`chain\`. Wherever the story passes from one person to the other, the page gives you the word to click.
 
 **Try it.** Go to Bob's window; the \`*\` in the bar moves to \`bob\`:
 
@@ -147,7 +147,7 @@ And back to Alice's:
 alice
 \`\`\`{{exec}}
 
-If you have a keyboard, the keys do the same: \`Ctrl-b 0\`, \`Ctrl-b 1\` and \`Ctrl-b 2\` go to the window with that number (hold Ctrl, press b, release both, press the digit; click on the terminal first, so that it has the focus). One more key: \`Ctrl-b d\` leaves tmux. Nothing stops; the windows and the chain keep running. Come back with \`tmux attach -t demo\`.
+With a keyboard, \`Ctrl-b 0\`, \`Ctrl-b 1\` and \`Ctrl-b 2\` go to the same windows.
 `,
 });
 
@@ -164,7 +164,7 @@ pages.push({
 
 Passphrases are not shown while typed. Use \`alice\` for Alice and \`bob\` for Bob, or anything else; the same one is asked again at every command that signs with that vault.
 
-**Alice's vault.** You are in her window, in her directory. \`singular wallet create\` makes the vault file and prints her address. It asks for a new passphrase twice. The \`$(...)\` keeps the printed address in \`alice_addr\`, and \`tee\` also writes it to the file \`alice.address\`, which the chain's window will read.
+**Alice's vault.** You are in her window, in her directory. \`singular wallet create\` makes the vault file and prints her address. It asks for a new passphrase twice. The \`$(...)\` keeps the printed address in \`alice_addr\`, and \`tee\` also keeps it in the file \`alice.address\`.
 
 - \`--vault alice.vault\`: the file to create
 - \`--network-magic 42\`: the number of this private test chain (preprod is 1, mainnet 764824073)
@@ -192,7 +192,7 @@ Then run it:
 - \`--fund-address ADDRESS:6:2000000000\`: gives the address 6 coins of 2000 ada each (2000000000 lovelace)
 - \`$(cat alice/alice.address)\`: the address, read from the file Alice's window wrote (Bob's the same way)
 - \`> devnet.out\`: its one line of settings goes to this file
-- \`2> devnet.log\`: its messages go to this file, which can be read at any time
+- \`2> devnet.log\`: its messages go to this file
 - \`&\`: runs it in the background, so that the window gets its prompt back and the chain keeps running
 
 \`\`\`bash
@@ -209,7 +209,7 @@ ${goTo('alice')}
 until jq -e .providerUrl ../devnet.out >/dev/null 2>&1; do sleep 1; done; jq . ../devnet.out
 \`\`\`{{exec}}
 
-**The chain's log.** Whenever you want to see what the chain is doing, show the last lines of its messages. Click this again later to see the new ones:
+**The chain's log.** The chain's messages went to \`devnet.log\`. Show the last lines:
 
 \`\`\`bash
 tail -n 20 ../devnet.log
@@ -225,22 +225,33 @@ for (const f of stepPages) {
   if (/^s01-/.test(f)) {
     // one settings file for both windows, named by SINGULAR_CONFIG; the devnet's line is in the folder above
     for (const p of pg.parts) if (p.code !== undefined) p.code = p.code.replace(/\bdevnet\.out/g, '../devnet.out').replace(/\bsingular\.json/g, '"$SINGULAR_CONFIG"');
-    const w = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**The settings, written once.**'));
+    const w = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**For this tutorial, the JSON file**'));
     if (w < 0) { console.error('killercoda.js: s01 settings paragraph not found'); process.exit(1); }
-    pg.parts[w].text = swap(pg.parts[w].text, 'The devnet\'s settings line has two of the values; `jq` builds the file from it.', 'The devnet\'s settings line has two of the values; `jq` builds the file from it. One file serves both windows: the variable `SINGULAR_CONFIG` holds its name, so Bob\'s commands read what Alice writes here.');
+    pg.parts[w].text = swap(pg.parts[w].text, 'The devnet\'s settings line has two of the values; `jq` builds the file from it.', 'The devnet\'s settings line has two of the values; `jq` builds the file from it. Here the file\'s name is in the variable `SINGULAR_CONFIG`.');
   }
-  if (/^s03-/.test(f)) {
-    swapCode(pg, `echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json`, `echo '{"constructor":0,"fields":[{"int":42}]}' | tee payload.json ../bob/payload.json`);
-    const t = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**The payload**'));
-    pg.parts[t].text = swap(pg.parts[t].text, '**The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.', "**The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42. It is also written into Bob's directory, because he books a key later.");
+  if (/^s04-/.test(f)) {
+    swapCode(pg, 'jq -r .providerUrl devnet.out', 'jq -r .providerUrl ../devnet.out');
+  }
+  if (/^s14-/.test(f)) {
+    // the waiting helper is in every window: the page's note about defining it again does not apply
+    const n = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('was defined in step 11'));
+    if (n < 0) { console.error('killercoda.js: s14 helper note not found'); process.exit(1); }
+    pg.parts[n].text = pg.parts[n].text.replace(/`wait_for_slot` was defined in step 11\. In a new terminal, define it again from there\.\n*/, '');
+  }
+  if (/^s12-/.test(f)) {
+    // Bob's directory has no payload file: his booking uses the one Alice wrote
+    swapCode(pg, '--key bob --payload payload.json', '--key bob --payload ../alice/payload.json');
+    const c = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**Build the bundle:**'));
+    if (c < 0) { console.error('killercoda.js: s12 caption not found'); process.exit(1); }
+    pg.parts[c].text = pg.parts[c].text.replace('**Build the bundle:**', "**Build the bundle**, with Alice's payload file:");
   }
   if (/^s11-/.test(f)) {
     // the waiting helper is defined by the setup in both windows: drop its definition from the page
-    const d = pg.parts.findIndex((p) => p.code !== undefined && p.code.startsWith('wait_for_slot()'));
+    const d = pg.parts.findIndex((p) => p.code !== undefined && p.code.includes('wait_for_slot()'));
     if (d < 0) { console.error('killercoda.js: wait_for_slot definition not found'); process.exit(1); }
     const lead = d - 1;
     if (pg.parts[lead].text === undefined || !pg.parts[lead].text.includes('wait_for_slot')) { console.error('killercoda.js: lead of the helper not found'); process.exit(1); }
-    pg.parts.splice(lead, 2, { text: '\n**The waiting helper.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain\'s clock, like the program does. Both windows have it.\n' });
+    pg.parts.splice(lead, 2, { text: '\n**The waiting helper.** `wait_for_slot N` is ready to use: it asks the chain for its latest slot every 2 seconds until it is past `N`, by the chain\'s clock, like the program does.\n' });
   }
   if (/^s21-/.test(f)) {
     // this page moves between the windows, and only Alice's keeps the variable: read the chain's address where it is used
@@ -277,15 +288,13 @@ pages.forEach((p, i) => w(`step${i + 1}/text.md`, p.md));
 
 w('intro/text.md', `Singular keeps a registry of keys on Cardano. Here you play its Demo 1 yourself on a **private test chain**: nothing touches a public network, and nothing is installed on this machine.
 
-You play two people, **Alice** and **Bob**, each in a tmux window of their own, and a third window holds the chain. You switch windows by clicking a word (\`alice\`, \`bob\`, \`chain\`) or with the keys \`Ctrl-b 0\`, \`Ctrl-b 1\`, \`Ctrl-b 2\`; the first page explains them. You will, step by step:
+You play two people, **Alice** and **Bob**, each in a tmux window of their own, and a third window holds the chain. You switch windows by clicking a word: \`alice\`, \`bob\` or \`chain\`. You will, step by step:
 
 - create two wallets and a registry,
 - book a key, fold it into the registry, read it back, change it and remove it,
 - let a request go stale and reject it, and take another one back before its window closes.
 
 Every command is shown in full with what it does. Click a command to run it, read what comes back, and go on. Two steps wait a few minutes for the chain's own clock, and the page says when.
-
-Passphrases are typed at a prompt (they are not shown); use \`alice\` for Alice and \`bob\` for Bob.
 
 The machine lasts one hour at most and is deleted when you close this tab. The whole journey takes about 15 minutes. If the chain on the machine is ever stopped, restart the scenario: a new machine starts from the beginning.
 

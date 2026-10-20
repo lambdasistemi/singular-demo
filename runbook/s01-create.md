@@ -4,7 +4,9 @@ A registry is created from one unspent coin, the seed: whoever holds that coin c
 
 The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two.
 
-**The settings, written once.** Every command needs the same few things: where the chain answers, the compiled contracts and a folder for the registry's journal. They go in a file named `singular.json`, which the commands read by themselves, so no command below repeats them. The devnet's settings line has two of the values; `jq` builds the file from it.
+**The settings.** The commands need the same settings again and again: where the chain answers, the chain's clock data and number, the compiled contracts, a folder for the registry's journal and, once it exists, the registry's name. Each can be given as an option on the command (`--koios-url URL`), as an environment variable (`SINGULAR_KOIOS_URL=URL`) or as a key in a JSON file (`"koios-url": "URL"`). The first one present wins: option, then variable, then file.
+
+**For this tutorial, the JSON file**, `singular.json`, so that no command below repeats them. You could override a value with a variable or an option, or skip the file and give every setting that way. The devnet's settings line has two of the values; `jq` builds the file from it.
 
 - `koios-url`: where the chain's web API answers (`providerUrl` in the devnet's line)
 - `network-time`: the chain's clock data, when each slot happens (`networkTimeDirectory`)
@@ -17,18 +19,10 @@ jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .ne
 jq . singular.json
 ```
 
-A few commands below ask the chain's web API directly (its clock, the extras). They use the variable `koios_url`:
-
-```bash
-koios_url=$(jq -r .providerUrl devnet.out)
-```
-
 **How to read the commands from here on.** The chain, the contracts and the journal folder come from `singular.json`, so each command shows only what it does:
 
 - its own options: the key, the payload, the windows
 - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
-
-An option typed on a command still wins over the file.
 
 **Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed.
 
@@ -57,5 +51,3 @@ jq '{outcome, reason, seed, stateToken} | with_entries(select(.value != null))' 
 jq --arg token "$(jq -r .stateToken receipts/01-create.json)" '."state-token" = $token' singular.json > singular.new && mv singular.new singular.json
 jq . singular.json
 ```
-
-Want to see the seed coin before it is spent? Add `--preview` and use `--wallet-address "$alice_addr"` instead of the vault: it reads the chain and writes nothing.
