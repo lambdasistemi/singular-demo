@@ -9,8 +9,6 @@ The other way out of a pending request is for its owner to take it back. That is
 ```bash
 open-datum insert \
   --key carol --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
 ```
@@ -27,8 +25,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
 ```
@@ -50,8 +46,6 @@ wait_for_slot "$carol_opens"
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
 ```

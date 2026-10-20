@@ -2,7 +2,7 @@
 
 Every grey block has a copy button on GitHub: copy it, paste it into the terminal, run the next one. The blocks are meant to be pasted in order into one terminal. A page with bigger buttons and a done mark per step is in `demo.html`.
 
-Release v0.12.0. Everything runs on a private test chain.
+Release v0.13.0. Everything runs on a private test chain.
 
 ## Before you start: open the shell
 
@@ -18,7 +18,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 Without Nix, unpack the kit from the release page and use its folder:
 
 ```bash
-cd singular-demo-v0.12.0-x86_64-linux
+cd singular-demo-v0.13.0-x86_64-linux
 export PATH="$PWD/bin:$PATH"
 export blueprint="$PWD/share/plutus.json"
 
@@ -43,7 +43,7 @@ Which program a command belongs to follows one rule:
 
 The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
 
-Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The few options that every command repeats are explained in step 1.
+Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The chain, the contracts and the registry are not repeated on every command: they come from one settings file, written in step 1.
 
 ## Before you start: two ways to sign
 
@@ -136,26 +136,35 @@ A registry is created from one unspent coin, the seed: whoever holds that coin c
 
 The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two.
 
-**Two values to keep.** The devnet printed where its web API answers (`providerUrl`) and where its clock data is (`networkTimeDirectory`). Every command below is written out in full and repeats the same groups of options, so these are the only shorthands: plain variables you can print.
+**The settings, written once.** Every command needs the same few things: where the chain answers, the compiled contracts and a folder for the registry's journal. They go in a file named `singular.json`, which the commands read by themselves, so no command below repeats them. The devnet's settings line has two of the values; `jq` builds the file from it.
 
-- `koios_url`: where the chain's web API answers
-- `time_dir`: the chain's clock data (when each slot happens)
-- the last line is a check: both lines it prints must be non-empty. If one is empty, paste the block again.
+- `koios-url`: where the chain's web API answers (`providerUrl` in the devnet's line)
+- `network-time`: the chain's clock data, when each slot happens (`networkTimeDirectory`)
+- `network-magic`: the number of this private chain, 42
+- `blueprint`: the compiled contracts
+- `state-dir`: the folder for the registry's journal
 
 ```bash
-koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
-echo "$koios_url"; echo "$time_dir"
+jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "reg"}' devnet.out > singular.json
+jq . singular.json
 
 ```
 
-**How to read the commands from here on.** Each one has the same layout, one group per line:
+A few commands below ask the chain's web API directly (its clock, the extras). They use the variable `koios_url`:
 
-- the command's own options (what to do: the key, the payload, the windows)
-- the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name)
-- the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number)
+```bash
+koios_url=$(jq -r .providerUrl devnet.out)
+
+```
+
+**How to read the commands from here on.** The chain, the contracts and the journal folder come from `singular.json`, so each command shows only what it does:
+
+- its own options: the key, the payload, the windows
 - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
 
-**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.
+An option typed on a command still wins over the file.
+
+**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed.
 
 - `process_ms`: how long the registry has to process a request, in milliseconds
 - `retract_ms`: how long after that the owner may take a request back
@@ -166,8 +175,6 @@ echo "$koios_url"; echo "$time_dir"
 process_ms=180000; retract_ms=60000
 open-datum create \
   --process-time "$process_ms" --retract-time "$retract_ms" \
-  --state-dir reg --blueprint "$blueprint" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/01-create.json
 
@@ -180,11 +187,11 @@ jq '{outcome, reason, seed, stateToken} | with_entries(select(.value != null))' 
 
 ```
 
-**From now on every command names the registry by its state token**, as `--state-token "$token"`. The token is the registry's name, read from the create receipt:
+**From now on every command names the registry by its state token.** The token is the registry's name, read from the create receipt. It goes into the same file as `state-token`, and every command below finds it there:
 
 ```bash
-token=$(jq -r .stateToken receipts/01-create.json)
-echo "$token"
+jq --arg token "$(jq -r .stateToken receipts/01-create.json)" '."state-token" = $token' singular.json > singular.new && mv singular.new singular.json
+jq . singular.json
 
 ```
 
@@ -194,13 +201,10 @@ Want to see the seed coin before it is spent? Add `--preview` and use `--wallet-
 
 The registry describes itself: which registry this is, which release of Singular runs it, its rules and what it holds now. It needs no key and no wallet, because reading is free. The page is read from the chain's provider, so it is what the chain says and not a signed statement.
 
-The create receipt prints this exact command in its field `describeCommand`. It is written out here: the contracts, the registry's name, and the chain.
+The command needs nothing typed: `singular.json` gives it the contracts, the registry's name and the chain. The create receipt prints the same command in its field `describeCommand`, written out in full.
 
 ```bash
-singular registry describe \
-  --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
-  | tee receipts/02-describe.txt
+singular registry describe | tee receipts/02-describe.txt
 
 ```
 
@@ -233,8 +237,6 @@ echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
 ```bash
 open-datum insert \
   --key alice --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/03-insert-alice.json
 
@@ -255,8 +257,6 @@ Run these three, one after the other, now. They build Bob's fold of the booking,
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   > receipts/04-fold-insert.json
 
@@ -280,7 +280,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-
 
 ```bash
 singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
 
 ```
@@ -310,8 +309,6 @@ curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
 ```bash
 singular registry reclaim \
   --request "$(jq -r .request receipts/03-insert-alice.json)" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/04-reclaim.json
 
@@ -326,8 +323,6 @@ Reading is free and needs no key and no wallet: anyone can check. `inspect` asks
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/05-inspect.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/05-inspect.json
 
@@ -349,8 +344,6 @@ echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
 ```bash
 open-datum update \
   --key alice --payload payload-new.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
 
@@ -378,8 +371,6 @@ The same read as step 5. The payload is now 43; the owner and the deposit are un
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/07-inspect.json
 jq '{state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/07-inspect.json
 
@@ -394,8 +385,6 @@ In the output, `released` is the output the fold will release and `deposit` is w
 ```bash
 open-datum terminate \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/08-terminate.json
 
@@ -416,8 +405,6 @@ Bob folds the termination, the external way again: build (exit status 19), sign,
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-terminate.bundle \
   > receipts/09-fold-terminate.json
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/09-fold-terminate.json
@@ -436,7 +423,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-terminate bundles/fo
 ```bash
 singular submit \
   --witnesses witnesses/fold-terminate --receipt receipts/09-fold-terminate.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-terminate.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json
 
@@ -446,8 +432,6 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject-late.bundle \
   > receipts/09-reject.json
 
@@ -460,7 +444,6 @@ singular wallet sign --vault bob.vault --out witnesses/reject-late bundles/rejec
 
 ```bash
 singular submit --witnesses witnesses/reject-late \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject-late.bundle
 
 ```
@@ -472,8 +455,6 @@ The key `alice` is now terminal: gone for good, it can never be used again, and 
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/10-inspect.json
 jq '{state: .leaf, root}' receipts/10-inspect.json
 
@@ -488,8 +469,6 @@ What if nobody folds a request? Alice books the key `late` and nobody touches it
 ```bash
 open-datum insert \
   --key late --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
 
@@ -506,8 +485,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
 jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}], tipSlot} | with_entries(select(.value != null))' receipts/11b-reject-too-early.json
@@ -532,8 +509,6 @@ wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
 jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with_entries(select(.value != null))' receipts/11d-reject.json
@@ -552,7 +527,6 @@ singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bun
 ```bash
 singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 
@@ -567,8 +541,6 @@ The registry takes requests again. This time Bob adds a key, with his own wallet
 ```bash
 open-datum insert \
   --key bob --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
   > receipts/12-insert-bob.json
 jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDeadline} | with_entries(select(.value != null))' receipts/12-insert-bob.json
@@ -587,7 +559,6 @@ singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert
 ```bash
 singular submit \
   --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/insert-bob.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json
 
@@ -601,8 +572,6 @@ In the output, `settled` lists the requests now part of the registry and `root` 
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
 
@@ -628,8 +597,6 @@ The other way out of a pending request is for its owner to take it back. That is
 ```bash
 open-datum insert \
   --key carol --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
 
@@ -648,8 +615,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
 
@@ -674,8 +639,6 @@ wait_for_slot "$carol_opens"
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
 
@@ -695,8 +658,6 @@ The reclaimed request no longer blocks anything, so the registry takes requests 
 ```bash
 open-datum insert \
   --key dave --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/15-insert-dave.json
 
@@ -717,8 +678,6 @@ Bob folds `dave`, external signing as before: build (exit status 19), sign, send
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
   > receipts/16a-fold-dave.json
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/16a-fold-dave.json
@@ -737,7 +696,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-da
 ```bash
 singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-dave.bundle
 
 ```
@@ -747,8 +705,6 @@ singular submit \
 ```bash
 open-datum inspect \
   --key dave \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/16b-inspect-dave.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
 
@@ -834,12 +790,11 @@ jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .p
 
 ## Extra: a new terminal in the middle
 
-The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
+The values below live only in the terminal where they were pasted: the two addresses and `koios_url`. The chain, the contracts and the registry's name are in `singular.json`, so they survive a new terminal. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds the rest from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
 
-- `cd ~/singular-demo-run`: back to the demo folder
+- `cd ~/singular-demo-run`: back to the demo folder, where `singular.json` is
 - the two `singular wallet address` lines read the public addresses from the vaults; each asks for its passphrase once
-- `koios_url` and `time_dir` are the two values of step 1
-- `token` is the registry's name, read from the create receipt
+- `koios_url` is the web API's address, read from the devnet's line
 
 ```bash
 cd ~/singular-demo-run
@@ -857,8 +812,7 @@ bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
 **Then:**
 
 ```bash
-koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
-token=$(jq -r .stateToken receipts/01-create.json)
+koios_url=$(jq -r .providerUrl devnet.out)
 
 ```
 

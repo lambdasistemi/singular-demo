@@ -12,6 +12,7 @@
 #    screen, as a person would; the chain, which stays in the foreground of its window, is not waited for, and is
 #    stopped with Ctrl+C at the end as the finish page says
 # 3. the receipts of Alice's and Bob's directories are checked
+# KIT_BASE=file:///dir takes the kit from a folder instead of the release page (a kit not published yet)
 set -u
 scenario=$(cd "${1:?usage: scenario-test.sh SCENARIO_DIR}" && pwd)
 here=$(cd "$(dirname "$0")" && pwd)
@@ -20,7 +21,10 @@ export HOME=/root TERM=xterm-256color
 cd "$HOME"
 if ! command -v curl >/dev/null; then apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null; fi
 work=$(mktemp -d /tmp/sc-XXXXXX)
-if ! bash "$scenario/intro/background.sh" > "$work/background.log" 2>&1 || [ ! -f /tmp/finished ]; then
+# KIT_BASE=file:///dir (a folder with the kit tarball and SHA256SUMS) tests a kit that is not published yet
+background="$scenario/intro/background.sh"
+if [ -n "${KIT_BASE:-}" ]; then background="$work/background-local.sh"; sed "s|^base=.*|base=$KIT_BASE|" "$scenario/intro/background.sh" > "$background"; fi
+if ! bash "$background" > "$work/background.log" 2>&1 || [ ! -f /tmp/finished ]; then
   echo "FAIL  intro/background.sh did not finish"; tail -8 "$work/background.log"; exit 1
 fi
 echo "ok    intro/background.sh finished"

@@ -7,8 +7,6 @@ What if nobody folds a request? Alice books the key `late` and nobody touches it
 ```bash
 open-datum insert \
   --key late --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
 ```
@@ -23,8 +21,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
 jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}], tipSlot} | with_entries(select(.value != null))' receipts/11b-reject-too-early.json
@@ -46,8 +42,6 @@ wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
 jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with_entries(select(.value != null))' receipts/11d-reject.json
@@ -64,7 +58,6 @@ singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bun
 ```bash
 singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 ```

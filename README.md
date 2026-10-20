@@ -17,7 +17,7 @@ An automatic test, `runbook/test.sh`, pastes every block in order into one shell
 
 ## What is inside
 
-The shell is Singular release v0.12.0.
+The shell is Singular release v0.13.0.
 
 | In the shell | What it is |
 |---|---|
@@ -32,7 +32,7 @@ The shell is Singular release v0.12.0.
 
 The journey itself is `DEMO1.md` in the release archive:
 
-https://github.com/lambdasistemi/singular/releases/tag/v0.12.0
+https://github.com/lambdasistemi/singular/releases/tag/v0.13.0
 
 ## Binary caches
 
@@ -57,11 +57,11 @@ On a multi-user nix install a user that is not in `trusted-users` cannot add sub
 A tarball for Ubuntu 24.04 on x86_64 carries the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
 
 ```bash
-curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/v0.12.0/singular-demo-v0.12.0-x86_64-linux.tar.gz
-curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/v0.12.0/SHA256SUMS
+curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/v0.13.0/singular-demo-v0.13.0-x86_64-linux.tar.gz
+curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/v0.13.0/SHA256SUMS
 sha256sum -c SHA256SUMS
-tar xzf singular-demo-v0.12.0-x86_64-linux.tar.gz
-cd singular-demo-v0.12.0-x86_64-linux
+tar xzf singular-demo-v0.13.0-x86_64-linux.tar.gz
+cd singular-demo-v0.13.0-x86_64-linux
 ./demo.sh
 ```
 

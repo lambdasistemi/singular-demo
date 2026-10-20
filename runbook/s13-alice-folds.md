@@ -6,8 +6,6 @@ In the output, `settled` lists the requests now part of the registry and `root` 
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
 ```

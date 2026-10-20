@@ -3,7 +3,8 @@
 //
 // The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `devnet` (the private
 // chain, in the foreground of its window), each person in a directory of their own with their own vault, receipts and
-// journal. Every window reads the shared settings file before each command. Every "bash" block of the step files
+// journal. The two people share one settings file, singular.json, which the Singular commands read by themselves
+// (the variable SINGULAR_CONFIG names it). Every "bash" block of the step files
 // becomes a block the learner runs with a click, in the window of the person who acts. Wherever the person changes,
 // the page says which keys go there (Ctrl-b 0, 1 or 2). "bash skip" blocks are shown only.
 const fs = require('fs');
@@ -13,8 +14,8 @@ const dir = __dirname;
 const out = process.argv[2];
 if (!out) { console.error('usage: node killercoda.js OUTDIR'); process.exit(2); }
 
-const KIT = 'singular-demo-v0.12.0-x86_64-linux';
-const BASE = 'https://github.com/lambdasistemi/singular-demo/releases/download/v0.12.0';
+const KIT = 'singular-demo-v0.13.0-x86_64-linux';
+const BASE = 'https://github.com/lambdasistemi/singular-demo/releases/download/v0.13.0';
 const RUN = '~/singular-demo-run';
 
 // ---- reading the step files
@@ -124,7 +125,7 @@ pages.push({
 - \`1\` \`bob\`: Bob's window, in his own directory
 - \`2\` \`chain\`: the private chain
 
-Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`. Whatever you share with the word \`share\` (an address, the registry's name) is saved in a settings file that every window reads before each command.
+Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`. The two of them also share one settings file, \`singular.json\`, which the Singular commands read by themselves; step 1 writes it.
 
 Go inside:
 
@@ -163,31 +164,23 @@ pages.push({
 
 Passphrases are not shown while typed. Use \`alice\` for Alice and \`bob\` for Bob, or anything else; the same one is asked again at every command that signs with that vault.
 
-**Alice's vault.** You are in her window, in her directory. \`singular wallet create\` makes the vault file and prints her address. It asks for a new passphrase twice. The \`$(...)\` keeps the printed address in \`alice_addr\`.
+**Alice's vault.** You are in her window, in her directory. \`singular wallet create\` makes the vault file and prints her address. It asks for a new passphrase twice. The \`$(...)\` keeps the printed address in \`alice_addr\`, and \`tee\` also writes it to the file \`alice.address\`, which the chain's window will read.
 
 - \`--vault alice.vault\`: the file to create
 - \`--network-magic 42\`: the number of this private test chain (preprod is 1, mainnet 764824073)
 
 \`\`\`bash
-alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)
+alice_addr=$(singular wallet create --vault alice.vault --network-magic 42 | tee alice.address)
 \`\`\`{{exec}}
 
-The address is public: it is all the chain will ever be told about her. \`share alice_addr\` saves the variable in the shared settings, a file that every window reads before each command, so Bob's window knows the address too:
-
-\`\`\`bash
-share alice_addr
-\`\`\`{{exec}}
+The address is public: it is all the chain will ever be told about her.
 
 ${goTo('bob', '**Now Bob.** ')}
 
 **Bob's vault**, the same way, with his own passphrase:
 
 \`\`\`bash
-bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)
-\`\`\`{{exec}}
-
-\`\`\`bash
-share bob_addr
+bob_addr=$(singular wallet create --vault bob.vault --network-magic 42 | tee bob.address)
 \`\`\`{{exec}}
 
 **The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It runs in the foreground of its own window and stays there.
@@ -197,10 +190,11 @@ ${goTo('chain')}
 Then run it:
 
 - \`--fund-address ADDRESS:6:2000000000\`: gives the address 6 coins of 2000 ada each (2000000000 lovelace)
+- \`$(cat alice/alice.address)\`: the address, read from the file Alice's window wrote (Bob's the same way)
 - \`> devnet.out\`: its one line of settings goes to this file; its messages stay in the window
 
 \`\`\`bash
-devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" > devnet.out
+devnet --fund-address "$(cat alice/alice.address):6:2000000000" --fund-address "$(cat bob/bob.address):6:2000000000" > devnet.out
 \`\`\`{{exec}}
 
 The chain prints its messages here and keeps running: leave it. Nothing can be typed in this window while it runs, so a word does not work here; use the keys.
@@ -212,12 +206,6 @@ Press \`Ctrl-b ${WINDOW.alice}\` to go back to Alice's window.
 \`\`\`bash
 until jq -e .providerUrl ../devnet.out >/dev/null 2>&1; do sleep 1; done; jq . ../devnet.out
 \`\`\`{{exec}}
-
-**Two values to share:** where the chain answers, and where its clock data is (when each slot happens). The line reads both from the settings line and shares them.
-
-\`\`\`bash
-koios_url=$(jq -r .providerUrl ../devnet.out); time_dir=$(jq -r .networkTimeDirectory ../devnet.out); share koios_url time_dir
-\`\`\`{{exec}}
 `,
 });
 
@@ -227,17 +215,11 @@ for (const f of stepPages) {
   const pg = read(f);
 
   if (/^s01-/.test(f)) {
-    // the chain's two values are already in the shared settings; the registry's name goes there too
-    const i = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**Two values to keep.**'));
-    if (i < 0) { console.error('killercoda.js: s01 "Two values to keep" not found'); process.exit(1); }
-    // drop that paragraph and its first block
-    const j = pg.parts.findIndex((p, k) => k > i && p.code !== undefined);
-    pg.parts.splice(i, j - i + 1);
-    const tok = pg.parts.findIndex((p) => p.code !== undefined && p.code.startsWith('token='));
-    if (tok < 0) { console.error('killercoda.js: s01 token block not found'); process.exit(1); }
-    pg.parts[tok].code = 'token=$(jq -r .stateToken receipts/01-create.json); share token';
-    const k = pg.parts.findIndex((p, n) => n < tok && p.text !== undefined && p.text.includes('From now on every command names the registry'));
-    if (k >= 0) pg.parts[k].text = pg.parts[k].text.replace(/The token is the registry's name, read from the create receipt:?/, "The token is the registry's name, read from the create receipt. \`share token\` saves it in the shared settings, so Bob's window knows it too:");
+    // one settings file for both windows, named by SINGULAR_CONFIG; the devnet's line is in the folder above
+    for (const p of pg.parts) if (p.code !== undefined) p.code = p.code.replace(/\bdevnet\.out/g, '../devnet.out').replace(/\bsingular\.json/g, '"$SINGULAR_CONFIG"');
+    const w = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**The settings, written once.**'));
+    if (w < 0) { console.error('killercoda.js: s01 settings paragraph not found'); process.exit(1); }
+    pg.parts[w].text = swap(pg.parts[w].text, 'The devnet\'s settings line has two of the values; `jq` builds the file from it.', 'The devnet\'s settings line has two of the values; `jq` builds the file from it. One file serves both windows: the variable `SINGULAR_CONFIG` holds its name, so Bob\'s commands read what Alice writes here.');
   }
   if (/^s03-/.test(f)) {
     swapCode(pg, `echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json`, `echo '{"constructor":0,"fields":[{"int":42}]}' | tee payload.json ../bob/payload.json`);
@@ -245,12 +227,24 @@ for (const f of stepPages) {
     pg.parts[t].text = swap(pg.parts[t].text, '**The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.', "**The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42. It is also written into Bob's directory, because he books a key later.");
   }
   if (/^s11-/.test(f)) {
-    // the waiting helper lives in the shared settings: drop its definition from the page
+    // the waiting helper is defined by the setup in both windows: drop its definition from the page
     const d = pg.parts.findIndex((p) => p.code !== undefined && p.code.startsWith('wait_for_slot()'));
     if (d < 0) { console.error('killercoda.js: wait_for_slot definition not found'); process.exit(1); }
     const lead = d - 1;
     if (pg.parts[lead].text === undefined || !pg.parts[lead].text.includes('wait_for_slot')) { console.error('killercoda.js: lead of the helper not found'); process.exit(1); }
     pg.parts.splice(lead, 2, { text: '\n**The waiting helper.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain\'s clock, like the program does. Both windows have it.\n' });
+  }
+  if (/^s21-/.test(f)) {
+    // this page moves between the windows, and only Alice's keeps the variable: read the chain's address where it is used
+    swapCode(pg, '"$koios_url/tx_info"', '"$(jq -r .providerUrl ../devnet.out)/tx_info"');
+  }
+  if (/^s20-/.test(f)) {
+    // the addresses are in files and the chain's address in the devnet's line: this window reads them into variables
+    const h = pg.parts.findIndex((p) => p.text !== undefined && p.text.includes('**A small helper**'));
+    if (h < 0) { console.error('killercoda.js: s20 helper paragraph not found'); process.exit(1); }
+    pg.parts.splice(h, 0,
+      { text: "**Read the addresses and the chain's address.** The addresses were written to files when the wallets were made, and the chain's address is in the devnet's settings line. Read them into variables, in this window:\n" },
+      { code: 'alice_addr=$(cat ../alice/alice.address); bob_addr=$(cat ../bob/bob.address); koios_url=$(jq -r .providerUrl ../devnet.out)', skip: false });
   }
   pages.push({ title: pg.title, md: render(pg, { actors: !/^s20-/.test(f) }) });
 }
@@ -302,27 +296,23 @@ tar xzf ${KIT}.tar.gz
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-# one directory for each person (with the folders for their receipts, bundles and witnesses), and the settings they share
+# one directory for each person (with the folders for their receipts, bundles and witnesses)
 mkdir -p /root/singular-demo-run/alice/receipts /root/singular-demo-run/alice/bundles /root/singular-demo-run/alice/witnesses \\
   /root/singular-demo-run/bob/receipts /root/singular-demo-run/bob/bundles /root/singular-demo-run/bob/witnesses
-cat > /root/singular-demo-run/env.sh <<'ENVEOF'
-# Settings Alice's and Bob's windows share: addresses, the registry's name, where the chain answers.
-# Every window reads this file again before each command.
-ENVEOF
-# what every window starts with: the usual bash setup, the programs, the waiting helper, and the shared settings
+# the settings file Alice's and Bob's windows share; step 1 fills it
+echo '{}' > /root/singular-demo-run/singular.json
+# what every window starts with: the usual bash setup, the programs, the shared settings file and the waiting helper
 cat > /root/singular-demo-run/windows.rc <<'RCEOF'
 [ -f ~/.bashrc ] && . ~/.bashrc
 export PATH="/root/${KIT}/bin:$PATH"
 export blueprint="/root/${KIT}/share/plutus.json"
+export SINGULAR_CONFIG=/root/singular-demo-run/singular.json
 # wait_for_slot N: ask the chain for its latest slot every 2 seconds until it is past N (the chain's own clock).
-wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\\n  done: chain slot %s is past slot %s\\n' "$now" "$1"; }
-# share NAME...: save variables in the shared settings (the file env.sh), which every window reads before each command
-share() { local v; for v; do printf '%s=%q\\n' "$v" "\${!v}" >> /root/singular-demo-run/env.sh; printf 'shared: %s=%s\\n' "$v" "\${!v}"; done; }
+wait_for_slot() { local now; until now=$(curl -fsS "$(jq -r .providerUrl /root/singular-demo-run/devnet.out)/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\\n  done: chain slot %s is past slot %s\\n' "$now" "$1"; }
 # one word goes to a window
 alice() { tmux select-window -t alice; }
 bob() { tmux select-window -t bob; }
 chain() { tmux select-window -t chain; }
-trap '. /root/singular-demo-run/env.sh' DEBUG
 RCEOF
 echo 'set -g default-command "bash --rcfile /root/singular-demo-run/windows.rc"' > /root/singular-demo-run/tmux.conf
 touch /tmp/finished

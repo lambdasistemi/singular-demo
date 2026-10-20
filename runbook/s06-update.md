@@ -13,8 +13,6 @@ echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
 ```bash
 open-datum update \
   --key alice --payload payload-new.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
 ```

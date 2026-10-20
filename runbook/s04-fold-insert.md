@@ -6,8 +6,6 @@ Run these three, one after the other, now. They build Bob's fold of the booking,
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   > receipts/04-fold-insert.json
 ```
@@ -28,7 +26,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-
 
 ```bash
 singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
 ```
 
@@ -54,8 +51,6 @@ curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
 ```bash skip
 singular registry reclaim \
   --request "$(jq -r .request receipts/03-insert-alice.json)" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/04-reclaim.json
 ```

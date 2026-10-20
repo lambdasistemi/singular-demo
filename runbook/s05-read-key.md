@@ -5,8 +5,6 @@ Reading is free and needs no key and no wallet: anyone can check. `inspect` asks
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/05-inspect.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/05-inspect.json
 ```
