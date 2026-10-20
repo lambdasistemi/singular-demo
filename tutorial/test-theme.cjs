@@ -29,29 +29,35 @@ const { chromium } = require('playwright');
     const shots = path.join(__dirname, 'screenshots');
     fs.mkdirSync(shots, { recursive: true });
     const luminance = (rgb) => { const [r, g, b] = rgb.match(/\d+/g).map(Number); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const seen = (page) => page.evaluate(() => ({
+      xterm: terminal.options.theme.background,
+      pane: getComputedStyle(document.querySelector('.terminal-pane')).backgroundColor,
+      label: document.querySelector('#theme-toggle').textContent,
+    }));
+    // light whatever the browser's own scheme is, because the page beside the terminal is light
     for (const scheme of ['light', 'dark']) {
-      const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, colorScheme: scheme });
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: scheme });
+      const page = await context.newPage();
       await page.goto('http://127.0.0.1:8765/');
       await page.waitForSelector('.xterm-screen');
-      await page.waitForFunction(() => document.querySelector('#connection')?.textContent !== 'Connecting…', null, { timeout: 15000 }).catch(() => {});
-      const seen = await page.evaluate(() => ({
-        xterm: terminal.options.theme.background,
-        pane: getComputedStyle(document.querySelector('.terminal-pane')).backgroundColor,
-        screen: getComputedStyle(document.querySelector('.xterm-screen')).backgroundColor,
-      }));
-      const wantLight = scheme === 'light';
-      assert.equal(luminance(seen.pane) > 128, wantLight, `${scheme}: the terminal pane is ${seen.pane}`);
-      assert.equal(seen.xterm === '#fbfcf8', wantLight, `${scheme}: the xterm palette background is ${seen.xterm}`);
-      // a change of the browser's theme while the page is open is followed too
-      const other = wantLight ? 'dark' : 'light';
-      await page.emulateMedia({ colorScheme: other });
-      const after = await page.evaluate(() => terminal.options.theme.background);
-      assert.equal(after === '#fbfcf8', !wantLight, `${scheme} -> ${other}: the xterm palette background is ${after}`);
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.screenshot({ path: path.join(shots, `theme-${scheme}.png`) });
-      await page.close();
+      let s = await seen(page);
+      assert(luminance(s.pane) > 128 && s.xterm === '#fbfcf8' && s.label === 'Dark terminal', `browser scheme ${scheme}: the terminal starts as ${JSON.stringify(s)}`);
+      await page.screenshot({ path: path.join(shots, `theme-light-${scheme}-browser.png`) });
+      // the button switches it, the choice is kept over a reload, and the button switches it back
+      await page.click('#theme-toggle');
+      s = await seen(page);
+      assert(luminance(s.pane) < 128 && s.xterm === '#101b1b' && s.label === 'Light terminal', `browser scheme ${scheme}: after the button ${JSON.stringify(s)}`);
+      await page.screenshot({ path: path.join(shots, `theme-dark-${scheme}-browser.png`) });
+      await page.reload();
+      await page.waitForSelector('.xterm-screen');
+      s = await seen(page);
+      assert(luminance(s.pane) < 128 && s.xterm === '#101b1b', `browser scheme ${scheme}: after a reload ${JSON.stringify(s)}`);
+      await page.click('#theme-toggle');
+      s = await seen(page);
+      assert(luminance(s.pane) > 128 && s.xterm === '#fbfcf8', `browser scheme ${scheme}: after the second click ${JSON.stringify(s)}`);
+      await context.close();
     }
-    console.log('Theme checks passed: a light terminal for a light theme, a dark one for a dark theme, and a live change is followed.');
+    console.log('Theme checks passed: the terminal is light by default whatever the scheme of the browser, the button switches it to dark and back, and the choice survives a reload.');
   } finally {
     if (browser) await browser.close();
     server.kill('SIGTERM');

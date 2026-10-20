@@ -1,5 +1,5 @@
 /* All tutorial content is loaded from the checked-in scenario files. */
-// The terminal follows the browser's theme. The lesson text beside it is light either way.
+// The terminal is light by default, like the page beside it. A button in its header switches it to dark, and the choice is kept.
 const terminalThemes = {
   light: {
     background: '#fbfcf8', foreground: '#243c32', cursor: '#305a35', cursorAccent: '#fbfcf8', selectionBackground: '#cfe3c4',
@@ -8,20 +8,32 @@ const terminalThemes = {
   },
   dark: { background: '#101b1b', foreground: '#e0eae3', cursor: '#b3e894', selectionBackground: '#47634e', green: '#a3d98c' }
 };
-const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-const currentTheme = () => (darkScheme.matches ? terminalThemes.dark : terminalThemes.light);
+const storageKey = 'tutorial-terminal-theme';
+let terminalMode = 'light';
+try { if (localStorage.getItem(storageKey) === 'dark') terminalMode = 'dark'; } catch {}
 const terminal = new Terminal({
   cursorBlink: true, fontSize: 14, lineHeight: 1.3,
   fontFamily: '"DejaVu Sans Mono", "Liberation Mono", monospace',
   scrollback: 5000,
   // colours a program picks from the 256-colour range (the prompt, jq) stay readable on either background
   minimumContrastRatio: 4.5,
-  theme: currentTheme()
+  theme: terminalThemes[terminalMode]
 });
-darkScheme.addEventListener('change', () => { terminal.options.theme = currentTheme(); });
 const fit = new FitAddon.FitAddon();
 terminal.loadAddon(fit);
 terminal.open(document.querySelector('#terminal'));
+const themeToggle = document.querySelector('#theme-toggle');
+const applyTerminalMode = () => {
+  document.documentElement.dataset.terminal = terminalMode;
+  terminal.options.theme = terminalThemes[terminalMode];
+  themeToggle.textContent = terminalMode === 'dark' ? 'Light terminal' : 'Dark terminal';
+};
+themeToggle.addEventListener('click', () => {
+  terminalMode = terminalMode === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(storageKey, terminalMode); } catch {}
+  applyTerminalMode();
+});
+applyTerminalMode();
 const $ = selector => document.querySelector(selector);
 let lessons = [], current = 0, socket, token, ready = false, connected = false, exited = false;
 const ran = new Set();
