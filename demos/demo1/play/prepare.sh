@@ -11,5 +11,5 @@ run=$(cd "$run" && pwd)
 # the settings file Alice's and Bob's windows share; step 1 fills it
 [ -f "$run/singular.json" ] || echo '{}' >"$run/singular.json"
 printf 'PLAY_KIT=%q\nPLAY_RUN=%q\n' "$kit" "$run" >"$run/play.env"
-cp "$here/windows.rc" "$run/windows.rc"
+cp "$here/windows.rc" "$here/helpers.sh" "$run/"
 echo "The folders of the play are ready: $run"

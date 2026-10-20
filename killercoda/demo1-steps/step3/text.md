@@ -5,4 +5,4 @@ Every write in this demo is signed by a wallet, and a command takes exactly one 
 
 **It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side. When you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
 
-Both routes are described in the documentation: the vault at https://lambdasistemi.github.io/singular/docs/singular-node/#keeping-your-signing-key-in-an-encrypted-vault and the bundle at https://lambdasistemi.github.io/singular/docs/singular-node/#signing-a-bundle-of-unsigned-transactions-offline
+Both routes are described in the documentation: the [vault](https://lambdasistemi.github.io/singular/docs/singular-node/#keeping-your-signing-key-in-an-encrypted-vault) and the [bundle](https://lambdasistemi.github.io/singular/docs/singular-node/#signing-a-bundle-of-unsigned-transactions-offline).
