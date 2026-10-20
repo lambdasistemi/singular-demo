@@ -1,0 +1,11 @@
+tutorial/.venv/
+tutorial/node_modules/
+tutorial/static/vendor/
+tutorial/__pycache__/
+tutorial/*.log
+tutorial/*.pid
+tutorial/screenshots/
+
+/tutorial/START-HERE.md
+
+/tutorial/.setup-fingerprint

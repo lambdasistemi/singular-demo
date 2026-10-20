@@ -1,0 +1,31 @@
+{
+  "name": "Singular interactive tutorial",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb"
+  },
+  "forwardPorts": [
+    8765
+  ],
+  "portsAttributes": {
+    "8765": {
+      "label": "Singular tutorial \u2014 open in browser",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "bash tutorial/setup.sh && bash tutorial/install-kit.sh && bash tutorial/open.sh",
+  "postStartCommand": "bash tutorial/start.sh",
+  "postAttachCommand": "bash tutorial/open.sh --show",
+  "customizations": {
+    "codespaces": {
+      "openFiles": [
+        "tutorial/START-HERE.md"
+      ]
+    }
+  }
+}
