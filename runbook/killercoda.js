@@ -1,12 +1,13 @@
 // Builds a Killercoda scenario (Ubuntu, no Nix) from the runbook step files.
 //   node runbook/killercoda.js OUTDIR
 //
-// The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `devnet` (the private
-// chain, in the foreground of its window), each person in a directory of their own with their own vault, receipts and
+// The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `chain` (the private
+// chain, a background job of its window), each person in a directory of their own with their own vault, receipts and
 // journal. The two people share one settings file, singular.json, which the Singular commands read by themselves
 // (the variable SINGULAR_CONFIG names it). Every "bash" block of the step files
 // becomes a block the learner runs with a click, in the window of the person who acts. Wherever the person changes,
-// the page says which keys go there (Ctrl-b 0, 1 or 2). "bash skip" blocks are shown only.
+// the page gives the word to click (alice, bob or chain); the keys Ctrl-b 0, 1 and 2 are only an extra, nothing needs a
+// keyboard. "bash skip" blocks are shown only.
 const fs = require('fs');
 const path = require('path');
 
@@ -61,9 +62,8 @@ function swapCode(page, from, to) {
 // ---- who acts
 
 // Each window has a word that goes to it (a function in windows.rc, so a click is enough) and a number for Ctrl-b.
-// The scenario test finds the words as click-to-run blocks of one line: alice, bob or chain. The one place a word cannot
-// be used is the chain's own window while the chain runs: there the page says to press `Ctrl-b N` at the start of a
-// paragraph, and the test finds that line by its shape.
+// The scenario test finds the words as click-to-run blocks of one line: alice, bob or chain. The chain runs as a
+// background job of its window, so that window keeps its prompt and the words work there too.
 const WINDOW = { alice: 0, bob: 1, chain: 2 };
 const NAME = { alice: 'Alice', bob: 'Bob' };
 const OWNER = { alice: "Alice's", bob: "Bob's", chain: "the chain's" };
@@ -147,7 +147,7 @@ And back to Alice's:
 alice
 \`\`\`{{exec}}
 
-The keys do the same: \`Ctrl-b 0\`, \`Ctrl-b 1\` and \`Ctrl-b 2\` go to the window with that number (hold Ctrl, press b, release both, press the digit; click on the terminal first, so that it has the focus). One more key: \`Ctrl-b d\` leaves tmux. Nothing stops; the windows and the chain keep running. Come back with \`tmux attach -t demo\`.
+If you have a keyboard, the keys do the same: \`Ctrl-b 0\`, \`Ctrl-b 1\` and \`Ctrl-b 2\` go to the window with that number (hold Ctrl, press b, release both, press the digit; click on the terminal first, so that it has the focus). One more key: \`Ctrl-b d\` leaves tmux. Nothing stops; the windows and the chain keep running. Come back with \`tmux attach -t demo\`.
 `,
 });
 
@@ -183,7 +183,7 @@ ${goTo('bob', '**Now Bob.** ')}
 bob_addr=$(singular wallet create --vault bob.vault --network-magic 42 | tee bob.address)
 \`\`\`{{exec}}
 
-**The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It runs in the foreground of its own window and stays there.
+**The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It runs in its own window, as a background job: the window keeps its prompt.
 
 ${goTo('chain')}
 
@@ -191,20 +191,28 @@ Then run it:
 
 - \`--fund-address ADDRESS:6:2000000000\`: gives the address 6 coins of 2000 ada each (2000000000 lovelace)
 - \`$(cat alice/alice.address)\`: the address, read from the file Alice's window wrote (Bob's the same way)
-- \`> devnet.out\`: its one line of settings goes to this file; its messages stay in the window
+- \`> devnet.out\`: its one line of settings goes to this file
+- \`2> devnet.log\`: its messages go to this file, which can be read at any time
+- \`&\`: runs it in the background, so that the window gets its prompt back and the chain keeps running
 
 \`\`\`bash
-devnet --fund-address "$(cat alice/alice.address):6:2000000000" --fund-address "$(cat bob/bob.address):6:2000000000" > devnet.out
+devnet --fund-address "$(cat alice/alice.address):6:2000000000" --fund-address "$(cat bob/bob.address):6:2000000000" > devnet.out 2> devnet.log &
 \`\`\`{{exec}}
 
-The chain prints its messages here and keeps running: leave it. Nothing can be typed in this window while it runs, so a word does not work here; use the keys.
+The chain keeps running: leave it.
 
-Press \`Ctrl-b ${WINDOW.alice}\` to go back to Alice's window.
+${goTo('alice')}
 
 **Wait until the settings line has appeared**, then show it. \`providerUrl\` is where the chain's web API answers.
 
 \`\`\`bash
 until jq -e .providerUrl ../devnet.out >/dev/null 2>&1; do sleep 1; done; jq . ../devnet.out
+\`\`\`{{exec}}
+
+**The chain's log.** Whenever you want to see what the chain is doing, show the last lines of its messages. Click this again later to see the new ones:
+
+\`\`\`bash
+tail -n 20 ../devnet.log
 \`\`\`{{exec}}
 `,
 });
@@ -333,9 +341,15 @@ w('finish/text.md', `That was the whole of Demo 1: a key booked, folded, changed
 
 ${goTo('chain')}
 
-Then press \`Ctrl+C\`. The window keeps its shell.
+The chain is job 1 of its window. Stop it:
 
-Alice's receipts are in \`~/singular-demo-run/alice/receipts\`; Bob's receipts, the transactions he built (\`bundles/\`) and his signatures (\`witnesses/\`) are in \`~/singular-demo-run/bob\`.
+\`\`\`bash
+kill %1
+\`\`\`{{exec}}
+
+The window keeps its shell.
+
+The chain's messages are in \`~/singular-demo-run/devnet.log\`. Alice's receipts are in \`~/singular-demo-run/alice/receipts\`; Bob's receipts, the transactions he built (\`bundles/\`) and his signatures (\`witnesses/\`) are in \`~/singular-demo-run/bob\`.
 `);
 
 console.log('scenario written to ' + out + ': ' + pages.length + ' steps');
