@@ -43,7 +43,7 @@ if [ "$(tmux list-windows -t demo -F '#{window_index}:#{window_name}' | tr '\n' 
 fi
 echo "ok    intro/foreground.sh said Ready; windows 0:alice 1:bob 2:chain"
 for w in alice bob chain; do tmux resize-window -t "demo:$w" -x 200 -y 50; done
-kit=$(find "$HOME" -maxdepth 1 -type d -name 'singular-demo-*-linux' | head -1)
+kit=$(find "$HOME" -maxdepth 1 -type d -name 'singular-*-x86_64-linux' | head -1)
 
 # ---- the blocks, one file each
 # an item is a click-to-run block

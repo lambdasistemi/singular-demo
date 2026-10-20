@@ -21,6 +21,6 @@ if [[ -e "$run" ]]; then
   mv "$run" "$saved/run"
   printf 'Your previous demo files are saved in %s/run\n' "$saved"
 fi
-bash "$play/prepare.sh" "$HOME/singular-demo-$version-x86_64-linux" "$run"
+bash "$play/prepare.sh" "$HOME/singular-${version#v}-x86_64-linux" "$run"
 bash "$play/windows.sh" "$run"
 printf 'Alice, Bob and chain windows are ready. Continue to the next lesson.\n'

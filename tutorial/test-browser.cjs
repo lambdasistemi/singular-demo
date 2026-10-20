@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
 (async () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'singular-browser-'));
   const version = require(path.join(__dirname, '..', 'demos/demo1/version.js'));
-  const kit = path.join(home, `singular-demo-${version}-x86_64-linux`);
+  const kit = path.join(home, `singular-${version.slice(1)}-x86_64-linux`);
   fs.mkdirSync(path.join(kit, 'bin'), { recursive: true });
   fs.writeFileSync(path.join(kit, 'bin/singular'), '#!/bin/sh\n', { mode: 0o755 });
   fs.writeFileSync(path.join(kit, '.verified'), 'UI-only fixture');

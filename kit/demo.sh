@@ -36,11 +36,18 @@ PROCESS_TIME_MS=${PROCESS_TIME_MS:-120000} # the window in which the registry ma
 RETRACT_TIME_MS=${RETRACT_TIME_MS:-60000}  # the window after it in which the owner may take it back (default 1 minute)
 
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-KIT=$(dirname "$SCRIPT")
+# the folder of Singular's release for Linux (singular-NUMBER-x86_64-linux/): DEMO_KIT names it, or this script sits in it
+KIT=$(readlink -f "${DEMO_KIT:-$(dirname "$SCRIPT")}")
 [ -x "$KIT/bin/singular" ] || {
-  echo "demo.sh must sit in the kit's top directory, next to bin/" >&2
+  echo "demo.sh needs Singular's release folder: set DEMO_KIT to it, or put demo.sh next to its bin/" >&2
   exit 2
 }
+for tool in jq curl; do
+  command -v "$tool" >/dev/null || {
+    echo "demo.sh needs $tool on the PATH" >&2
+    exit 2
+  }
+done
 export PATH="$KIT/bin:$PATH"
 WORK=${WORK:-$PWD/singular-demo-run}
 mapfile -t SRC <"$SCRIPT"
@@ -240,9 +247,11 @@ fi
 touch "$WORK/.singular-demo"
 cd "$WORK"
 BLUEPRINT=$KIT/share/plutus.json
-SLOT_MS=$(jq -r '.slotLength * 1000 | round' "$KIT/share/genesis/shelley-genesis.json")
+GENESIS=$KIT/share/devnet/genesis
+[ -d "$GENESIS" ] || GENESIS=$KIT/share/genesis
+SLOT_MS=$(jq -r '.slotLength * 1000 | round' "$GENESIS/shelley-genesis.json")
 
-printf '%sSingular %s — Demo 1 on a private chain%s\n' "$B" "$(sed -n '1p' "$KIT/VERSION" | cut -d' ' -f2)" "$Z"
+printf '%sSingular %s — Demo 1 on a private chain%s\n' "$B" "$("$KIT/bin/singular" --version | cut -d' ' -f2)" "$Z"
 printf '  kit:        %s\n' "$KIT"
 printf '  this run:   %s   (vaults, receipts, bundles; the whole run is kept there)\n' "$WORK"
 

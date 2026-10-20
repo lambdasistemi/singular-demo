@@ -22,7 +22,7 @@ const course = path.join(root, 'killercoda');
 const out = path.join(course, 'demo1-steps');
 
 const VERSION = require('./version.js');
-const KIT = `singular-demo-${VERSION}-x86_64-linux`;
+const KIT = `singular-${VERSION.slice(1)}-x86_64-linux`;
 const _BASE = `https://github.com/lambdasistemi/singular-demo/releases/download/${VERSION}`;
 const _RUN = '~/singular-demo-run';
 
@@ -489,6 +489,13 @@ The chain's messages are in \`~/singular-demo-run/devnet.log\`. Alice's receipts
 console.log(`scenario written to ${out}: ${pages.length} steps`);
 
 // ---- the second scenario: the kit's annotated script, run as it is
+const DEMO_SH = fs
+  .readFileSync(path.join(dir, '..', '..', 'kit', 'demo.sh'), 'utf8')
+  .replace(/\n*$/, '\n');
+if (DEMO_SH.includes('DEMO_EOF')) {
+  console.error('killercoda.js: kit/demo.sh contains the heredoc delimiter');
+  process.exit(1);
+}
 const script = path.join(course, 'demo1-script');
 fs.rmSync(script, { recursive: true, force: true });
 const ws = (p, t) => {
@@ -529,6 +536,9 @@ ws(
 set -x
 mkdir -p /root/play
 ${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${VERSION} /root
+# the annotated script of this repository, at the release it was written for
+cat > /root/demo.sh <<'DEMO_EOF'
+${DEMO_SH}DEMO_EOF
 touch /tmp/finished
 `,
 );
@@ -546,7 +556,7 @@ ws(
 The script runs in the background and writes everything to a log, and the terminal follows the log. So pressing Ctrl+C, or copying text with it, only stops the following: the demo carries on.
 
 \`\`\`bash
-cd ~/${KIT} && (PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 setsid nohup ./demo.sh > demo.log 2>&1 &) ; sleep 1; tail -n +1 -f demo.log
+cd ~ && (DEMO_KIT=~/${KIT} PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 setsid nohup bash demo.sh > demo.log 2>&1 &) ; sleep 1; tail -n +1 -f demo.log
 \`\`\`{{exec}}
 
 To copy text from the terminal, select it and use Ctrl+Shift+C, or right-click.
@@ -554,7 +564,7 @@ To copy text from the terminal, select it and use Ctrl+Shift+C, or right-click.
 If you stopped following, pick the log up again from the start:
 
 \`\`\`bash
-tail -n +1 -f ~/${KIT}/demo.log
+tail -n +1 -f ~/demo.log
 \`\`\`{{exec}}
 
 The script asks nothing; the wallets use throwaway passphrases. When the log ends with the last step, the run is over and the chain it started has been stopped.
@@ -564,7 +574,7 @@ ws(
   'finish/text.md',
   `That was all 16 steps: a key booked, folded, changed and removed; a stuck request rejected; a request taken back. Everything ran on a private test chain.
 
-The receipts are in \`~/${KIT}/singular-demo-run/receipts\`.
+The receipts are in \`~/singular-demo-run/receipts\`.
 `,
 );
 console.log(`script scenario written to ${script}`);

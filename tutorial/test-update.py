@@ -46,7 +46,7 @@ with tempfile.TemporaryDirectory(prefix="tutorial-update-") as temp:
         text=True,
         check=True,
     ).stdout.strip()
-    kit = home / ("singular-demo-" + version + "-x86_64-linux")
+    kit = home / ("singular-" + version[1:] + "-x86_64-linux")
     (kit / "bin").mkdir(parents=True)
     (kit / "bin/singular").write_text("#!/bin/sh\n")
     (kit / "bin/singular").chmod(0o755)
