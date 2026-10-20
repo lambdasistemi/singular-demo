@@ -160,20 +160,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # runbook/test.sh arrives with the runbook branch. Until it is on this branch the job
-      # does nothing and says so; once it is there the job runs it with no change to this file.
-      - name: Is runbook/test.sh here?
-        id: present
-        run: |
-          if [ -f runbook/test.sh ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Runbook test not run::runbook/test.sh is not on this branch yet; this job runs it as soon as it is."
-          fi
-
-      - if: steps.present.outputs.present == 'true'
-        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
         with:
           github_access_token: ${{ github.token }}
           extra_nix_config: |
@@ -182,24 +169,178 @@ jobs:
             trusted-users = root runner
 
       - name: Cache-miss guard (nothing may be compiled)
-        if: steps.present.outputs.present == 'true'
         run: kit/guard.sh .#devShells.x86_64-linux.default
 
-      - name: Runbook test (every step of the runbook, pasted into one shell, against a fresh devnet)
-        if: steps.present.outputs.present == 'true'
-        run: nix develop --command bash runbook/test.sh
+      - name: Runbook test (every step of the tutorial, pasted into one shell, against a fresh devnet)
+        run: nix develop --command bash demos/demo1/test.sh
 
-      - name: Keep the runbook log
-        if: always() && steps.present.outputs.present == 'true'
+      - name: Keep the log of the run
+        if: always()
         run: |
           mkdir -p runbook-out
           cp /tmp/rb-*/log.txt runbook-out/runbook-test.log
 
-      - name: Upload the runbook log
-        if: always() && steps.present.outputs.present == 'true'
+      - name: Upload the log of the run
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: runbook-log
           path: runbook-out/
           if-no-files-found: warn
           retention-days: 14
+
+  # What is committed must be what the sources generate, and the repository must agree with itself.
+  checks:
+    name: Generated files and versions agree with the sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Lint the step files
+        run: bash demos/demo1/lint.sh demos/demo1/s*.md
+
+      - name: The Killercoda scenarios in the repository are the generated ones
+        run: |
+          node demos/demo1/killercoda.js "$RUNNER_TEMP/generated"
+          diff -r "$RUNNER_TEMP/generated/killercoda" killercoda
+          diff "$RUNNER_TEMP/generated/structure.json" structure.json
+
+      - name: The README names the pinned Singular version
+        run: |
+          v=$(node -p "require('./demos/demo1/version.js')")
+          grep -q "^version=$v\$" README.md
+          grep -q "Singular release used is $v\." README.md
+
+  # The Killercoda scenarios, played the way Killercoda plays them, on the kit built in this run.
+  scenarios:
+    name: Killercoda scenarios in a clean Ubuntu
+    needs: kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: The step-by-step scenario (real tmux windows, every click-to-run block typed in)
+        run: |
+          docker run --rm --memory 12g -e KIT_BASE=file:///kit \
+            -v "$PWD/killercoda/demo1-steps:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/release:/kit:ro" \
+            ubuntu:24.04 bash /repo/demos/demo1/scenario-test.sh /scenario
+
+      - name: The annotated-script scenario
+        run: |
+          docker run --rm --memory 12g -e KIT_BASE=file:///kit \
+            -v "$PWD/killercoda/demo1-script:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/release:/kit:ro" \
+            ubuntu:24.04 bash /repo/demos/demo1/script-scenario-test.sh /scenario
+
+  # The Codespaces tutorial: its own tests, then the whole demo through its buttons, on the kit built in this run.
+  tutorial:
+    name: Codespaces tutorial
+    needs: kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Install the tutorial's dependencies
+        run: bash tutorial/setup.sh
+
+      - name: The persistent shell and the access boundaries
+        run: tutorial/.venv/bin/python tutorial/test_runner.py
+
+      - name: Updating without rebuilding
+        run: tutorial/.venv/bin/python tutorial/test-update.py
+
+      - name: Install the browser
+        working-directory: tutorial
+        run: npx playwright install --with-deps chromium
+
+      - name: The browser experience
+        working-directory: tutorial
+        run: npm run test:browser
+
+      - name: The whole demo through the browser
+        working-directory: tutorial
+        env:
+          PLAY_KIT_BASE: file://${{ github.workspace }}/release
+        run: node test-demo.cjs
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: tutorial-screenshots
+          path: tutorial/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The documentation site, built from the logs of the runs above. The caller publishes it.
+  docs:
+    name: Documentation site
+    needs: [kit, runbook]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          github_access_token: ${{ github.token }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            trusted-users = root runner
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: runbook-log
+          path: runbook-out
+
+      - name: Build the site (mkdocs, --strict)
+        run: nix shell .#docs-env --command bash docs/build.sh runbook-out/runbook-test.log release/demo-run.log
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/

@@ -2,7 +2,8 @@ name: daily
 
 # Every day: rebuild the Ubuntu kit of the pinned Singular release from flake.lock,
 # prove it by the full 16-step demo in a clean Ubuntu 24.04 container, and publish
-# the kit with the proof to the single rolling release "daily".
+# the kit with the proof to the single rolling release "daily", and publish the documentation site built from
+# the same runs. Every merge into main does the same.
 # A pull request builds and tests only; it never publishes.
 
 on:
@@ -10,6 +11,8 @@ on:
     - cron: "17 4 * * *"
   workflow_dispatch:
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -64,3 +67,19 @@ jobs:
         run: |
           title="Daily kit, $(jq -r '.date[:10]' release/run-summary.json)"
           gh release edit daily --prerelease --latest=false --title "$title" --notes-file release/notes.md
+
+  pages:
+    name: Publish the documentation site
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

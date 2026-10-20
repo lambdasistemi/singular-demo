@@ -84,10 +84,16 @@
       packages.${system} = {
         inherit kit kit-verify;
         # mkdocs with its theme: docs/build.sh builds the documentation site with it
-        docs-env = pkgs.python3.withPackages (p: [
-          p.mkdocs
-          p.mkdocs-material
-        ]);
+        docs-env = pkgs.symlinkJoin {
+          name = "singular-demo-docs-env";
+          paths = [
+            (pkgs.python3.withPackages (p: [
+              p.mkdocs
+              p.mkdocs-material
+            ]))
+            pkgs.nodejs
+          ];
+        };
       };
 
       apps.${system}.kit-verify = {
