@@ -1,10 +1,24 @@
 /* All tutorial content is loaded from the checked-in scenario files. */
+// The terminal follows the browser's theme. The lesson text beside it is light either way.
+const terminalThemes = {
+  light: {
+    background: '#fbfcf8', foreground: '#243c32', cursor: '#305a35', cursorAccent: '#fbfcf8', selectionBackground: '#cfe3c4',
+    black: '#243c32', red: '#b3261e', green: '#2e6b34', yellow: '#8a6100', blue: '#1f5fa8', magenta: '#8b3a8f', cyan: '#0f6e73', white: '#6d7a72',
+    brightBlack: '#5b6e63', brightRed: '#d4352b', brightGreen: '#3f8a46', brightYellow: '#a87800', brightBlue: '#2b78cf', brightMagenta: '#a64ca9', brightCyan: '#1a8a90', brightWhite: '#3a4a41'
+  },
+  dark: { background: '#101b1b', foreground: '#e0eae3', cursor: '#b3e894', selectionBackground: '#47634e', green: '#a3d98c' }
+};
+const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+const currentTheme = () => (darkScheme.matches ? terminalThemes.dark : terminalThemes.light);
 const terminal = new Terminal({
   cursorBlink: true, fontSize: 14, lineHeight: 1.3,
   fontFamily: '"DejaVu Sans Mono", "Liberation Mono", monospace',
   scrollback: 5000,
-  theme: { background: '#101b1b', foreground: '#e0eae3', cursor: '#b3e894', selectionBackground: '#47634e', green: '#a3d98c' }
+  // colours a program picks from the 256-colour range (the prompt, jq) stay readable on either background
+  minimumContrastRatio: 4.5,
+  theme: currentTheme()
 });
+darkScheme.addEventListener('change', () => { terminal.options.theme = currentTheme(); });
 const fit = new FitAddon.FitAddon();
 terminal.loadAddon(fit);
 terminal.open(document.querySelector('#terminal'));
