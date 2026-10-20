@@ -1,10 +1,10 @@
 # Codespaces tutorial prototype
 
-A single-user tutorial with instructions beside an xterm.js terminal. The inline **▷** control inserts a command into the active persistent Bash terminal. The v0.13.0 walkthrough has Alice, Bob and chain windows in an isolated tmux session. Variables, background processes and the working directory survive lesson changes and browser reconnects within each window. Commands are disabled while the shell is running a command or waiting for input. You can type, paste and use Ctrl+C directly in the terminal.
+A single-user tutorial with instructions beside an xterm.js terminal. The inline **▷** control inserts a command into the active persistent Bash terminal. The walkthrough has Alice, Bob and chain windows in an isolated tmux session. Variables, background processes and the working directory survive lesson changes and browser reconnects within each window. Commands are disabled while the shell is running a command or waiting for input. You can type, paste and use Ctrl+C directly in the terminal.
 
 ## Try it
 
-[Launch the test branch in Codespaces](https://codespaces.new/lambdasistemi/singular-demo-killercoda?ref=codex%2Fcodespaces-tutorial&quickstart=1)
+[Launch the `dev` branch in Codespaces](https://codespaces.new/lambdasistemi/singular-demo?ref=dev&quickstart=1)
 
 **Already have a Codespace?** Run this in its **editor terminal**, then refresh the tutorial:
 
@@ -15,7 +15,7 @@ git pull --ff-only && bash tutorial/update.sh
 No container rebuild; this starts a fresh shell/chain session and preserves your files.
 
 
-1. Sign in to GitHub and create a Codespace on `codex/codespaces-tutorial`.
+1. Sign in to GitHub and create a Codespace on the branch you want (`main` is the published one).
 2. Wait for the development container and dependencies to finish installing.
 3. The welcome file opens as a rendered Markdown page with your exact **Open your tutorial** link. The tutorial port is also configured to open automatically. The **Ports** panel → **8765** → **Open in Browser** remains a fallback.
 4. The kit is already installed. Click the preparation command in the introduction to create the Alice, Bob and chain windows, then use the right arrow to begin. A previous demo folder is preserved under a dated `singular-demo-saved-*` folder.
@@ -40,9 +40,9 @@ The first build installs Python and Node dependencies. Subsequent starts launch 
 
 ## Content
 
-`welcome.md` introduces the demo; `finish.md` appends Codespaces shutdown guidance. The server loads the other lessons directly from `../singular-demo-steps/index.json` and its Markdown files. Only fenced blocks marked `{{exec}}` receive a Run button. Unmarked commands remain copyable reference material, preserving the upstream scenario's choices.
+`welcome.md` introduces the demo; `finish.md` appends Codespaces shutdown guidance. The server loads the other lessons directly from `../killercoda/demo1-steps/index.json` (the scenario generated in this repository; `TUTORIAL_SCENARIO` names another) and its Markdown files. Only fenced blocks marked `{{exec}}` receive a Run button. Unmarked commands remain copyable reference material, preserving the upstream scenario's choices.
 
-The checked-in scenario is imported verbatim from `dev` at `ac6f950618fafcb5f310625624da31eea5805fb3`; `content-source.json` records its provenance. It includes the shared JSON settings and the design-limits lesson. The scenario files are generated upstream in `lambdasistemi/singular-demo`; edit that source when changing the walkthrough. The Codespaces preparation script adapts its root-owned Killercoda setup to the participant's home directory.
+The scenario is generated from the tutorial's step files by `node demos/demo1/killercoda.js .` and is the one Killercoda plays; nothing is copied by hand. The kit is installed and the three windows are started by the scripts of the play in `demos/demo1/play/`, the same ones the Killercoda machine runs, for the Singular version pinned in `flake.nix`.
 
 ## Local use and checks
 
