@@ -7,8 +7,6 @@ The registry takes requests again. This time Bob adds a key, with his own wallet
 ```bash
 open-datum insert \
   --key bob --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
   > receipts/12-insert-bob.json
 jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDeadline} | with_entries(select(.value != null))' receipts/12-insert-bob.json
@@ -25,7 +23,6 @@ singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert
 ```bash
 singular submit \
   --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/insert-bob.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json
 ```

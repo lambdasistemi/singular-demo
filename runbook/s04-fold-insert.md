@@ -6,8 +6,6 @@ Run these three, one after the other, now. They build Bob's fold of the booking,
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   > receipts/04-fold-insert.json
 ```
@@ -28,7 +26,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-
 
 ```bash
 singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
 ```
 
@@ -36,28 +33,26 @@ singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-ins
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-insert.submitted.json
 ```
 
-**If the first command was refused because the window ended.**
+**If the first command was refused because the window ended.** The documentation on recovery is at https://lambdasistemi.github.io/singular/docs/cli-recovery/
 
-The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected, which is what steps 11 and 14 show. See where the chain is compared with the booking's deadline:
+The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected. See where the chain is compared with the booking's deadline:
 
 ```bash skip
 jq '{request, foldDeadline}' receipts/03-insert-alice.json
 ```
 
 ```bash skip
-curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
+curl -fsS "$(jq -r .providerUrl devnet.out)/tip" | jq '.[0] | {abs_slot}'
 ```
 
 - While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
-- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (the command of step 14, her passphrase). Then book again (step 3) and fold at once:
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (her passphrase). Then book again (step 3) and fold at once:
 
 ```bash skip
 singular registry reclaim \
   --request "$(jq -r .request receipts/03-insert-alice.json)" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/04-reclaim.json
 ```
 
-- If the retract window has ended too, the reclaim is refused, and the way out is the reject of step 11: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
+- If the retract window has ended too, the reclaim is refused, and the way out is a reject: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.

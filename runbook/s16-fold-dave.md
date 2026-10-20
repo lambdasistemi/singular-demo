@@ -6,8 +6,6 @@ Bob folds `dave`, external signing as before: build (exit status 19), sign, send
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
   > receipts/16a-fold-dave.json
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/16a-fold-dave.json
@@ -24,7 +22,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-da
 ```bash
 singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-dave.bundle
 ```
 
@@ -33,8 +30,6 @@ singular submit \
 ```bash
 open-datum inspect \
   --key dave \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/16b-inspect-dave.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
 ```

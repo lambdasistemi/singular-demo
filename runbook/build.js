@@ -8,7 +8,8 @@ const dir = __dirname;
 const files = fs.readdirSync(dir).filter((f) => /^s\d.*\.md$/.test(f)).sort();
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+const link = (t) => t.replace(/https?:\/\/[^\s<>]*[^\s<>.,;:)]/g, (u) => '<a href="' + u + '">' + u + '</a>');
+const inline = (s) => esc(s).split('`').map((t, i) => i % 2 ? '<code>' + t + '</code>' : link(t).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')).join('');
 
 function parse(text) {
   const lines = text.split('\n');
@@ -42,7 +43,7 @@ const steps = files.map((f) => ({ file: f, ...parse(fs.readFileSync(path.join(di
 let md = '# Singular Demo 1, step by step\n\n' +
   'Every grey block has a copy button on GitHub: copy it, paste it into the terminal, run the next one. ' +
   'The blocks are meant to be pasted in order into one terminal. A page with bigger buttons and a done mark per step is in `demo.html`.\n\n' +
-  'Release v0.12.0. Everything runs on a private test chain.\n';
+  'Release v0.13.0. Everything runs on a private test chain. The project is at ' + 'https://github.com/lambdasistemi/singular' + ' and its documentation at ' + 'https://lambdasistemi.github.io/singular/' + '.\n';
 for (const s of steps) {
   md += '\n## ' + s.title + '\n';
   for (const p of s.parts) {

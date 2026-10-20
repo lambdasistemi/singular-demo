@@ -2,7 +2,7 @@
 
 Every grey block has a copy button on GitHub: copy it, paste it into the terminal, run the next one. The blocks are meant to be pasted in order into one terminal. A page with bigger buttons and a done mark per step is in `demo.html`.
 
-Release v0.12.0. Everything runs on a private test chain.
+Release v0.13.0. Everything runs on a private test chain. The project is at https://github.com/lambdasistemi/singular and its documentation at https://lambdasistemi.github.io/singular/.
 
 ## Before you start: open the shell
 
@@ -18,7 +18,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 Without Nix, unpack the kit from the release page and use its folder:
 
 ```bash
-cd singular-demo-v0.12.0-x86_64-linux
+cd singular-demo-v0.13.0-x86_64-linux
 export PATH="$PWD/bin:$PATH"
 export blueprint="$PWD/share/plutus.json"
 
@@ -43,7 +43,9 @@ Which program a command belongs to follows one rule:
 
 The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
 
-Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The few options that every command repeats are explained in step 1.
+Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.
+
+The code is in the project's repository: the contracts at https://github.com/lambdasistemi/singular/tree/v0.13.0/onchain, the programs at https://github.com/lambdasistemi/singular/tree/v0.13.0/offchain and https://github.com/lambdasistemi/singular/tree/v0.13.0/applications/open-datum. Every command and setting is described at https://lambdasistemi.github.io/singular/docs/singular-node/
 
 ## Before you start: two ways to sign
 
@@ -52,14 +54,9 @@ Every write in this demo is signed by a wallet, and a command takes exactly one 
 - **By vault, in one command (Alice).** The command names the vault: `--vault alice.vault`. It builds the transactions, asks for the passphrase, signs, sends, and waits until they have landed.
 - **By bundle, in three commands (Bob).** The command names only the wallet's public address and a file: `--wallet-address …` and `--bundle …`. It builds the transactions into the file, signs nothing, sends nothing, and exits with status 19, which means "waiting for signatures". Then `singular wallet sign` signs the bundle and `singular submit` sends it. The program that builds the transactions never touches the key, so the signing can happen wherever the key is. Here it is Bob's vault, on the same machine.
 
-A third way, a plain key file (`--wallet-skey`), exists and is not used here.
+**It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side. When you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
 
-**It is who signs that decides the route, not what the transaction is.** The same transactions end up on the chain either way, and any step that signs could use either way. The demo gives Alice the first and Bob the second so that you see both side by side:
-
-- the same command appears in both modes: `open-datum fold` is Bob's bundle in steps 4, 9 and 16 and Alice's vault in step 13, and `open-datum insert` is Alice's vault in step 3 and Bob's bundle in step 12;
-- when you see exit status 19 and a `sign` and a `submit`, the wallet is Bob's; when one command does everything and asks for a passphrase, the wallet is Alice's.
-
-**Hardware wallets: not verified.** The bundle and the signature files are standard Cardano text envelopes, so signing on a hardware device may be possible. It has not been tried, and the project does not say it is supported.
+Both routes are described in the documentation: the vault at https://lambdasistemi.github.io/singular/docs/singular-node/#keeping-your-signing-key-in-an-encrypted-vault and the bundle at https://lambdasistemi.github.io/singular/docs/singular-node/#signing-a-bundle-of-unsigned-transactions-offline
 
 ## Before you start: two wallets and a private chain
 
@@ -134,28 +131,30 @@ until jq -e .providerUrl devnet.out >/dev/null 2>&1; do sleep 1; done; jq . devn
 
 A registry is created from one unspent coin, the seed: whoever holds that coin can create exactly one registry from it, which is what makes its identity unique. `create` picks a suitable coin of Alice's by itself and names it in the receipt. The registry's name is its state token.
 
-The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two.
+The windows are short on purpose, so the waits later last minutes: 180 seconds for the registry to process a request, then 60 more for its owner to take it back. A booking must be folded within its 180 seconds; raise `process_ms` below if there is a lot to say between the two. The documentation on choosing the windows: https://lambdasistemi.github.io/singular/docs/singular-node/#choosing-a-registrys-windows
 
-**Two values to keep.** The devnet printed where its web API answers (`providerUrl`) and where its clock data is (`networkTimeDirectory`). Every command below is written out in full and repeats the same groups of options, so these are the only shorthands: plain variables you can print.
+**The settings.** The commands need the same settings again and again: where the chain answers, the chain's clock data and number, the compiled contracts, a folder for the registry's journal and, once it exists, the registry's name. Each can be given as an option on the command (`--koios-url URL`), as an environment variable (`SINGULAR_KOIOS_URL=URL`) or as a key in a JSON file (`"koios-url": "URL"`). The first one present wins: option, then variable, then file. The full description is at https://lambdasistemi.github.io/singular/docs/singular-node/#giving-the-chain-the-contracts-and-the-registry-once
 
-- `koios_url`: where the chain's web API answers
-- `time_dir`: the chain's clock data (when each slot happens)
-- the last line is a check: both lines it prints must be non-empty. If one is empty, paste the block again.
+**For this tutorial, the JSON file**, `singular.json`, so that no command below repeats them. You could override a value with a variable or an option, or skip the file and give every setting that way. The devnet's settings line has two of the values; `jq` builds the file from it.
+
+- `koios-url`: where the chain's web API answers (`providerUrl` in the devnet's line)
+- `network-time`: the chain's clock data, when each slot happens (`networkTimeDirectory`)
+- `network-magic`: the number of this private chain, 42
+- `blueprint`: the compiled contracts
+- `state-dir`: the folder for the registry's journal
 
 ```bash
-koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
-echo "$koios_url"; echo "$time_dir"
+jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "reg"}' devnet.out > singular.json
+jq . singular.json
 
 ```
 
-**How to read the commands from here on.** Each one has the same layout, one group per line:
+**How to read the commands from here on.** The chain, the contracts and the journal folder come from `singular.json`, so each command shows only what it does:
 
-- the command's own options (what to do: the key, the payload, the windows)
-- the registry: `--state-dir` (its journal folder), `--blueprint` (the compiled contracts) and `--state-token` (its name)
-- the chain: `--koios-url`, `--network-time` and `--network-magic 42` (this private chain's number)
+- its own options: the key, the payload, the windows
 - the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
 
-**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed. There is no registry name yet, so the registry group has only the folder and the contracts.
+**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed.
 
 - `process_ms`: how long the registry has to process a request, in milliseconds
 - `retract_ms`: how long after that the owner may take a request back
@@ -166,8 +165,6 @@ echo "$koios_url"; echo "$time_dir"
 process_ms=180000; retract_ms=60000
 open-datum create \
   --process-time "$process_ms" --retract-time "$retract_ms" \
-  --state-dir reg --blueprint "$blueprint" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/01-create.json
 
@@ -180,27 +177,22 @@ jq '{outcome, reason, seed, stateToken} | with_entries(select(.value != null))' 
 
 ```
 
-**From now on every command names the registry by its state token**, as `--state-token "$token"`. The token is the registry's name, read from the create receipt:
+**From now on every command names the registry by its state token.** The token is the registry's name, read from the create receipt. It goes into the same file as `state-token`, and every command below finds it there:
 
 ```bash
-token=$(jq -r .stateToken receipts/01-create.json)
-echo "$token"
+jq --arg token "$(jq -r .stateToken receipts/01-create.json)" '."state-token" = $token' singular.json > singular.new && mv singular.new singular.json
+jq . singular.json
 
 ```
-
-Want to see the seed coin before it is spent? Add `--preview` and use `--wallet-address "$alice_addr"` instead of the vault: it reads the chain and writes nothing.
 
 ## Step 2: read the registry's page
 
 The registry describes itself: which registry this is, which release of Singular runs it, its rules and what it holds now. It needs no key and no wallet, because reading is free. The page is read from the chain's provider, so it is what the chain says and not a signed statement.
 
-The create receipt prints this exact command in its field `describeCommand`. It is written out here: the contracts, the registry's name, and the chain.
+The command needs nothing typed: `singular.json` gives it the contracts, the registry's name and the chain. The create receipt prints the same command in its field `describeCommand`, written out in full. What each part of the page means: https://lambdasistemi.github.io/singular/docs/registry-page/
 
 ```bash
-singular registry describe \
-  --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
-  | tee receipts/02-describe.txt
+singular registry describe | tee receipts/02-describe.txt
 
 ```
 
@@ -208,12 +200,12 @@ singular registry describe \
 
 Alice adds a key. She books `alice` with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
 
-**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. (On Cardano an output can be spent once, so a single shared state output is exactly what everybody would otherwise queue for.) The price is the wait: until a fold, the request is pending and the key does not exist yet.
+**Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. The price is the wait: until a fold, the request is pending and the key does not exist yet. The documentation is at https://lambdasistemi.github.io/singular/docs/singular-node/#booking-and-folding; the contracts that hold a request and fold it are https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/validators/request.ak and https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/lib/registry/fold.ak
 
 **Before you book, read this once.** The next page folds the booking, and its three commands must all run before the fold deadline, so everything that needs explaining is here.
 
 - **A fold** moves pending requests into the registry for good. It is its own command, `open-datum fold`, and anyone may run it: the wallet that folds need not be the one that booked, and the fold's receipt names the requests it settles.
-- **Why Bob, and not Alice?** Nothing requires it. The demo has Bob fold Alice's booking to show that a fold is open to every wallet, and to show the second way of signing, Bob's, next to Alice's. Alice could fold her own booking: `open-datum insert` takes a `--fold` switch that books and folds in one command with one wallet. Step 13 has Alice fold Bob's request.
+- **Why Bob, and not Alice?** Nothing requires it. The demo has Bob fold Alice's booking to show that a fold is open to every wallet, and to show the second way of signing, Bob's, next to Alice's.
 - **Bob signs outside the program.** His fold command only names his address and a bundle file: it builds the transactions, writes them to the file, signs nothing and sends nothing, and exits with status 19, which means waiting for signatures. That is not an error. Then `singular wallet sign` signs the bundle with his vault (the signatures are called witnesses), and `singular submit` sends it and waits until it has landed.
 - **The options on the fold.** `--wallet-address` names who will pay and sign later; `--bundle` is the file the finished, unsigned transactions go to (in `bundles/`); `--out` is where the signatures go (in `witnesses/`); `--receipt` is where the proof of landing goes (in `receipts/`).
 - **The clock starts at the booking.** The fold must run within the registry's processing window (3 minutes here). Book, then go straight to the next page and run its three commands without stopping to read.
@@ -233,8 +225,6 @@ echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
 ```bash
 open-datum insert \
   --key alice --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/03-insert-alice.json
 
@@ -255,8 +245,6 @@ Run these three, one after the other, now. They build Bob's fold of the booking,
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-insert.bundle \
   > receipts/04-fold-insert.json
 
@@ -280,7 +268,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-
 
 ```bash
 singular submit --witnesses witnesses/fold-insert --receipt receipts/04-fold-insert.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-insert.bundle
 
 ```
@@ -290,9 +277,9 @@ jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/04-fold-
 
 ```
 
-**If the first command was refused because the window ended.**
+**If the first command was refused because the window ended.** The documentation on recovery is at https://lambdasistemi.github.io/singular/docs/cli-recovery/
 
-The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected, which is what steps 11 and 14 show. See where the chain is compared with the booking's deadline:
+The refusal says so in `reason`. Nothing is lost: the booking is still pending and its deposit is locked, and a request nobody folds can be taken back or rejected. See where the chain is compared with the booking's deadline:
 
 ```bash
 jq '{request, foldDeadline}' receipts/03-insert-alice.json
@@ -300,24 +287,22 @@ jq '{request, foldDeadline}' receipts/03-insert-alice.json
 ```
 
 ```bash
-curl -fsS "$koios_url/tip" | jq '.[0] | {abs_slot}'
+curl -fsS "$(jq -r .providerUrl devnet.out)/tip" | jq '.[0] | {abs_slot}'
 
 ```
 
 - While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
-- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (the command of step 14, her passphrase). Then book again (step 3) and fold at once:
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (her passphrase). Then book again (step 3) and fold at once:
 
 ```bash
 singular registry reclaim \
   --request "$(jq -r .request receipts/03-insert-alice.json)" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/04-reclaim.json
 
 ```
 
-- If the retract window has ended too, the reclaim is refused, and the way out is the reject of step 11: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
+- If the retract window has ended too, the reclaim is refused, and the way out is a reject: any wallet may do it once both windows have passed, and it returns the deposit. Or start the scenario again: a fresh machine takes about a minute.
 
 ## Step 5: read the key back
 
@@ -326,8 +311,6 @@ Reading is free and needs no key and no wallet: anyone can check. `inspect` asks
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/05-inspect.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/05-inspect.json
 
@@ -349,8 +332,6 @@ echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
 ```bash
 open-datum update \
   --key alice --payload payload-new.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
 
@@ -363,7 +344,7 @@ jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/
 
 ```
 
-**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal (you will see it change in steps 10, 13 and 16). The payload is not part of it: it lives in the key's own output, which is what the update replaced.
+**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal. The payload is not part of it: it lives in the key's own output, which is what the update replaced.
 
 ```bash
 echo "payload before: $(jq -c .applicationOutput.payload receipts/05-inspect.json)"; echo "payload after:  $(jq -c .payload receipts/06-update.json)"
@@ -378,8 +359,6 @@ The same read as step 5. The payload is now 43; the owner and the deposit are un
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/07-inspect.json
 jq '{state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/07-inspect.json
 
@@ -394,8 +373,6 @@ In the output, `released` is the output the fold will release and `deposit` is w
 ```bash
 open-datum terminate \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/08-terminate.json
 
@@ -416,8 +393,6 @@ Bob folds the termination, the external way again: build (exit status 19), sign,
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-terminate.bundle \
   > receipts/09-fold-terminate.json
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/09-fold-terminate.json
@@ -436,18 +411,15 @@ singular wallet sign --vault bob.vault --out witnesses/fold-terminate bundles/fo
 ```bash
 singular submit \
   --witnesses witnesses/fold-terminate --receipt receipts/09-fold-terminate.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-terminate.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/09-fold-terminate.submitted.json
 
 ```
 
-**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim (the project's page says updates and deletions cannot be retracted), so the way out is the reject of step 11. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
+**If the first command was refused because the window ended.** The read-back shows it in `reason`: the request's processing deadline is before the moment the fold would be built. Nothing is lost. The termination is still pending and its deposit is locked. A removal cannot be taken back with a reclaim, so the way out is a reject. Once both windows have passed, any wallet may reject; here it is Bob's, and it returns the deposit. After that, book the removal again (step 8) and go straight to this page.
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject-late.bundle \
   > receipts/09-reject.json
 
@@ -460,7 +432,6 @@ singular wallet sign --vault bob.vault --out witnesses/reject-late bundles/rejec
 
 ```bash
 singular submit --witnesses witnesses/reject-late \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject-late.bundle
 
 ```
@@ -472,8 +443,6 @@ The key `alice` is now terminal: gone for good, it can never be used again, and 
 ```bash
 open-datum inspect \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/10-inspect.json
 jq '{state: .leaf, root}' receipts/10-inspect.json
 
@@ -481,15 +450,13 @@ jq '{state: .leaf, root}' receipts/10-inspect.json
 
 ## Step 11: a request nobody folded: wait out its windows, then reject it
 
-What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending past its two windows (processing, then retract) blocks the registry, and the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.
+What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#rejecting-expired-requests; the contract that settles the refund of a rejected request is https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/lib/registry/settlement.ak
 
 **Alice books `late`** (her passphrase). Nobody will fold it, so the request stays pending.
 
 ```bash
 open-datum insert \
   --key late --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
 
@@ -506,8 +473,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
 jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}], tipSlot} | with_entries(select(.value != null))' receipts/11b-reject-too-early.json
@@ -517,6 +482,7 @@ jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}
 **A small helper that waits for the chain's own clock.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.
 
 ```bash
+koios_url=$(jq -r .providerUrl devnet.out)
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }
 
 ```
@@ -532,8 +498,6 @@ wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
 jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with_entries(select(.value != null))' receipts/11d-reject.json
@@ -552,7 +516,6 @@ singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bun
 ```bash
 singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 
@@ -567,8 +530,6 @@ The registry takes requests again. This time Bob adds a key, with his own wallet
 ```bash
 open-datum insert \
   --key bob --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
   > receipts/12-insert-bob.json
 jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDeadline} | with_entries(select(.value != null))' receipts/12-insert-bob.json
@@ -587,7 +548,6 @@ singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert
 ```bash
 singular submit \
   --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/insert-bob.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/12-insert-bob.submitted.json
 
@@ -601,8 +561,6 @@ In the output, `settled` lists the requests now part of the registry and `root` 
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/13-fold-bob.json
 
@@ -619,7 +577,7 @@ If the fold is refused because the window ended, the recovery is the one at the 
 
 ## Step 14: take back a request: wait for the retract window, then reclaim it
 
-The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.
+The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#reclaiming-your-pending-request
 
 `wait_for_slot` was defined in step 11. In a new terminal, define it again from there.
 
@@ -628,8 +586,6 @@ The other way out of a pending request is for its owner to take it back. That is
 ```bash
 open-datum insert \
   --key carol --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
 
@@ -648,8 +604,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
 
@@ -674,8 +628,6 @@ wait_for_slot "$carol_opens"
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
 
@@ -690,13 +642,11 @@ jq '{outcome, reason, request, returned} | with_entries(select(.value != null))'
 
 ## Step 15: book the key "dave" (Alice)
 
-The reclaimed request no longer blocks anything, so the registry takes requests again. Alice books one more key, `dave` (her passphrase).
+The reclaimed request is settled: its deposit is back with Alice. She books one more key, `dave` (her passphrase).
 
 ```bash
 open-datum insert \
   --key dave --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/15-insert-dave.json
 
@@ -717,8 +667,6 @@ Bob folds `dave`, external signing as before: build (exit status 19), sign, send
 
 ```bash
 open-datum fold \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
   > receipts/16a-fold-dave.json
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/16a-fold-dave.json
@@ -737,7 +685,6 @@ singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-da
 ```bash
 singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/fold-dave.bundle
 
 ```
@@ -747,8 +694,6 @@ singular submit \
 ```bash
 open-datum inspect \
   --key dave \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   > receipts/16b-inspect-dave.json
 jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
 
@@ -756,9 +701,29 @@ jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' re
 
 If the first command is refused because the window ended, the recovery is at the end of step 4 for a booking of a key (Alice reclaims while the retract window is open) and at the end of step 9 for the reject.
 
+## Step 17: where this design stops
+
+The steps above show what Demo 1 does. Some limits of its design cannot be seen in a command, or only as a refusal. They are stated here as they hold in this release (v0.13.0). Each one says how it is known: shown in the steps, tried on a private chain like this one without being part of the steps, or taken from the project's documentation.
+
+**A booking reserves nothing.** Tried on a private chain. Two people can book the same key, and both bookings succeed. Only the fold decides: it takes one of the two requests and leaves the other out, and its receipt names the reason (`key-in-batch`: an earlier included request names the same key). In the run that was tried, the fold took the request booked first. The request left out stays pending with its deposit locked, until its owner takes it back with a reclaim while the retract window is open.
+
+**A stuck request is cleared with all the others or not at all.** Tried on a private chain. A reject takes every pending request. While any one of them is still inside its processing window or its retract window, the program refuses to build the reject, even when another request is long past both windows and could be rejected alone. A stale request can therefore wait for a moment when nothing else is inside a window. Two things limit the damage: the owner can take the request back with a reclaim while the retract window is open, and a stale request does not stop the registry. A fold of another key went through while one was pending, and the fold's receipt listed the stale request as left out. The reject itself is a known limit of this release, tracked in https://github.com/lambdasistemi/singular/issues/487
+
+**Folding is open to everyone and required of no one.** Shown in the steps. Bob folds Alice's request and Alice folds Bob's, and a request nobody folds, like `late`, stays pending. The design does not promise that a request is ever folded. It gives its owner the two ways out seen above, the reclaim and the reject.
+
+**A fold has a capacity.** Shown in the fold's receipt, which states the capacity as nine requests and calls it "an estimate, not a measurement: about nine requests fit in a fold under preprod's execution budget of 14 million memory units, bound by trie-proof verification". The steps fold one request at a time and never come near it.
+
+**A booking that never lands is not recovered by waiting.** From the documentation. A fold carries a deadline; a booking does not. A booking that did not reach the chain, or was rolled back and not included again, stays unresolved however far the chain moves on, and every later write stops on it. The documentation calls this a known limit of the commands: https://lambdasistemi.github.io/singular/docs/cli-recovery/#when-a-transaction-can-never-land The steps above did not meet it.
+
+**A key does not come back.** Shown in the steps. A key is added once and can be ended for good; nothing returns it to unknown, and `alice` stays terminal. Reusable names are not part of this release; the contract admits only these two changes: https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/validators/state.ak
+
+**The application protects the payload and the deposit, nothing more.** From the documentation. `open-datum` is a demonstration of the registry's mechanics, not a way to guard names or secrets. The project says the same: https://lambdasistemi.github.io/singular/docs/demo1-devnet/#what-this-does-not-claim
+
+**This is one play on a private chain.** The windows here are three minutes and one minute so that the waits stay short; the defaults are ten minutes and five. The programs read the chain through a provider (here the devnet's own, which answers like a Koios): its answers are taken as claims, and the several reads behind one command need not come from one chain state. Most of this journey has also been played on the public preprod network. What has run where, and what has not, is listed at https://lambdasistemi.github.io/singular/docs/demo1-preprod/
+
 ## Extra: look at the wallets
 
-The next three pages are optional extras. Skip them in a short demo; the journey is complete without them.
+The pages that follow are optional extras. Skip them in a short demo; the journey is complete without them.
 
 A wallet holds outputs: coins at its address, each one named by the transaction that created it and an index. The devnet's web API lists them. Run this now to see what each wallet starts with, and again whenever you like, for instance after step 16, to see what the journey cost: deposits locked in requests, fees paid, tokens received.
 
@@ -834,12 +799,11 @@ jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .p
 
 ## Extra: a new terminal in the middle
 
-The values below live only in the terminal where they were pasted: the two addresses, the chain's settings and the registry's name. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds them from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
+The values below live only in the terminal where they were pasted: the two addresses and `koios_url`. The chain, the contracts and the registry's name are in `singular.json`, so they survive a new terminal. In a new terminal, or after leaving and re-entering the nix shell, paste this first. It rebuilds the rest from the files in the demo folder, and needs the devnet and the registry from the steps above to be still there.
 
-- `cd ~/singular-demo-run`: back to the demo folder
+- `cd ~/singular-demo-run`: back to the demo folder, where `singular.json` is
 - the two `singular wallet address` lines read the public addresses from the vaults; each asks for its passphrase once
-- `koios_url` and `time_dir` are the two values of step 1
-- `token` is the registry's name, read from the create receipt
+- `koios_url` is the web API's address, read from the devnet's line
 
 ```bash
 cd ~/singular-demo-run
@@ -857,8 +821,7 @@ bob_addr=$(singular wallet address --vault bob.vault --network-magic 42)
 **Then:**
 
 ```bash
-koios_url=$(jq -r .providerUrl devnet.out); time_dir=$(jq -r .networkTimeDirectory devnet.out)
-token=$(jq -r .stateToken receipts/01-create.json)
+koios_url=$(jq -r .providerUrl devnet.out)
 
 ```
 

@@ -17,4 +17,6 @@ Which program a command belongs to follows one rule:
 
 The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
 
-Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent. The few options that every command repeats are explained in step 1.
+Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.
+
+The code is in the project's repository: the contracts at https://github.com/lambdasistemi/singular/tree/v0.13.0/onchain, the programs at https://github.com/lambdasistemi/singular/tree/v0.13.0/offchain and https://github.com/lambdasistemi/singular/tree/v0.13.0/applications/open-datum. Every command and setting is described at https://lambdasistemi.github.io/singular/docs/singular-node/

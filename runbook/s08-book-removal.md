@@ -7,8 +7,6 @@ In the output, `released` is the output the fold will release and `deposit` is w
 ```bash
 open-datum terminate \
   --key alice \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/08-terminate.json
 ```

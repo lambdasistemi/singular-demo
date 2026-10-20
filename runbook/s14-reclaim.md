@@ -1,6 +1,6 @@
 # Step 14: take back a request: wait for the retract window, then reclaim it
 
-The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back.
+The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#reclaiming-your-pending-request
 
 `wait_for_slot` was defined in step 11. In a new terminal, define it again from there.
 
@@ -9,8 +9,6 @@ The other way out of a pending request is for its owner to take it back. That is
 ```bash
 open-datum insert \
   --key carol --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14a-insert-carol.json
 ```
@@ -27,8 +25,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14b-reclaim-too-early.json
 ```
@@ -50,8 +46,6 @@ wait_for_slot "$carol_opens"
 ```bash
 singular registry reclaim \
   --request "$carol_request" \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/14c-reclaim.json
 ```

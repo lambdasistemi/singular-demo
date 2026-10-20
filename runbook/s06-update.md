@@ -13,8 +13,6 @@ echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
 ```bash
 open-datum update \
   --key alice --payload payload-new.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/06-update.json
 ```
@@ -25,7 +23,7 @@ open-datum update \
 jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/06-update.json
 ```
 
-**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal (you will see it change in steps 10, 13 and 16). The payload is not part of it: it lives in the key's own output, which is what the update replaced.
+**The payload changed, and the root did not.** The first two lines show the payload before and after: 42, then 43. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal. The payload is not part of it: it lives in the key's own output, which is what the update replaced.
 
 ```bash
 echo "payload before: $(jq -c .applicationOutput.payload receipts/05-inspect.json)"; echo "payload after:  $(jq -c .payload receipts/06-update.json)"

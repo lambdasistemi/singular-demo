@@ -11,7 +11,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 Without Nix, unpack the kit from the release page and use its folder:
 
 ```bash skip
-cd singular-demo-v0.12.0-x86_64-linux
+cd singular-demo-v0.13.0-x86_64-linux
 export PATH="$PWD/bin:$PATH"
 export blueprint="$PWD/share/plutus.json"
 ```

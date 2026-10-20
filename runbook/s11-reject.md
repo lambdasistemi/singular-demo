@@ -1,14 +1,12 @@
 # Step 11: a request nobody folded: wait out its windows, then reject it
 
-What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending past its two windows (processing, then retract) blocks the registry, and the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock.
+What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock. The documentation: https://lambdasistemi.github.io/singular/docs/singular-node/#rejecting-expired-requests; the contract that settles the refund of a rejected request is https://github.com/lambdasistemi/singular/blob/v0.13.0/onchain/lib/registry/settlement.ak
 
 **Alice books `late`** (her passphrase). Nobody will fold it, so the request stays pending.
 
 ```bash
 open-datum insert \
   --key late --payload payload.json \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --vault alice.vault \
   > receipts/11a-insert-late.json
 ```
@@ -23,8 +21,6 @@ jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != nul
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
 jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}], tipSlot} | with_entries(select(.value != null))' receipts/11b-reject-too-early.json
@@ -33,6 +29,7 @@ jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}
 **A small helper that waits for the chain's own clock.** `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`. It uses the chain's clock, like the program does. It is defined once here and used again in step 14.
 
 ```bash
+koios_url=$(jq -r .providerUrl devnet.out)
 wait_for_slot() { local now; until now=$(curl -fsS "$koios_url/tip" | jq -r '.[0].abs_slot') && [ "$now" -gt "$1" ]; do printf '\r  chain slot %s, waiting for slot %s ' "$now" "$1"; sleep 2; done; printf '\n  done: chain slot %s is past slot %s\n' "$now" "$1"; }
 ```
 
@@ -46,8 +43,6 @@ wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject
 
 ```bash
 singular registry reject \
-  --state-dir reg --blueprint "$blueprint" --state-token "$token" \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
 jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with_entries(select(.value != null))' receipts/11d-reject.json
@@ -64,7 +59,6 @@ singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bun
 ```bash
 singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
-  --koios-url "$koios_url" --network-time "$time_dir" --network-magic 42 \
   bundles/reject.bundle
 jq '.submissions[]? | {slot: .chainPoint.slot, confirmations}' receipts/11d-reject.submitted.json
 ```
