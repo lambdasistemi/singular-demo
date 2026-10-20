@@ -1,0 +1,61 @@
+name: publish
+
+# A push to main and the nightly run: the whole CI, then the daily release (the kit with the proof of its run)
+# and the documentation site, both made from the files that CI run produced.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer run waits for the one that is publishing: the daily release is replaced in several steps.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  daily-release:
+    name: Publish the daily release
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: nixos
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+      - name: Publish
+        run: nix develop .#dev --command bash kit/publish-daily.sh
+
+  pages:
+    name: Publish the documentation site
+    needs: daily-release
+    if: github.ref == 'refs/heads/main'
+    runs-on: nixos
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

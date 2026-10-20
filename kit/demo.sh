@@ -32,69 +32,100 @@ DEVNET_MODE=${DEVNET_MODE:-own}
 # -----------------------------------------------------------------------------
 STEP_PAUSE=${STEP_PAUSE:-no}
 TOTAL=16
-PROCESS_TIME_MS=${PROCESS_TIME_MS:-120000}   # the window in which the registry may fold a request (default 2 minutes)
-RETRACT_TIME_MS=${RETRACT_TIME_MS:-60000}     # the window after it in which the owner may take it back (default 1 minute)
+PROCESS_TIME_MS=${PROCESS_TIME_MS:-120000} # the window in which the registry may fold a request (default 2 minutes)
+RETRACT_TIME_MS=${RETRACT_TIME_MS:-60000}  # the window after it in which the owner may take it back (default 1 minute)
 
 SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 KIT=$(dirname "$SCRIPT")
-[ -x "$KIT/bin/singular" ] || { echo "demo.sh must sit in the kit's top directory, next to bin/" >&2; exit 2; }
+[ -x "$KIT/bin/singular" ] || {
+  echo "demo.sh must sit in the kit's top directory, next to bin/" >&2
+  exit 2
+}
 export PATH="$KIT/bin:$PATH"
 WORK=${WORK:-$PWD/singular-demo-run}
-mapfile -t SRC < "$SCRIPT"
+mapfile -t SRC <"$SCRIPT"
 
 if [ -t 1 ]; then
-  B=$'\033[1m'; D=$'\033[2m'; G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; C=$'\033[36m'; Z=$'\033[0m'
+  B=$'\033[1m'
+  D=$'\033[2m'
+  G=$'\033[32m'
+  Y=$'\033[33m'
+  R=$'\033[31m'
+  C=$'\033[36m'
+  Z=$'\033[0m'
 else
-  B=; D=; G=; Y=; R=; C=; Z=
+  B=
+  D=
+  G=
+  Y=
+  R=
+  C=
+  Z=
 fi
 
 # ---- small helpers (the audience does not need to read these) ---------------
-die() { printf '\n%s%s%s\n' "$R" "stopped: $*" "$Z" >&2; exit 1; }
+die() {
+  printf '\n%s%s%s\n' "$R" "stopped: $*" "$Z" >&2
+  exit 1
+}
 
 # the two windows come from the environment; refuse values that cannot work
-case "$PROCESS_TIME_MS$RETRACT_TIME_MS" in *[!0-9]*|'') echo "PROCESS_TIME_MS and RETRACT_TIME_MS must be whole numbers of milliseconds." >&2; exit 2;; esac
+case "$PROCESS_TIME_MS$RETRACT_TIME_MS" in *[!0-9]* | '')
+  echo "PROCESS_TIME_MS and RETRACT_TIME_MS must be whole numbers of milliseconds." >&2
+  exit 2
+  ;;
+esac
 if [ "$PROCESS_TIME_MS" -lt 60000 ]; then
-  echo "PROCESS_TIME_MS=$PROCESS_TIME_MS is too short: the fold of each booking has to be built, signed and sent inside this window. Use 60000 (one minute) or more." >&2; exit 2
+  echo "PROCESS_TIME_MS=$PROCESS_TIME_MS is too short: the fold of each booking has to be built, signed and sent inside this window. Use 60000 (one minute) or more." >&2
+  exit 2
 fi
 if [ "$RETRACT_TIME_MS" -lt 30000 ]; then
-  echo "RETRACT_TIME_MS=$RETRACT_TIME_MS is too short: the reclaim needs at least ten seconds of usable slots inside this window, and the command itself takes a few seconds more. Use 30000 (thirty seconds) or more." >&2; exit 2
+  echo "RETRACT_TIME_MS=$RETRACT_TIME_MS is too short: the reclaim needs at least ten seconds of usable slots inside this window, and the command itself takes a few seconds more. Use 30000 (thirty seconds) or more." >&2
+  exit 2
 fi
 # span MS: a duration for the narration, in whole minutes when it is one, else in seconds
 span() {
   local words=(zero one two three four five six seven eight nine ten) m
-  if [ $(( $1 % 60000 )) -eq 0 ]; then
-    m=$(( $1 / 60000 )); echo "${words[m]:-$m} minute$([ "$m" = 1 ] || echo s)"
+  if [ $(($1 % 60000)) -eq 0 ]; then
+    m=$(($1 / 60000))
+    echo "${words[m]:-$m} minute$([ "$m" = 1 ] || echo s)"
   else
-    echo "$(( $1 / 1000 )) seconds"
+    echo "$(($1 / 1000)) seconds"
   fi
 }
 
 # why: print the "#|" comment block that sits directly above the line that called us
 why() {
   local call=${1:-${BASH_LINENO[0]}} last first k line
-  last=$(( call - 2 )); first=$last
-  while [ "$first" -ge 0 ] && [[ "${SRC[first]}" == '#|'* ]]; do first=$(( first - 1 )); done
-  first=$(( first + 1 ))
-  for (( k = first; k <= last; k++ )); do
-    line=${SRC[k]#'#|'}; line=${line# }
-    line=${line//@PROCESS_S@/$(( PROCESS_TIME_MS / 1000 ))}; line=${line//@RETRACT_S@/$(( RETRACT_TIME_MS / 1000 ))}
+  last=$((call - 2))
+  first=$last
+  while [ "$first" -ge 0 ] && [[ "${SRC[first]}" == '#|'* ]]; do first=$((first - 1)); done
+  first=$((first + 1))
+  for ((k = first; k <= last; k++)); do
+    line=${SRC[k]#'#|'}
+    line=${line# }
+    line=${line//@PROCESS_S@/$((PROCESS_TIME_MS / 1000))}
+    line=${line//@RETRACT_S@/$((RETRACT_TIME_MS / 1000))}
     printf '    %s\n' "$line"
   done
 }
 
 step() { # step N "title" — heading, then the explanation written above this call
   local call=${BASH_LINENO[0]}
-  CURRENT_STEP=$1
   printf '\n%s━━ Step %s of %s — %s%s\n' "$B" "$1" "$TOTAL" "$2" "$Z"
   why "$call"
 }
 
-section() { printf '\n%s━━ %s%s\n' "$B" "$1" "$Z"; why "${BASH_LINENO[0]}"; }
-cmd()  { printf '\n  %s$ %s%s\n' "$C" "$1" "$Z"; }
+section() {
+  printf '\n%s━━ %s%s\n' "$B" "$1" "$Z"
+  why "${BASH_LINENO[0]}"
+}
+cmd() { printf '\n  %s$ %s%s\n' "$C" "$1" "$Z"; }
 more() { printf '    %s\n' "$@"; }
 saved() { printf '    %sfull receipt: %s%s\n' "$D" "$1" "$Z"; }
 shorten() { sed -E 's/([0-9a-f]{12})[0-9a-f]{20,}/\1…/g'; }
 
+# shellcheck disable=SC2016 # jq programs: the $ names are jq's, not the shell's
 JQ_DEFS='
 def s: if length > 16 then .[0:12] + "…" else . end;
 def sr: split("#") as $p | ($p[0] | s) + "#" + $p[1];
@@ -103,12 +134,17 @@ def row($k; $v): "    " + (($k + ":") | pad) + ($v | tostring);
 def ada: . / 1000000 | tostring + " ada";
 def unhex: [scan("..") | explode | map(if . >= 97 then . - 87 else . - 48 end) | .[0] * 16 + .[1]] | implode;
 '
-facts() { local file=$1; shift; jq -r "$JQ_DEFS $*" "$file"; }
+facts() {
+  local file=$1
+  shift
+  jq -r "$JQ_DEFS $*" "$file"
+}
 
 # capture FILE EXPECTED_EXIT COMMAND... : run quietly, keep the receipt in FILE
 capture() {
-  local file=$1 want=$2 rc=0; shift 2
-  "$@" > "$file" 2> "$file.err" || rc=$?
+  local file=$1 want=$2 rc=0
+  shift 2
+  "$@" >"$file" 2>"$file.err" || rc=$?
   if [ "$rc" -ne "$want" ]; then
     printf '\n%sunexpected exit status %s (expected %s) from: %s%s\n' "$R" "$rc" "$want" "$1 $2" "$Z" >&2
     jq -r '.outcome // empty, .reason // empty' "$file" 2>/dev/null >&2 || true
@@ -119,7 +155,10 @@ capture() {
 }
 
 pause_if_asked() {
-  if [ "$STEP_PAUSE" = yes ]; then printf '\n%s[Enter for the next step]%s' "$D" "$Z"; read -r _ < /dev/tty || true; fi
+  if [ "$STEP_PAUSE" = yes ]; then
+    printf '\n%s[Enter for the next step]%s' "$D" "$Z"
+    read -r _ </dev/tty || true
+  fi
 }
 
 tip_slot() { curl -fsS --max-time 5 "$KOIOS_URL/tip" | jq -er '.[0].abs_slot'; }
@@ -130,11 +169,11 @@ wait_for_slot() {
   while :; do
     now=$(tip_slot) || die "the devnet stopped answering"
     if [ "$now" -gt "$target" ]; then break; fi
-    left=$(( ((target - now) * SLOT_MS + 999) / 1000 ))
+    left=$((((target - now) * SLOT_MS + 999) / 1000))
     if [ -t 1 ]; then
-      printf '\r\033[K    %s%d:%02d left%s  %s (chain tip: slot %d, needs more than slot %d)' "$Y" $((left/60)) $((left%60)) "$Z" "$2" "$now" "$target"
-    elif [ $(( SECONDS - mark )) -ge 15 ]; then
-      printf '    %d:%02d left  %s (chain tip: slot %d, needs more than slot %d)\n' $((left/60)) $((left%60)) "$2" "$now" "$target"
+      printf '\r\033[K    %s%d:%02d left%s  %s (chain tip: slot %d, needs more than slot %d)' "$Y" $((left / 60)) $((left % 60)) "$Z" "$2" "$now" "$target"
+    elif [ $((SECONDS - mark)) -ge 15 ]; then
+      printf '    %d:%02d left  %s (chain tip: slot %d, needs more than slot %d)\n' $((left / 60)) $((left % 60)) "$2" "$now" "$target"
       mark=$SECONDS
     fi
     sleep 1
@@ -149,14 +188,14 @@ bob_signs_and_sends() { # NAME STEP-PREFIX
   BOB_EXPLAINED=yes
   if [ "$first" = no ]; then
     more "Exit status 19 is not an error: it means \"waiting for signatures\". The command wrote its" \
-         "whole run as one bundle file and sent nothing. Bob's key never left his vault, so now:" \
-         "  1. 'singular wallet sign' opens Bob's vault and signs the bundle (witnesses = signatures);" \
-         "  2. 'singular submit' sends the signed bundle to the chain and waits until it has landed."
+      "whole run as one bundle file and sent nothing. Bob's key never left his vault, so now:" \
+      "  1. 'singular wallet sign' opens Bob's vault and signs the bundle (witnesses = signatures);" \
+      "  2. 'singular submit' sends the signed bundle to the chain and waits until it has landed."
   else
     more "Exit status 19 again: bundle written, nothing sent. Sign it with Bob's vault, then send it."
   fi
   cmd "singular wallet sign --vault bob.vault --passphrase-fd 3 --out witnesses/$name bundles/$name.bundle   (passphrase: 3< bob.passphrase)"
-  capture "receipts/$prefix-$name.signed.txt" 0 singular wallet sign --vault bob.vault --passphrase-fd 3 --out "witnesses/$name" "bundles/$name.bundle" 3< bob.passphrase
+  capture "receipts/$prefix-$name.signed.txt" 0 singular wallet sign --vault bob.vault --passphrase-fd 3 --out "witnesses/$name" "bundles/$name.bundle" 3<bob.passphrase
   sed -n '1p;2p' "receipts/$prefix-$name.signed.txt.err" | cut -d, -f1,2 | shorten | sed 's/^/    /'
   cmd "singular submit --witnesses witnesses/$name <provider> --receipt receipts/$prefix-$name.submitted.json bundles/$name.bundle"
   capture "receipts/$prefix-$name.submit.json" 0 singular submit --witnesses "witnesses/$name" "${PROVIDER[@]}" --receipt "receipts/$prefix-$name.submitted.json" "bundles/$name.bundle"
@@ -196,7 +235,8 @@ if [ -e "$WORK" ]; then
   [ -f "$WORK/.singular-demo" ] || die "$WORK exists and is not a previous demo run; remove it or set WORK=another-folder"
   rm -rf "$WORK"
 fi
-mkdir -m 700 -p "$WORK/receipts" "$WORK/bundles" "$WORK/witnesses"
+# private to the user: every folder made here, the run folder included
+(umask 077 && mkdir -p "$WORK/receipts" "$WORK/bundles" "$WORK/witnesses")
 touch "$WORK/.singular-demo"
 cd "$WORK"
 BLUEPRINT=$KIT/share/plutus.json
@@ -213,21 +253,21 @@ printf '  this run:   %s   (vaults, receipts, bundles; the whole run is kept the
 #| shell), so nothing is typed and nothing appears on the command line.
 #| The chain is a private test chain ("network magic" 42), nothing to do with a public one.
 section "Setup 1 — two wallets"
-printf '%s\n' "alice's passphrase" > alice.passphrase
-printf '%s\n' "bob's passphrase"   > bob.passphrase
+printf '%s\n' "alice's passphrase" >alice.passphrase
+printf '%s\n' "bob's passphrase" >bob.passphrase
 chmod 600 alice.passphrase bob.passphrase
 cmd "singular wallet create --vault alice.vault --network-magic 42 --passphrase-fd 3   (passphrase: 3< alice.passphrase)"
-capture receipts/00-alice-wallet.txt 0 singular wallet create --vault alice.vault --network-magic 42 --passphrase-fd 3 3< alice.passphrase
+capture receipts/00-alice-wallet.txt 0 singular wallet create --vault alice.vault --network-magic 42 --passphrase-fd 3 3<alice.passphrase
 cmd "singular wallet create --vault bob.vault --network-magic 42 --passphrase-fd 3   (passphrase: 3< bob.passphrase)"
-capture receipts/00-bob-wallet.txt 0 singular wallet create --vault bob.vault --network-magic 42 --passphrase-fd 3 3< bob.passphrase
+capture receipts/00-bob-wallet.txt 0 singular wallet create --vault bob.vault --network-magic 42 --passphrase-fd 3 3<bob.passphrase
 
 #| A wallet's address is public: it is where money can be sent. Reading it opens the
 #| vault with the passphrase, so this is also the check that the vault works.
 why
 cmd "singular wallet address --vault alice.vault --network-magic 42 --passphrase-fd 3"
-ALICE_ADDR=$(singular wallet address --vault alice.vault --network-magic 42 --passphrase-fd 3 3< alice.passphrase)
+ALICE_ADDR=$(singular wallet address --vault alice.vault --network-magic 42 --passphrase-fd 3 3<alice.passphrase)
 cmd "singular wallet address --vault bob.vault --network-magic 42 --passphrase-fd 3"
-BOB_ADDR=$(singular wallet address --vault bob.vault --network-magic 42 --passphrase-fd 3 3< bob.passphrase)
+BOB_ADDR=$(singular wallet address --vault bob.vault --network-magic 42 --passphrase-fd 3 3<bob.passphrase)
 more "Alice: $ALICE_ADDR" "Bob:   $BOB_ADDR"
 
 if [ "$DEVNET_MODE" = own ]; then
@@ -238,17 +278,20 @@ if [ "$DEVNET_MODE" = own ]; then
   #| it never sees a key. It prints one line of settings when it is ready, then keeps
   #| running until this script stops it. This takes about half a minute.
   section "Setup 2 — start the private chain"
-  RUN_TMP=$(mktemp -d /tmp/singular-demo.XXXXXX)      # short path: the node's socket path has a length limit
+  RUN_TMP=$(mktemp -d /tmp/singular-demo.XXXXXX) # short path: the node's socket path has a length limit
   export TMPDIR=$RUN_TMP
   cmd "devnet --fund-address ALICE:6:2000000000 --fund-address BOB:6:2000000000 > devnet.json   (keeps running)"
-  setsid devnet --fund-address "$ALICE_ADDR:6:2000000000" --fund-address "$BOB_ADDR:6:2000000000" > devnet.json 2> devnet.log &
+  setsid devnet --fund-address "$ALICE_ADDR:6:2000000000" --fund-address "$BOB_ADDR:6:2000000000" >devnet.json 2>devnet.log &
   DEVNET_PID=$!
   for _ in $(seq 1 180); do
-    jq -e .providerUrl devnet.json > /dev/null 2>&1 && break
-    kill -0 "$DEVNET_PID" 2>/dev/null || { cat devnet.log >&2; die "the devnet exited before it was ready (devnet.log above)"; }
+    jq -e .providerUrl devnet.json >/dev/null 2>&1 && break
+    kill -0 "$DEVNET_PID" 2>/dev/null || {
+      cat devnet.log >&2
+      die "the devnet exited before it was ready (devnet.log above)"
+    }
     sleep 1
   done
-  jq -e .providerUrl devnet.json > /dev/null 2>&1 || die "the devnet did not become ready within 3 minutes"
+  jq -e .providerUrl devnet.json >/dev/null 2>&1 || die "the devnet did not become ready within 3 minutes"
 else
   #| You chose to run the chain yourself, so this script cannot start it. Open a second
   #| terminal and type the command printed below (it is the same command the script
@@ -259,10 +302,10 @@ else
     "$KIT" "$ALICE_ADDR" "$BOB_ADDR" "$WORK"
   printf '\n  waiting for it…'
   for _ in $(seq 1 600); do
-    jq -e .providerUrl devnet.json > /dev/null 2>&1 && break
+    jq -e .providerUrl devnet.json >/dev/null 2>&1 && break
     sleep 1
   done
-  jq -e .providerUrl devnet.json > /dev/null 2>&1 || die "no chain settings appeared in $WORK/devnet.json within 10 minutes"
+  jq -e .providerUrl devnet.json >/dev/null 2>&1 || die "no chain settings appeared in $WORK/devnet.json within 10 minutes"
   printf ' found.\n'
 fi
 
@@ -273,11 +316,11 @@ fi
 #| "networkMagic" is the chain's number, 42.
 why
 cmd "jq . settings.json"
-head -n 1 devnet.json > settings.json
+head -n 1 devnet.json >settings.json
 KOIOS_URL=$(jq -r .providerUrl settings.json)
 TIME_DIR=$(jq -r .networkTimeDirectory settings.json)
 facts settings.json 'row("provider URL"; .providerUrl), row("network magic"; .networkMagic), row("chain clock data"; .networkTimeDirectory | split("/")[-3:] | join("/") | "…/" + .)'
-until tip_slot > /dev/null 2>&1; do sleep 1; done
+until tip_slot >/dev/null 2>&1; do sleep 1; done
 more "The chain is up and producing blocks (one every ${SLOT_MS} milliseconds)."
 PROVIDER=(--koios-url "$KOIOS_URL" --network-time "$TIME_DIR" --network-magic 42)
 ALICE=(--vault alice.vault --passphrase-fd 3)
@@ -295,7 +338,7 @@ ALICE=(--vault alice.vault --passphrase-fd 3)
 #| minutes: @PROCESS_S@ seconds for the registry to process a request, @RETRACT_S@ more for its owner to take it back.
 step 1 "create the registry (Alice)"
 cmd "open-datum create --process-time $PROCESS_TIME_MS --retract-time $RETRACT_TIME_MS --state-dir reg --blueprint plutus.json <provider> <alice>"
-capture receipts/01-create.json 0 open-datum create --process-time "$PROCESS_TIME_MS" --retract-time "$RETRACT_TIME_MS" --state-dir reg --blueprint "$BLUEPRINT" "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/01-create.json 0 open-datum create --process-time "$PROCESS_TIME_MS" --retract-time "$RETRACT_TIME_MS" --state-dir reg --blueprint "$BLUEPRINT" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 STATE_TOKEN=$(jq -r .stateToken receipts/01-create.json)
 facts receipts/01-create.json 'row("outcome"; .outcome), row("seed (a coin of Alice)"; .seed | sr), row("state token (its name)"; .stateToken | split(".") | (.[0] | s) + " . " + (.[1] | s)), row("transactions landed"; .transactions | length), row("processing window"; "\(.processTime / 1000) s"), row("retract window"; "\(.retractTime / 1000) s"), row("root (empty registry)"; .root | s)'
 saved receipts/01-create.json
@@ -323,9 +366,9 @@ saved receipts/02-describe.txt
 #| PENDING until somebody folds it, and the receipt names the deadline for that, the
 #| "fold deadline". Alice's wallet becomes the key's controller, the only one who may change it.
 step 3 "book the key \"alice\" (Alice)"
-echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
+echo '{"constructor":0,"fields":[{"int":42}]}' >payload.json
 cmd "open-datum insert --key alice --payload payload.json <registry> <provider> <alice>"
-capture receipts/03-insert-alice.json 0 open-datum insert "${REGISTRY[@]}" --key alice --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/03-insert-alice.json 0 open-datum insert "${REGISTRY[@]}" --key alice --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/03-insert-alice.json 'row("outcome"; .outcome), row("pending request"; .request | sr), row("key"; .keyText), row("deposit locked"; .envelope.fields[0].fields[5].int | ada), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 saved receipts/03-insert-alice.json
 pause_if_asked
@@ -355,10 +398,11 @@ pause_if_asked
 #| else's signature would be accepted. An update is immediate (no booking, no fold), and
 #| the registry's root does not change: the receipt shows the root before and after.
 step 6 "change the data (Alice)"
-echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
+echo '{"constructor":0,"fields":[{"int":43}]}' >payload-new.json
 cmd "open-datum update --key alice --payload payload-new.json <registry> <provider> <alice>"
-capture receipts/06-update.json 0 open-datum update "${REGISTRY[@]}" --key alice --payload payload-new.json "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
-ROOT_BEFORE=$(jq -r .root receipts/05-inspect.json); ROOT_AFTER=$(jq -r .root receipts/06-update.json)
+capture receipts/06-update.json 0 open-datum update "${REGISTRY[@]}" --key alice --payload payload-new.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+ROOT_BEFORE=$(jq -r .root receipts/05-inspect.json)
+ROOT_AFTER=$(jq -r .root receipts/06-update.json)
 facts receipts/06-update.json 'row("outcome"; .outcome), row("new payload"; .payload | tojson)'
 [ "$ROOT_BEFORE" = "$ROOT_AFTER" ] || die "the root moved on an update"
 printf "    %-24s%s\n" "root before:" "${ROOT_BEFORE:0:12}…" "root after:" "${ROOT_AFTER:0:12}…  (the same, as it must be)"
@@ -378,7 +422,7 @@ pause_if_asked
 #| that will come back to her.
 step 8 "book the removal of the key (Alice)"
 cmd "open-datum terminate --key alice <registry> <provider> <alice>"
-capture receipts/08-terminate.json 0 open-datum terminate "${REGISTRY[@]}" --key alice "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/08-terminate.json 0 open-datum terminate "${REGISTRY[@]}" --key alice "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/08-terminate.json 'row("outcome"; .outcome), row("pending request"; .request | sr), row("will release"; .released | sr), row("deposit to return"; .deposit | ada), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 saved receipts/08-terminate.json
 pause_if_asked
@@ -410,14 +454,14 @@ pause_if_asked
 #| never by this computer's clock.
 step 11 "a request nobody folded: wait out its windows, then reject it"
 cmd "open-datum insert --key late --payload payload.json <registry> <provider> <alice>"
-capture receipts/11a-insert-late.json 0 open-datum insert "${REGISTRY[@]}" --key late --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/11a-insert-late.json 0 open-datum insert "${REGISTRY[@]}" --key late --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/11a-insert-late.json 'row("pending request"; .request | sr), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 cmd "singular registry reject <registry> <provider> --wallet-address BOB --bundle bundles/reject.bundle      → refused for now"
 capture receipts/11b-reject-too-early.json 10 singular registry reject "${REGISTRY[@]}" "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/reject.bundle
 facts receipts/11b-reject-too-early.json 'row("outcome"; .outcome), (.pendingRequests[] | row("still in a window"; "\(.request | sr), retract window closes at slot \(.retractEndsSlot)")), row("chain tip now"; "slot \(.tipSlot)")'
 saved receipts/11b-reject-too-early.json
 more "Refused, and nothing was built: the request is still inside its windows. So we wait for the chain" \
-     "tip to pass the end of the retract window (the processing window plus the retract window, $(span $(( PROCESS_TIME_MS + RETRACT_TIME_MS ))))."
+  "tip to pass the end of the retract window (the processing window plus the retract window, $(span $((PROCESS_TIME_MS + RETRACT_TIME_MS))))."
 wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject-too-early.json)" "waiting for the retract window to close"
 
 #| Both windows are over. Bob asks again, the external way (anyone may reject), and this time
@@ -445,7 +489,7 @@ pause_if_asked
 #| that signs and sends it, and it prints its receipt when it has landed.
 step 13 "fold Bob's key (Alice, vault in one command)"
 cmd "open-datum fold <registry> <provider> <alice>"
-capture receipts/13-fold-bob.json 0 open-datum fold "${REGISTRY[@]}" "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/13-fold-bob.json 0 open-datum fold "${REGISTRY[@]}" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/13-fold-bob.json 'row("outcome"; .outcome), (.settled[] | row("settled"; "\(.key | unhex) (\(.edge)), request \(.request | sr)")), row("new root"; .root | s)'
 saved receipts/13-fold-bob.json
 pause_if_asked
@@ -457,12 +501,12 @@ pause_if_asked
 #| tip passes the processing deadline, Alice can take the request back.
 step 14 "take back a request: wait for the retract window, then reclaim it"
 cmd "open-datum insert --key carol --payload payload.json <registry> <provider> <alice>"
-capture receipts/14a-insert-carol.json 0 open-datum insert "${REGISTRY[@]}" --key carol --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/14a-insert-carol.json 0 open-datum insert "${REGISTRY[@]}" --key carol --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 CAROL_REQUEST=$(jq -r .request receipts/14a-insert-carol.json)
 CAROL_OPENS=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 facts receipts/14a-insert-carol.json 'row("pending request"; .request | sr), row("retract window opens"; "after slot \(.foldDeadline.slot)")'
 cmd "singular registry reclaim --request $(printf %s "${CAROL_REQUEST%%#*}" | shorten)#0 <registry> <provider> <alice>      → refused for now"
-capture receipts/14b-reclaim-too-early.json 10 singular registry reclaim "${REGISTRY[@]}" --request "$CAROL_REQUEST" "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/14b-reclaim-too-early.json 10 singular registry reclaim "${REGISTRY[@]}" --request "$CAROL_REQUEST" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/14b-reclaim-too-early.json 'row("outcome"; .outcome), row("reason"; .reason | gsub("[0-9]{13} ms"; "…"))'
 saved receipts/14b-reclaim-too-early.json
 wait_for_slot "$CAROL_OPENS" "waiting for the processing window to end (the retract window then opens)"
@@ -472,7 +516,7 @@ wait_for_slot "$CAROL_OPENS" "waiting for the processing window to end (the retr
 #| it returned to her.
 why
 cmd "singular registry reclaim --request $(printf %s "${CAROL_REQUEST%%#*}" | shorten)#0 <registry> <provider> <alice>"
-capture receipts/14c-reclaim.json 0 singular registry reclaim "${REGISTRY[@]}" --request "$CAROL_REQUEST" "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/14c-reclaim.json 0 singular registry reclaim "${REGISTRY[@]}" --request "$CAROL_REQUEST" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/14c-reclaim.json 'row("outcome"; .outcome), row("reclaimed request"; .request | sr), row("returned to"; "\(.returned.recipient | .[0:20])… (Alice), \(.returned.lovelace | ada)"), row("window"; "slots \(.processingEndsSlot) to \(.retractEndsSlot); chain tip was \(.tipSlot)")'
 saved receipts/14c-reclaim.json
 pause_if_asked
@@ -480,7 +524,7 @@ pause_if_asked
 #| The reclaimed request no longer blocks anything, so Alice books one more key, "dave".
 step 15 "book the key \"dave\" (Alice)"
 cmd "open-datum insert --key dave --payload payload.json <registry> <provider> <alice>"
-capture receipts/15-insert-dave.json 0 open-datum insert "${REGISTRY[@]}" --key dave --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3< alice.passphrase
+capture receipts/15-insert-dave.json 0 open-datum insert "${REGISTRY[@]}" --key dave --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/15-insert-dave.json 'row("outcome"; .outcome), row("pending request"; .request | sr), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 saved receipts/15-insert-dave.json
 pause_if_asked

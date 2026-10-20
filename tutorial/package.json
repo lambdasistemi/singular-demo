@@ -1,0 +1,16 @@
+{
+  "name": "singular-tutorial-ui",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "test:browser": "node test-browser.cjs && node test-theme.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "dependencies": {
+    "@xterm/xterm": "5.5.0",
+    "@xterm/addon-fit": "0.10.0",
+    "marked": "15.0.12"
+  }
+}

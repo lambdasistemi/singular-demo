@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Singular · Interactive tutorial</title>
+  <link rel="stylesheet" href="/static/vendor/xterm.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/vendor/xterm.js"></script>
+  <script defer src="/static/vendor/addon-fit.js"></script>
+  <script defer src="/static/vendor/marked.umd.js"></script>
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/" aria-label="Singular home"><span class="brand-icon">S</span> singular<span class="brand-sub">/ learn</span></a>
+    <span class="environment"><span class="dot"></span> Your private environment</span>
+  </header>
+  <main>
+    <aside>
+      <div class="eyebrow">A HANDS-ON INTRODUCTION</div>
+      <h1>A registry.<br>A real chain.<br>Your terminal.</h1>
+      <p class="sidebar-intro">Explore Singular on a private Cardano devnet, one command at a time.</p>
+      <div class="lesson-label">THE WALKTHROUGH <span id="lesson-count"></span></div>
+      <nav id="lessons" aria-label="Tutorial lessons"></nav>
+      <a class="source" href="https://github.com/lambdasistemi/singular-demo" target="_blank" rel="noreferrer">View source ↗</a>
+    </aside>
+    <section class="reading" aria-label="Lesson instructions">
+      <div class="reading-top"><span id="step-label" class="eyebrow"></span><span class="pill">LEARN BY DOING</span></div>
+      <h2 id="lesson-title"></h2>
+      <article id="content"></article>
+      <footer class="pagination"><button id="previous" type="button" class="secondary">← Previous</button><span id="page-number"></span><button id="next" type="button" class="primary">Next →</button></footer>
+    </section>
+    <section class="terminal-pane" aria-label="Live terminal">
+      <div class="terminal-header"><span><span class="terminal-symbol">›_</span> Terminal <span class="shell-name">bash</span></span><span class="terminal-controls"><button id="theme-toggle" type="button" title="Switch the terminal between light and dark"></button><span id="connection" role="status">Connecting…</span></span></div>
+      <div class="terminal-help">Use ▷ beside a command, or type here.</div>
+      <div id="terminal"></div>
+      <div id="notice" role="status" hidden></div>
+      <div class="terminal-footer"><span>Alice · Bob · chain — separate shells</span><button id="interrupt" type="button" title="Send Ctrl+C to the terminal">Ctrl+C</button></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "vcs": { "enabled": false },
+  "assist": { "enabled": false },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/static/vendor",
+      "!killercoda",
+      "!.specify",
+      "!site",
+      "!structure.json",
+      "!demos/demo1/demo.html",
+      "!docs/demo1/interactive.html",
+      "!tutorial/package-lock.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": { "formatter": { "quoteStyle": "single" } },
+  "linter": { "enabled": true, "rules": { "recommended": true } }
+}

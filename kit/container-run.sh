@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016 # the script run in the container is single-quoted on purpose: its $ expansions happen there
 # Runs demo.sh from the kit tarball in a clean Ubuntu container and judges the result.
 #   kit/container-run.sh good|short|control-main|control-node|control-window
 #     good          the kit as built: demo.sh must exit 0 and show all 16 steps
@@ -18,8 +19,11 @@ mode=${1:?good|short|control-main|control-node|control-window}
 TARBALL=${TARBALL:?path of the kit tarball}
 IMAGE=${IMAGE:-mirror.gcr.io/library/ubuntu:24.04}
 OUT=${OUT:-$PWD/out}
-mkdir -p "$OUT"; OUT=$(readlink -f "$OUT"); TARBALL=$(readlink -f "$TARBALL")
-tarball=$(basename "$TARBALL"); kit=${tarball%.tar.gz}
+mkdir -p "$OUT"
+OUT=$(readlink -f "$OUT")
+TARBALL=$(readlink -f "$TARBALL")
+tarball=$(basename "$TARBALL")
+kit=${tarball%.tar.gz}
 log=$OUT/container-run-$mode.log
 inner='
 set -u
@@ -35,18 +39,21 @@ cd /work && tar xzf /dist/$TARBALL && cd $KIT && cat VERSION
 '
 case "$mode" in
   good) inner+='export WORK=/out/singular-demo-run
-';;
+' ;;
   short) inner+='export WORK=/out/singular-demo-run PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000
-';;
+' ;;
   control-window) inner+='for v in PROCESS_TIME_MS=59999 RETRACT_TIME_MS=29999; do
   echo "== $v ./demo.sh"; env $v ./demo.sh; echo "WINDOWCHECK $v exit=$?"
 done
-';;
+' ;;
   control-main) inner+='echo "== BREAK THE KIT: delete lib/main/libsecp256k1.so.2"; rm -v lib/main/libsecp256k1.so.2
-';;
+' ;;
   control-node) inner+='echo "== BREAK THE KIT: delete lib/node/liblmdb.so (a library of cardano-node only)"; rm -v lib/node/liblmdb.so
-';;
-  *) echo "unknown mode $mode" >&2; exit 2;;
+' ;;
+  *)
+    echo "unknown mode $mode" >&2
+    exit 2
+    ;;
 esac
 if [ "$mode" = control-window ]; then
   inner+='rc=0
@@ -58,7 +65,7 @@ date -u +%FT%TZ; echo "== demo.sh exit status: $rc"
 '
 fi
 case "$mode" in
-  good|short) inner+='
+  good | short) inner+='
 if [ $rc = 0 ]; then
   echo "== transaction tools on the demo'"'"'s own bundles"
   export PATH=$PWD/bin:$PATH
@@ -72,7 +79,7 @@ if [ $rc = 0 ]; then
   tx-diff /out/first.envelope /out/second.envelope > /out/tx-diff.txt; echo "TXTOOLS diff-different-exit=$?"
   echo "TXTOOLS diff-different-A-lines=$(grep -c "A: " /out/tx-diff.txt) B-lines=$(grep -c "B: " /out/tx-diff.txt)"
 fi
-';;
+' ;;
 esac
 inner+='echo "== anything left running?"
 n=0; for p in /proc/[0-9]*; do e=$(readlink $p/exe 2>/dev/null); case "$e" in /work/*) echo "LEFT: pid ${p#/proc/} $e"; n=$((n+1));; esac; done; echo "kit processes still running: $n"
@@ -81,26 +88,31 @@ echo "(scan done)"
 chmod -R a+rX /out 2>/dev/null
 exit $rc
 '
-rm -rf "$OUT/run-$mode"; mkdir -m 777 "$OUT/run-$mode"
+rm -rf "$OUT/run-$mode"
+mkdir -m 777 "$OUT/run-$mode"
 {
   echo "# container-run.sh $mode  $(date -u +%FT%TZ)  image $IMAGE"
   docker run --rm --memory 8g --network none --user 1000:1000 --tmpfs /work:rw,exec,mode=1777 \
     -e "TARBALL=$tarball" -e "KIT=$kit" \
     -v "$(dirname "$TARBALL"):/dist:ro" -v "$OUT/run-$mode:/out" "$IMAGE" bash -c "$inner"
   echo "== docker run exit status: $?"
-} > "$log" 2>&1
+} >"$log" 2>&1
 
 rc=$(sed -n 's/^== demo.sh exit status: //p' "$log")
 ok=1
 expect() { # description, then the command that must succeed
-  local what=$1; shift
-  if "$@"; then echo "  ok    $what"; else echo "  FAIL  $what"; ok=0; fi
+  local what=$1
+  shift
+  if "$@"; then echo "  ok    $what"; else
+    echo "  FAIL  $what"
+    ok=0
+  fi
 }
 has() { grep -q -- "$1" "$log"; }
 failed() { [ -n "${rc:-}" ] && [ "$rc" != 0 ]; }
 echo "container-run $mode: demo.sh exit status ${rc:-none}; log $log"
 case "$mode" in
-  good|short)
+  good | short)
     steps=$(grep -c '^━━ Step [0-9]* of 16 ' "$log")
     expect "demo.sh exit status 0" [ "${rc:-}" = 0 ]
     expect "16 steps shown (counted $steps)" [ "$steps" = 16 ]
@@ -114,8 +126,9 @@ case "$mode" in
     expect "tx-diff of two different transactions: exit 1" has '^TXTOOLS diff-different-exit=1$'
     expect "tx-diff of two different transactions: A: and B: lines" has '^TXTOOLS diff-different-A-lines=[1-9][0-9]* B-lines=[1-9]'
     # measured time of the run, from the two timestamps the container prints around demo.sh
-    t0=$(grep -A1 '^== run demo.sh$' "$log" | tail -1); t1=$(grep -B1 '^== demo.sh exit status' "$log" | head -1)
-    echo "  time  demo.sh took $(( $(date -u -d "$t1" +%s) - $(date -u -d "$t0" +%s) )) s"
+    t0=$(grep -A1 '^== run demo.sh$' "$log" | tail -1)
+    t1=$(grep -B1 '^== demo.sh exit status' "$log" | head -1)
+    echo "  time  demo.sh took $(($(date -u -d "$t1" +%s) - $(date -u -d "$t0" +%s))) s"
     ;;
   control-window)
     expect "PROCESS_TIME_MS=59999 refused with exit 2" has '^WINDOWCHECK PROCESS_TIME_MS=59999 exit=2$'

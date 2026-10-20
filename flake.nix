@@ -52,7 +52,13 @@
 
       # The Ubuntu kit: tarball plus SHA256SUMS, built from this lock only.
       kit = import ./kit/build.nix {
-        inherit pkgs source blueprint cardanoNode txTools;
+        inherit
+          pkgs
+          source
+          blueprint
+          cardanoNode
+          txTools
+          ;
         inherit singular devnet;
         openDatum = open-datum-exe;
       };
@@ -79,39 +85,125 @@
         cp ${blueprint} $out/plutus.json
         cp ${source}/version.txt $out/version.txt
       '';
+      # mkdocs with its theme: docs/build.sh builds the documentation site with it
+      docs-env = pkgs.symlinkJoin {
+        name = "singular-demo-docs-env";
+        paths = [
+          (pkgs.python3.withPackages (p: [
+            p.mkdocs
+            p.mkdocs-material
+          ]))
+          pkgs.nodejs
+        ];
+      };
+
+      # The tools tools/format.sh and tools/lint.sh need: one set for `nix flake check`, `nix run` and the dev shell.
+      lintTools = [
+        pkgs.nixfmt
+        pkgs.shfmt
+        pkgs.shellcheck
+        pkgs.biome
+        pkgs.ruff
+        pkgs.actionlint
+        pkgs.nodejs
+        pkgs.findutils
+        pkgs.diffutils
+        pkgs.gnugrep
+        pkgs.coreutils
+        pkgs.bash
+      ];
+      # A check runs a script of tools/ on a copy of the repository, so it is the same code that `nix run` runs in a checkout.
+      repoCheck =
+        name: script:
+        pkgs.runCommand name { nativeBuildInputs = lintTools; } ''
+          cp -r ${./.} src
+          chmod -R u+w src
+          cd src
+          bash tools/${script}
+          touch $out
+        '';
+      inCheckout =
+        name: script:
+        pkgs.writeShellApplication {
+          inherit name;
+          runtimeInputs = lintTools ++ [ pkgs.git ];
+          text = ''
+            cd "$(git rev-parse --show-toplevel)"
+            exec bash tools/${script}
+          '';
+        };
     in
     {
       packages.${system} = {
-        inherit kit kit-verify;
+        inherit kit kit-verify docs-env;
       };
 
-      apps.${system}.kit-verify = {
-        type = "app";
-        program = pkgs.lib.getExe kit-verify;
+      apps.${system} = {
+        kit-verify = {
+          type = "app";
+          program = pkgs.lib.getExe kit-verify;
+          meta.description = "Checks of the built kit tarball: checksum, no Nix store paths, no RPATH";
+        };
+        format = {
+          type = "app";
+          program = pkgs.lib.getExe (inCheckout "format" "format.sh write");
+          meta.description = "Format the repository's own files";
+        };
+        format-check = {
+          type = "app";
+          program = pkgs.lib.getExe (inCheckout "format-check" "format.sh check");
+          meta.description = "Check that the repository's own files are formatted";
+        };
+        lint = {
+          type = "app";
+          program = pkgs.lib.getExe (inCheckout "lint" "lint.sh");
+          meta.description = "Lint the repository and check that it agrees with itself";
+        };
       };
 
-      devShells.${system}.default = pkgs.mkShell {
-        name = "singular-demo";
-        packages = [
-          singular
-          open-datum-exe
-          devnet
-          pkgs.jq
-          txTools
-        ];
-        shellHook = ''
-          # Where the programs find what they need.
-          export blueprint=${contracts}/plutus.json
-          export E2E_GENESIS_DIR=${source}/offchain/e2e-test/genesis
-          # A short temporary directory: the devnet's node socket path has a length limit.
-          export TMPDIR=/tmp/singular-demo-$(id -u)
-          mkdir -p -m 700 "$TMPDIR"
-          echo "Singular v0.13.1, Demo 1 shell"
-          echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq   on the PATH"
-          echo "  \$blueprint          = $blueprint"
-          echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"
-          echo "  \$TMPDIR             = $TMPDIR"
-        '';
+      checks.${system} = {
+        format = repoCheck "format" "format.sh check";
+        lint = repoCheck "lint" "lint.sh";
+      };
+
+      devShells.${system} = {
+        default = pkgs.mkShell {
+          name = "singular-demo";
+          packages = [
+            singular
+            open-datum-exe
+            devnet
+            pkgs.jq
+            pkgs.curl
+            txTools
+          ];
+          shellHook = ''
+            # Where the programs find what they need.
+            export blueprint=${contracts}/plutus.json
+            export E2E_GENESIS_DIR=${source}/offchain/e2e-test/genesis
+            # A short temporary directory: the devnet's node socket path has a length limit.
+            export TMPDIR=/tmp/singular-demo-$(id -u)
+            mkdir -p -m 700 "$TMPDIR"
+            echo "Singular v0.13.1, Demo 1 shell"
+            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl   on the PATH"
+            echo "  \$blueprint          = $blueprint"
+            echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"
+            echo "  \$TMPDIR             = $TMPDIR"
+          '';
+        };
+
+        # The shell for working on this repository: the formatters and linters, just, and the documentation tools.
+        dev = pkgs.mkShell {
+          name = "singular-demo-dev";
+          packages = lintTools ++ [
+            pkgs.git
+            pkgs.just
+            pkgs.curl
+            pkgs.jq
+            pkgs.gh
+            docs-env
+          ];
+        };
       };
     };
 }

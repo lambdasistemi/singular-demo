@@ -1,0 +1,10 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "B", "I"]
+# the formatter wraps code; long string literals (commands typed into a terminal) stay as they are
+ignore = ["E501"]
+
+[format]
+quote-style = "double"
