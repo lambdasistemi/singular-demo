@@ -73,6 +73,8 @@ nix develop .#dev --command just ci
 
 `just ci` formats nothing and changes nothing: it checks the formatting of every file we write (`nixfmt`, `shfmt`, `biome`, `ruff`), lints them (`shellcheck`, `biome`, `ruff`, `actionlint`), checks that the committed Killercoda scenarios are the ones the step files generate and that this README names the pinned Singular version, and builds the flake checks. `just format` fixes the formatting; `just generate` regenerates the scenarios. The tutorial is edited only in `demos/demo1/s*.md` and its generators, never in `killercoda/`.
 
+When Singular publishes a release, `just bump vX.Y.Z` moves this repository to it: it rewrites the version in the flake, this README and the kit's script, updates the pinned Singular inputs, regenerates the scenarios and runs the checks. Review the diff, open a pull request, and once it is merged push the tag `vX.Y.Z`; the release workflow builds, proves and publishes the kit.
+
 A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the three jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the Killercoda scenarios and the Codespaces tutorial. A push to main publishes the daily release and the site; a tag `vX.Y.Z`, which must name the pinned Singular version, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 
 ## Binary caches

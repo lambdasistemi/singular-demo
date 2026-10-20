@@ -36,3 +36,7 @@ docs runbook_log demo_log:
 kit:
     nix build --quiet .#kit
     nix run --quiet .#kit-verify
+
+# Move to another Singular release: just bump v0.13.2
+bump version:
+    nix develop .#dev --command bash tools/bump.sh {{ version }}
