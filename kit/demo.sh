@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Singular v0.12.0 — Demo 1 on a private development chain (devnet).
+# Singular v0.13.0 — Demo 1 on a private development chain (devnet).
 #
 # Alice runs an "open datum" registry: a table of keys, each holding a small
 # piece of data that only its owner may change. The script walks the whole
