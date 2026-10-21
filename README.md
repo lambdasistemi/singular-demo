@@ -26,6 +26,14 @@ https://codespaces.new/lambdasistemi/singular-demo?quickstart=1
 
 The documentation site, with the tutorial, the runs and the annotated script as it ran, is https://lambdasistemi.github.io/singular-demo/
 
+## Pay by name: Bob pays Alice and Dave by their names
+
+Bob owes money to Alice and to Dave and does not know where either receives it. Carol made a registry of names and published it; Alice and Dave each put a name in it; Bob pays the names. The money waits in a script, a sink, that reads the registry: whoever moves it can only send it to the address registered under the name at that moment, and the controller of the name can change that address whenever they want. Five people, five tmux windows, on a private chain.
+
+**Play it in the browser, on Killercoda**, in the same course as Demo 1: https://killercoda.com/paolino/course/killercoda/pay-by-name-steps
+
+The tools of the scenario (`sink-tools`) and the compiled sink validator are in the kit; they run on the machine's own `node`, version 18 or newer (`sudo apt install nodejs` on Ubuntu 24.04). The steps are in `demos/pay-by-name/`, the validator in `demos/pay-by-name/onchain/` and the tools in `demos/pay-by-name/offchain/`.
+
 ## On your own machine
 
 **With Nix**, one command opens a shell with `singular`, `open-datum`, `devnet` and `jq`, and the tutorial's steps can be pasted into it:
@@ -72,8 +80,9 @@ cd singular-demo-$release-x86_64-linux
 
 | What | Where it comes from | What checks it |
 |---|---|---|
-| The Ubuntu kit, a release for each Singular version | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; `drive.sh` playing the whole tutorial in a clean Ubuntu container with no tmux, no Nix and no network |
+| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; `drive.sh` playing the whole tutorial in a clean Ubuntu container with no tmux, no Nix and no network |
 | The tutorial and the runs | `demos/demo1/s*.md`, run by `demos/demo1/test.sh` against a fresh devnet | the receipts of all 16 steps; the log of the run becomes the page `run` |
+| The pay-by-name scenario | `demos/pay-by-name/s*.md`; its sink validator and its tools (`demos/pay-by-name/build.nix`) are built by Nix and are in the kit | `aiken check` of the validator's tests, a Nix build of the tools, and a scenario test that plays the story in a clean Ubuntu in real tmux windows and then the controls: the refusals of the sink, each with its label |
 | The Killercoda scenarios | generated into `killercoda/` by `bash tools/generate.sh .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
 | The Codespaces tutorial | `.devcontainer/` and `tutorial/`; it plays the same scenario | its own tests, in a browser, up to the whole demo through the buttons |
 | The documentation site | `mkdocs.yml`, `docs/`, built by `docs/build.sh` | the site is built from the logs of the same run |
@@ -90,9 +99,11 @@ nix develop .#dev --command just ci
 
 `just ci` formats nothing and changes nothing: it checks the formatting of every file we write (`nixfmt`, `shfmt`, `biome`, `ruff`), lints them (`shellcheck`, `biome`, `ruff`, `actionlint`), checks that the committed Killercoda scenarios are the ones the step files generate and that this README names the pinned Singular version, and builds the flake checks. `just format` fixes the formatting; `just generate` regenerates the scenarios. The tutorial is edited only in `demos/demo1/s*.md` and its generators, never in `killercoda/`.
 
-When Singular publishes a release, `just bump vX.Y.Z` moves this repository to it: it rewrites the version in the flake, this README and the kit's script, updates the pinned Singular inputs, regenerates the scenarios and runs the checks. Review the diff, open a pull request, and once it is merged push the tag `vX.Y.Z`; the release workflow builds, proves and publishes the kit.
+When Singular publishes a release, `just bump vX.Y.Z` moves this repository to it: it rewrites the version in the flake, this README and the kit's script, starts the kit's revision again at 1, updates the pinned Singular inputs, regenerates the scenarios and runs the checks. Review the diff, open a pull request, and once it is merged push the tag `vX.Y.Z-1`; the release workflow builds, proves and publishes the kit.
 
-A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the five jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios, the kit's `drive.sh` and the Codespaces tutorial. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z`, which must name the pinned Singular version, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
+The kit's release is the Singular release and the kit's revision, as in `v0.14.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
+
+A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the six jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the pay-by-name scenario with its controls, the kit's `drive.sh` and the Codespaces tutorial. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 
 ## Binary caches
 

@@ -6,10 +6,10 @@ name: CI
 # logs of those runs. publish.yml and release.yml call this workflow and publish what it produced.
 #
 # Jobs that need Nix run on the self-hosted nixos runners, after the Build Gate has built everything once.
-# Five jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
-# have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the two Killercoda scenarios (they
-# run on an Ubuntu machine), the kit's drive.sh (in a clean Ubuntu container) and the Codespaces tutorial (it
-# runs in an Ubuntu container).
+# Six jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
+# have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the Killercoda scenarios (they
+# run on an Ubuntu machine), the kit's drive.sh (in a clean Ubuntu container), the pay-by-name scenario and its
+# controls (in a clean Ubuntu container) and the Codespaces tutorial (it runs in an Ubuntu container).
 
 on:
   pull_request:
@@ -48,12 +48,14 @@ jobs:
           name: paolino
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Nothing may be compiled
-        run: kit/guard.sh .#kit .#kit-verify .#docs-env .#devShells.x86_64-linux.default .#devShells.x86_64-linux.dev
+        run: kit/guard.sh .#kit .#kit-verify .#pay-by-name-sink .#pay-by-name-tools .#docs-env .#devShells.x86_64-linux.default .#devShells.x86_64-linux.dev
       - name: Build everything the jobs below use
         run: >-
           nix build --quiet --no-link
           .#kit
           .#kit-verify
+          .#pay-by-name-sink
+          .#pay-by-name-tools
           .#docs-env
           .#devShells.x86_64-linux.default.inputDerivation
           .#devShells.x86_64-linux.dev.inputDerivation
@@ -92,8 +94,11 @@ jobs:
       - name: Build the kit
         run: |
           nix build .#kit --print-build-logs --out-link kit-result
+          nix build .#pay-by-name-tools --print-build-logs --out-link tools-result
           mkdir dist
           cp kit-result/* dist/
+          # the controls only the pay-by-name test runs; they are not part of the kit
+          cp tools-result/controls.cjs dist/
           nix --version > dist/nix-version.txt
           ls -l dist
           cat dist/SHA256SUMS
@@ -240,6 +245,25 @@ jobs:
           docker run --rm --memory 12g -e KIT_BASE=file:///kit -e PROCESS_TIME_MS -e RETRACT_TIME_MS \
             -v "$PWD/killercoda/demo1-steps:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/dist:/kit:ro" \
             ubuntu:24.04 bash /repo/demos/demo1/scenario-test.sh /scenario
+
+  pay-by-name:
+    name: CI pay-by-name
+    needs: kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kit
+          path: dist
+      - name: The pay-by-name scenario (real tmux windows, every click-to-run block typed in), then its controls
+        run: |
+          docker run --rm --memory 12g -e KIT_BASE=file:///kit \
+            -v "$PWD/killercoda/pay-by-name-steps:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/dist:/kit:ro" \
+            ubuntu:24.04 bash /repo/demos/pay-by-name/scenario-test.sh /scenario
 
   script-scenario:
     name: CI script scenario
