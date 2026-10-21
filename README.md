@@ -4,7 +4,7 @@ Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a regis
 
 ## Demo 1: Alice and Bob keep a registry
 
-A key is booked, folded into the registry, read back, changed and removed. A request nobody folds is rejected, and another is taken back by its owner. There are three ways to meet it.
+A key is booked, folded into the registry, read back, changed and removed. A request nobody folds is rejected, and another is taken back by its owner. There are four ways to meet it.
 
 **Read a run.** Every command of the tutorial with what it printed in a real run, made by this repository's continuous integration:
 
@@ -21,6 +21,8 @@ The kit's annotated script, run in one go: https://killercoda.com/paolino/course
 **Play it in a Codespace.** The same lessons beside a terminal, in your own GitHub Codespace (it uses your own Codespaces quota):
 
 https://codespaces.new/lambdasistemi/singular-demo?quickstart=1
+
+**Play it in your own terminal, on Linux.** The same tutorial step by step, as Alice and as Bob in tmux windows on your own machine: download the kit and run `./drive.sh` (see [On your own machine](#on-your-own-machine)). No account and nothing to install; it needs a 64-bit Linux on x86_64.
 
 The documentation site, with the tutorial, the runs and the annotated script as it ran, is https://lambdasistemi.github.io/singular-demo/
 
@@ -51,17 +53,32 @@ cd singular-demo-$version-x86_64-linux
 - `WORK=/some/folder ./demo.sh` chooses where vaults, receipts and bundles are kept.
 - `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./demo.sh` shortens the registry's two windows, and the waits with them.
 
+**The tutorial step by step in your terminal.** `./drive.sh`, in the same folder, plays the Killercoda scenario on your machine: the page on the left and, beside it, the window of the person who acts (Alice's, Bob's or the chain's), in tmux. Enter types the next command into that window and waits until it is over; `s` skips a command, `c` sends it Ctrl-C, `n` and `p` turn the page, `q` closes the page. The kit brings its own tmux, and a terminal about 160 columns wide fits both. Run again, it goes back to the same windows and page; `bin/tmux -L singular-demo kill-server` ends them. It takes about 15 minutes.
+
+The daily kit, built from `main` every day, always has it:
+
+```bash
+version=v0.14.0
+base=https://github.com/lambdasistemi/singular-demo/releases/download/daily
+curl -fLO $base/singular-demo-$version-x86_64-linux.tar.gz
+curl -fLO $base/SHA256SUMS
+sha256sum -c SHA256SUMS
+tar xzf singular-demo-$version-x86_64-linux.tar.gz
+cd singular-demo-$version-x86_64-linux
+./drive.sh
+```
+
 ## What the repository delivers, and how it is checked
 
 | What | Where it comes from | What checks it |
 |---|---|---|
-| The Ubuntu kit, a release for each Singular version | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z` publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls |
+| The Ubuntu kit, a release for each Singular version | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z` publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; `drive.sh` playing the whole tutorial in a clean Ubuntu container with no tmux, no Nix and no network |
 | The tutorial and the runs | `demos/demo1/s*.md`, run by `demos/demo1/test.sh` against a fresh devnet | the receipts of all 16 steps; the log of the run becomes the page `run` |
 | The Killercoda scenarios | generated into `killercoda/` by `node demos/demo1/killercoda.js .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
 | The Codespaces tutorial | `.devcontainer/` and `tutorial/`; it plays the same scenario | its own tests, in a browser, up to the whole demo through the buttons |
 | The documentation site | `mkdocs.yml`, `docs/`, built by `docs/build.sh` | the site is built from the logs of the same run |
 
-Killercoda and Codespaces run the same scripts of the play, in `demos/demo1/play/`: install the kit, make the folders, set up the shell, start the windows.
+Killercoda, Codespaces and the kit's `drive.sh` run the same scripts of the play, in `demos/demo1/play/`: install the kit, make the folders, set up the shell, start the windows.
 
 A new demo is a folder `demos/demoN/` beside `demo1`, with its steps, its generator and its tests, and a page in `docs/`.
 
@@ -75,7 +92,7 @@ nix develop .#dev --command just ci
 
 When Singular publishes a release, `just bump vX.Y.Z` moves this repository to it: it rewrites the version in the flake, this README and the kit's script, updates the pinned Singular inputs, regenerates the scenarios and runs the checks. Review the diff, open a pull request, and once it is merged push the tag `vX.Y.Z`; the release workflow builds, proves and publishes the kit.
 
-A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the three jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the Killercoda scenarios and the Codespaces tutorial. A push to main publishes the daily release and the site; a tag `vX.Y.Z`, which must name the pinned Singular version, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
+A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the four jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the Killercoda scenarios, the kit's `drive.sh` and the Codespaces tutorial. A push to main publishes the daily release and the site; a tag `vX.Y.Z`, which must name the pinned Singular version, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 
 ## Binary caches
 

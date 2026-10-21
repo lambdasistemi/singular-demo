@@ -26,9 +26,9 @@ echo "file names inside the archive containing /nix: $n"
 check "no file name contains /nix" $((n != 0))
 
 # -a reads binary files as text (plain grep can skip a binary after its first odd byte)
-hits=$(grep -arl '/nix/store' "$K/bin" "$K/share" "$K/demo.sh" "$K/README.txt" "$K/VERSION" | wc -l)
+hits=$(grep -arl '/nix/store' "$K/bin" "$K/share" "$K/demo.sh" "$K/drive.sh" "$K/README.txt" "$K/VERSION" | wc -l)
 echo "files under bin/, share/ and the top files naming /nix/store: $hits"
-check "no store path in bin/, share/, demo.sh, README.txt, VERSION" $((hits != 0))
+check "no store path in bin/, share/, demo.sh, drive.sh, README.txt, VERSION" $((hits != 0))
 
 # control: the same search over libexec/ must find something, or the check above could not fail
 ctl=$(grep -arl '/nix/store' "$K/libexec" | wc -l)
