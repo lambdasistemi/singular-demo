@@ -1,14 +1,15 @@
 name: CI
 
 # Every pull request builds the Ubuntu kit of the pinned Singular release, checks the repository, proves the
-# kit in a clean Ubuntu, plays the tutorial and both of its environments (the Killercoda scenarios and the
-# Codespaces tutorial) on that kit, and builds the documentation site from the logs of those runs. publish.yml
-# and release.yml call this workflow and publish what it produced.
+# kit in a clean Ubuntu, plays the tutorial and its three environments (the Killercoda scenarios, the kit's
+# drive.sh in a terminal and the Codespaces tutorial) on that kit, and builds the documentation site from the
+# logs of those runs. publish.yml and release.yml call this workflow and publish what it produced.
 #
 # Jobs that need Nix run on the self-hosted nixos runners, after the Build Gate has built everything once.
-# Three jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
+# Four jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
 # have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the Killercoda scenarios (they
-# run on an Ubuntu machine) and the Codespaces tutorial (it runs in an Ubuntu container).
+# run on an Ubuntu machine), the kit's drive.sh (in a clean Ubuntu container) and the Codespaces tutorial (it
+# runs in an Ubuntu container).
 
 on:
   pull_request:
@@ -237,6 +238,34 @@ jobs:
           docker run --rm --memory 12g -e KIT_BASE=file:///kit \
             -v "$PWD/killercoda/demo1-script:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/dist:/kit:ro" \
             ubuntu:24.04 bash /repo/demos/demo1/script-scenario-test.sh /scenario
+
+  terminal:
+    name: CI terminal
+    needs: kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kit
+          path: dist
+      - name: The tutorial in a terminal from the kit (drive.sh, its own tmux, clean Ubuntu with no network)
+        env:
+          IMAGE: ${{ env.UBUNTU_IMAGE }}
+          OUT: out
+        run: TARBALL=$(ls dist/*.tar.gz) kit/drive-run.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: terminal-evidence
+          path: |
+            out/
+            !out/**/*.vault
+          if-no-files-found: warn
+          retention-days: 14
 
   tutorial:
     name: CI tutorial
