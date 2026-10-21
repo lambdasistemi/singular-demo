@@ -35,7 +35,7 @@ if ! bash "$background" >"$work/background.log" 2>&1 || [ ! -f /tmp/finished ]; 
   tail -8 "$work/background.log"
   exit 1
 fi
-echo "ok    intro/background.sh finished (node $(node --version), $(tmux -V))"
+echo "ok    intro/background.sh finished ($(tmux -V))"
 # no kit on the PATH here on purpose: as on Killercoda, the tmux server starts from a plain shell without it
 if ! bash "$scenario/intro/foreground.sh" >"$work/foreground.log" 2>&1 || ! grep -q '^Ready' "$work/foreground.log"; then
   echo "FAIL  intro/foreground.sh did not say Ready"
@@ -222,25 +222,7 @@ export PATH="$kit/bin:$PATH" # jq for the checks
 export blueprint="$kit/share/plutus.json" SINGULAR_PASSPHRASE=demo
 check() { if jq -e "$2" "$1" >/dev/null 2>&1; then ok "$1  $2"; else bad "$1  $2"; fi; }
 cd "$run" || exit 1
-check carol/create.json '.outcome=="success"'
-check publish/registry.json '(."sink-script"|length)>1000 and (."state-token"|test("^[0-9a-f]{56}[.][0-9a-f]{64}$"))'
-check alice/insert.json '.outcome=="success"'
-check alice/fold.json '.outcome=="success"'
-check alice/inspect.json '.leaf=="active" and .keyText=="alice"'
-check dave/fold.json '.outcome=="success"'
-check dave/inspect.json '.leaf=="active" and .keyText=="dave"'
-check bob/fund.submitted.json '.outcome=="success"'
-check alice/move.submitted.json '.outcome=="success"'
-check dave/move.submitted.json '.outcome=="success"'
-check alice/update.json '.outcome=="success"'
-check alice/new.submitted.json '.outcome=="success"'
-[ "$(cat messages/alice-to-bob.txt)" = alice ] && [ "$(cat messages/dave-to-bob.txt)" = dave ] && ok "the replies name alice and dave" || bad "the replies are not alice and dave"
-count() { grep -c -- "$1" "$work/log.txt"; }
-[ "$(count '^application: matches')" -ge 3 ] && ok "three checks of the application: matches ($(count '^application: matches'))" || bad "fewer than three 'application: matches' on the screens"
-[ "$(count '^published registry sink script: matches')" -ge 3 ] && ok "three checks of the published sink script: matches" || bad "fewer than three 'published registry sink script: matches' on the screens"
-[ "$(count '^active policy: matches describe')" -ge 3 ] && ok "three checks of the active policy: matches describe" || bad "fewer than three 'active policy: matches describe' on the screens"
-grep -q "^Alice controls 'alice'" "$work/log.txt" && grep -q "^Dave controls 'dave'" "$work/log.txt" && ok "the screens say: Alice controls 'alice', Dave controls 'dave'" || bad "a controller line is missing on the screens"
-grep -q 'sink refuses this move: .*Trace sink-conservation' "$work/window-alice.log" && ok "the move to the old address was refused: sink-conservation" || bad "no refusal with sink-conservation in Alice's window"
+bash "$here/check-run.sh" "$run" "$work" || fail=1
 if grep -qE "$ERROR_LINES" "$work/log.txt"; then
   bad "an error line on the screens"
   grep -nE "$ERROR_LINES" "$work/log.txt" | head -5
