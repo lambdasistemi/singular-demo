@@ -69,6 +69,9 @@
         openDatum = open-datum-exe;
         sinkTools = payByName.tools;
         sinkBlueprint = payByName.sink;
+        nodejs = pkgs.nodejs-slim;
+        payByNamePlay = ./demos/pay-by-name/play;
+        payByNameScenario = ./killercoda/pay-by-name-steps;
         # drive.sh plays the generated scenario with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;
@@ -83,7 +86,6 @@
           pkgs.gnugrep
           pkgs.gnutar
           pkgs.gzip
-          pkgs.nodejs
         ];
         text = ''
           export KIT_DIR=${kit}

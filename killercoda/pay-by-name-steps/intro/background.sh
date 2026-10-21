@@ -125,9 +125,8 @@ $t set-option -g mouse on
 echo "The windows carol, alice, dave, bob and chain are ready."
 PLAY_EOF
 bash /root/play/install-kit.sh v0.14.0-1 /root
-# tmux holds the five windows; node runs the tools of the kit
-apt-get update -qq && apt-get install -y -qq tmux nodejs
+# tmux holds the five windows (the kit brings its own node, which runs its tools)
+apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-node --version
 bash /root/play/prepare.sh /root/singular-demo-v0.14.0-1-x86_64-linux /root/singular-demo-run
 touch /tmp/finished

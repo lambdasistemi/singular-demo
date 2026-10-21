@@ -212,7 +212,7 @@ w(
   'intro/text.md',
   `Bob owes money to Alice and to Dave, and he does not know where either of them receives it. Here he pays them **by name**. The names are in a registry on Cardano that Carol made and published: anyone can put a name in it, and the person who does is the name's controller. Bob pays the name, the money waits in a script that reads the registry, and whoever moves it can only send it to the address that is registered under the name at that moment.
 
-You play all five of them on a **private test chain**: nothing touches a public network, and nothing is installed on this machine beyond tmux and node. The project is at https://github.com/lambdasistemi/singular and its documentation at https://lambdasistemi.github.io/singular/ . Each person has a tmux window of their own, and you switch between them by clicking a word: \`carol\`, \`alice\`, \`dave\`, \`bob\` or \`chain\`. You will, step by step:
+You play all five of them on a **private test chain**: nothing touches a public network, and nothing is installed on this machine beyond tmux. The project is at https://github.com/lambdasistemi/singular and its documentation at https://lambdasistemi.github.io/singular/ . Each person has a tmux window of their own, and you switch between them by clicking a word: \`carol\`, \`alice\`, \`dave\`, \`bob\` or \`chain\`. You will, step by step:
 
 - make five wallets and start the chain,
 - let Carol create and publish the registry, and let Alice, Bob and Dave each check it,
@@ -224,7 +224,7 @@ Every command is shown in full with what it does. Click a command to run it, rea
 
 The machine lasts one hour at most and is deleted when you close this tab. The whole journey takes about 20 minutes. If the chain on the machine is ever stopped, restart the scenario: a new machine starts from the beginning.
 
-A kit with the programs, tmux and node are being installed in the background. When the terminal says \`Ready\`, start.
+A kit with the programs, node included, and tmux are being installed in the background. When the terminal says \`Ready\`, start.
 `,
 );
 
@@ -253,10 +253,9 @@ set -x
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/play
 ${embed()}bash /root/play/install-kit.sh ${RELEASE} /root
-# tmux holds the five windows; node runs the tools of the kit
-apt-get update -qq && apt-get install -y -qq tmux nodejs
+# tmux holds the five windows (the kit brings its own node, which runs its tools)
+apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-node --version
 bash /root/play/prepare.sh /root/${KIT} /root/singular-demo-run
 touch /tmp/finished
 `,
@@ -264,7 +263,7 @@ touch /tmp/finished
 
 w(
   'intro/foreground.sh',
-  `echo "Downloading and checking the demo kit, and installing tmux and node..."
+  `echo "Downloading and checking the demo kit, and installing tmux..."
 while [ ! -f /tmp/finished ]; do sleep 1; done
 bash /root/play/windows.sh /root/singular-demo-run
 echo "Ready."
