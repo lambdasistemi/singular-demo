@@ -6,8 +6,8 @@ name: CI
 # logs of those runs. publish.yml and release.yml call this workflow and publish what it produced.
 #
 # Jobs that need Nix run on the self-hosted nixos runners, after the Build Gate has built everything once.
-# Four jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
-# have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the Killercoda scenarios (they
+# Five jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
+# have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the two Killercoda scenarios (they
 # run on an Ubuntu machine), the kit's drive.sh (in a clean Ubuntu container) and the Codespaces tutorial (it
 # runs in an Ubuntu container).
 
@@ -28,6 +28,11 @@ concurrency:
 
 env:
   UBUNTU_IMAGE: mirror.gcr.io/library/ubuntu:24.04
+  # A pull request plays every whole run with the least windows the registry allows (60 s to process a request,
+  # 30 s to take it back), so its waits on the chain last a minute instead of several. The runs of main, the
+  # nightly run and a release, whose logs are published, keep the windows the tutorial and demo.sh write.
+  PROCESS_TIME_MS: ${{ github.event_name == 'pull_request' && '60000' || '' }}
+  RETRACT_TIME_MS: ${{ github.event_name == 'pull_request' && '30000' || '' }}
 
 jobs:
   build-gate:
@@ -158,6 +163,8 @@ jobs:
           OUT: out
         run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh good
       - name: Demo with the shortest allowed windows (60 s and 30 s)
+        # a pull request already ran the demo above with these windows
+        if: github.event_name != 'pull_request'
         env:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
@@ -230,9 +237,23 @@ jobs:
           path: dist
       - name: The step-by-step scenario (real tmux windows, every click-to-run block typed in)
         run: |
-          docker run --rm --memory 12g -e KIT_BASE=file:///kit \
+          docker run --rm --memory 12g -e KIT_BASE=file:///kit -e PROCESS_TIME_MS -e RETRACT_TIME_MS \
             -v "$PWD/killercoda/demo1-steps:/scenario:ro" -v "$PWD:/repo:ro" -v "$PWD/dist:/kit:ro" \
             ubuntu:24.04 bash /repo/demos/demo1/scenario-test.sh /scenario
+
+  script-scenario:
+    name: CI script scenario
+    needs: kit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kit
+          path: dist
       - name: The annotated-script scenario
         run: |
           docker run --rm --memory 12g -e KIT_BASE=file:///kit \

@@ -1,5 +1,6 @@
 // Exercise the published lessons through the same run buttons and terminal as a visitor.
-// Uses real release binaries, vaults opened from SINGULAR_PASSPHRASE and unmodified chain time windows.
+// Uses real release binaries, vaults opened from SINGULAR_PASSPHRASE and the chain time windows the lessons write,
+// or shorter ones when PROCESS_TIME_MS and RETRACT_TIME_MS are set (the server then plays a copy of the scenario).
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -25,6 +26,20 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       timeout: 180000,
     });
     assert.equal(install.status, 0, install.stdout + install.stderr);
+    if (process.env.PROCESS_TIME_MS || process.env.RETRACT_TIME_MS) {
+      const scenario = path.join(home, 'scenario');
+      fs.cpSync(path.join(__dirname, '..', 'killercoda', 'demo1-steps'), scenario, {
+        recursive: true,
+      });
+      const windows = spawnSync(
+        'bash',
+        [path.join(__dirname, '..', 'demos', 'demo1', 'play', 'short-windows.sh'), scenario],
+        { env, encoding: 'utf8' },
+      );
+      assert.equal(windows.status, 0, windows.stdout + windows.stderr);
+      console.log(windows.stdout.trim());
+      env.TUTORIAL_SCENARIO = scenario;
+    }
     server = spawn(path.join(__dirname, '.venv/bin/python'), [path.join(__dirname, 'server.py')], {
       env,
       stdio: ['ignore', 'pipe', 'pipe'],

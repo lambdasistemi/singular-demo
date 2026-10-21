@@ -33,6 +33,9 @@ the page. A terminal about 160 columns wide fits both. It takes about 15 minutes
   ./drive.sh
   WORK=/some/folder ./drive.sh            # where the run's files are kept (default: ~/singular-demo-run);
                                           # the folder of an earlier run is moved aside, never deleted
+  PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./drive.sh
+                                          # shorter windows, as for demo.sh (the tutorial writes 180000
+                                          # and 60000), so the two waits last less
   ./drive.sh                              # again: back to the same windows and page
   bin/tmux -L singular-demo kill-server   # ends the windows
 

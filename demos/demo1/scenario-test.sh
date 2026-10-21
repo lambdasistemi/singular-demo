@@ -59,6 +59,8 @@ for p in $pages; do
   n=$(cat "$work/.last")
 done
 echo "ok    $n click-to-run blocks from $(echo "$pages" | wc -w) pages"
+# PROCESS_TIME_MS and RETRACT_TIME_MS, when set, replace the windows the create step writes (a shorter run)
+bash "$here/play/short-windows.sh" "$work"/blk-* || exit 1
 # shellcheck disable=SC2016 # the backtick is part of the text searched for
 if grep -rqE 'Press `Ctrl|press `Ctrl\+C' "$scenario"/*/text.md; then
   echo "FAIL  a page asks for a key that a tablet does not have:"

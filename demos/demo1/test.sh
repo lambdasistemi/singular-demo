@@ -11,6 +11,8 @@ bash "$here/lint.sh" "$here"/s*.md || exit 1
 work=$(mktemp -d /tmp/rb-XXXXXX)
 # A marker line comes before each block, so record.js can pair every command with what it printed.
 for f in "$here"/s*.md; do awk -v f="$(basename "$f")" '/^```bash$/{on=1; n++; print "echo \"@@ BLOCK " f " " n "\""; next} /^```/{on=0} on' "$f"; done >"$work/blocks.sh"
+# PROCESS_TIME_MS and RETRACT_TIME_MS, when set, replace the windows the create step writes (a shorter run)
+bash "$here/play/short-windows.sh" "$work/blocks.sh" || exit 1
 # shellcheck disable=SC2016 # this writes the text of a script: its $ expansions happen when that script runs
 {
   printf 'export HOME=%q TMPDIR=%q LOGFILE=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp" "$work/log.txt"

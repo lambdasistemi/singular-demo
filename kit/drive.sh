@@ -6,6 +6,9 @@
 #   ./drive.sh
 #   WORK=/some/folder ./drive.sh   where the run's files are kept (default: ~/singular-demo-run); the folder of an
 #                                  earlier run is moved aside, never deleted
+#   PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./drive.sh
+#                                  the registry's two windows, written into the create step, so the waits on
+#                                  the chain last less (the least allowed values; default 180000 and 60000)
 #   DRIVE_AUTO=yes ./drive.sh      runs every command and turns every page with no key pressed, and does not attach
 #                                  (the kit's own test)
 # Run again, it goes back to the same windows and to the page where it was. The windows have a tmux server of their own:
@@ -13,7 +16,6 @@
 set -euo pipefail
 kit=$(cd "$(dirname "$0")" && pwd)
 play=$kit/share/play
-scenario=$kit/share/scenario
 tmux=("$kit/bin/tmux" -L singular-demo -f /dev/null)
 
 # ---- the page: it runs in a pane beside the window of the person who acts
@@ -129,6 +131,7 @@ page() { # RUN: the pages of the scenario, from the one where the page was last
   local run=$1 p next turned f first
   local -a texts titles
   state=$run/.drive
+  scenario=$state/scenario
   me=$TMUX_PANE
   auto=${DRIVE_AUTO:-no}
   mkdir -p "$state"
@@ -209,6 +212,10 @@ else
   fi
   bash "$play/prepare.sh" "$kit" "$run"
   run=$(cd "$run" && pwd)
+  # the pages this run plays, with the windows of the environment written in
+  mkdir -p "$run/.drive"
+  cp -r "$kit/share/scenario" "$run/.drive/scenario"
+  bash "$play/short-windows.sh" "$run/.drive/scenario"
   # a server of this socket with no play in it is left over: the windows need one that starts with PLAY_RC_HOOK
   "${tmux[@]}" kill-server 2>/dev/null || true
   env -u TMUX PLAY_RC_HOOK="$play/drive-rc.sh" PLAY_TMUX="${tmux[*]}" bash "$play/windows.sh" "$run"
