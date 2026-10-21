@@ -1,8 +1,8 @@
 # Before you start: two wallets and a private chain
 
-A wallet here is a vault: an encrypted key file, opened by a passphrase that is typed when a command asks for it. The key never leaves the vault. Alice and Bob each get one. Nothing here touches a public network.
+A wallet here is a vault: an encrypted key file, opened by a passphrase. The key never leaves the vault. Alice and Bob each get one. Nothing here touches a public network.
 
-Passphrases are not shown while typed. Use `alice` for Alice and `bob` for Bob, or anything else. The same passphrase is asked again at every command that signs with that vault.
+On a private chain the passphrase comes from the environment variable `SINGULAR_PASSPHRASE`, so no command asks for it. Both vaults here use `demo`, a throwaway word. The program accepts the variable on a private chain only.
 
 Running this a second time? A vault from an earlier try is refused ("vault already exists"), and it belongs to the earlier chain's addresses. Start clean first: stop the old devnet and remove the demo folder. Skip this the first time.
 
@@ -19,9 +19,10 @@ kill "$devnet_pid" 2>/dev/null; cd ~ && rm -rf ~/singular-demo-run
 ```bash
 mkdir -p ~/singular-demo-run && cd ~/singular-demo-run
 mkdir -p receipts bundles witnesses
+export SINGULAR_PASSPHRASE=demo
 ```
 
-**Alice's vault.** `singular wallet create` makes the vault file and prints her address. It asks for a new passphrase twice. The `$(...)` keeps the printed address in `alice_addr`.
+**Alice's vault.** `singular wallet create` makes the vault file and prints her address. The `$(...)` keeps the printed address in `alice_addr`.
 
 - `--vault alice.vault`: the file to create
 - `--network-magic 42`: the number of this private test chain (preprod is 1, mainnet 764824073)
@@ -30,7 +31,7 @@ mkdir -p receipts bundles witnesses
 alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)
 ```
 
-**Bob's vault**, the same way, with his own passphrase:
+**Bob's vault**, the same way:
 
 ```bash
 bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)

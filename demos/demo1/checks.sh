@@ -6,10 +6,7 @@ check() { if jq -e "$2" "$1" >/dev/null 2>&1; then echo "ok    $1  $2"; else
   fail=1
 fi; }
 check receipts/01-create.json '.outcome=="success"'
-if grep -q 'processTime' receipts/02-describe.txt 2>/dev/null; then echo "ok    receipts/02-describe.txt  shows the registry's rules"; else
-  echo "FAIL  receipts/02-describe.txt  no registry page"
-  fail=1
-fi
+check receipts/02-describe.json '.outcome=="success" and .rules.processTime>0'
 check receipts/03-insert-alice.json '.outcome=="success"'
 check receipts/04-fold-insert.json '.outcome=="waiting-for-signatures"'
 check receipts/04-fold-insert.submitted.json '(.submissions|length)>=1'

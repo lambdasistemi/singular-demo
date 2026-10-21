@@ -15,7 +15,7 @@ open-datum fold \
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/09-fold-terminate.json
 ```{{exec}}
 
-**Bob signs it** with his vault (his passphrase):
+**Bob signs it** with his vault:
 
 ```bash
 singular wallet sign --vault bob.vault --out witnesses/fold-terminate bundles/fold-terminate.bundle

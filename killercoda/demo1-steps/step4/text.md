@@ -1,8 +1,8 @@
-A wallet here is a vault: an encrypted key file, opened by a passphrase that is typed when a command asks for it. The key never leaves the vault. Nothing here touches a public network.
+A wallet here is a vault: an encrypted key file, opened by a passphrase. The key never leaves the vault. Nothing here touches a public network.
 
-Passphrases are not shown while typed. Use `alice` for Alice and `bob` for Bob, or anything else; the same one is asked again at every command that signs with that vault.
+In these windows the passphrase comes from the environment variable `SINGULAR_PASSPHRASE`, so no command asks for it. Both vaults here use `demo`, a throwaway word. The program accepts the variable on a private chain only.
 
-**Alice's vault.** You are in her window, in her directory. `singular wallet create` makes the vault file and prints her address. It asks for a new passphrase twice. The `$(...)` keeps the printed address in `alice_addr`, and `tee` also keeps it in the file `alice.address`.
+**Alice's vault.** You are in her window, in her directory. `singular wallet create` makes the vault file and prints her address. The `$(...)` keeps the printed address in `alice_addr`, and `tee` also keeps it in the file `alice.address`.
 
 - `--vault alice.vault`: the file to create
 - `--network-magic 42`: the number of this private test chain (preprod is 1, mainnet 764824073)
@@ -19,7 +19,7 @@ The address is public: it is all the chain will ever be told about her.
 bob
 ```{{exec}}
 
-**Bob's vault**, the same way, with his own passphrase:
+**Bob's vault**, the same way:
 
 ```bash
 bob_addr=$(singular wallet create --vault bob.vault --network-magic 42 | tee bob.address)

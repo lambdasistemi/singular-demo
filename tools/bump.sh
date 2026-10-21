@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Moves the repository to another Singular release.
 #   tools/bump.sh vX.Y.Z
-# It rewrites the version where it is written by hand (the flake, the README, the kit's script and its readme),
+# It rewrites the version where it is written by hand (the flake, the README, the kit's script and its readme, the installer's example),
 # updates the four Singular inputs of flake.lock, regenerates the Killercoda scenarios, formats and lints.
 # Then: review the diff, open a pull request, and once it is merged push the tag vX.Y.Z, which publishes the release.
 set -euo pipefail
@@ -23,7 +23,7 @@ gh release view "$new" -R lambdasistemi/singular >/dev/null || {
 }
 
 pattern=${old//./\\.}
-for f in flake.nix README.md kit/demo.sh kit/README.txt; do
+for f in flake.nix README.md kit/demo.sh kit/README.txt demos/demo1/play/install-kit.sh; do
   sed -i "s/$pattern/$new/g" "$f"
 done
 

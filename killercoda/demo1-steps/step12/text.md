@@ -1,4 +1,4 @@
-Removing a key is also two stages. Alice books the termination of `alice`. Like an insertion, it waits as a pending request. It asks for Alice's passphrase.
+Removing a key is also two stages. Alice books the termination of `alice`. Like an insertion, it waits as a pending request.
 
 In the output, `released` is the output the fold will release and `deposit` is what comes back to Alice.
 

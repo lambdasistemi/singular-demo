@@ -1,6 +1,6 @@
 # Singular demos
 
-Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, played on a private test chain. Nothing here touches a public network. The Singular release used is v0.13.1.
+Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, played on a private test chain. Nothing here touches a public network. The Singular release used is v0.14.0.
 
 ## Demo 1: Alice and Bob keep a registry
 
@@ -35,7 +35,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 **Without Nix**, on Ubuntu 24.04 (x86_64): a kit with the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
 
 ```bash
-version=v0.13.1
+version=v0.14.0
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$version/singular-demo-$version-x86_64-linux.tar.gz
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$version/SHA256SUMS
 sha256sum -c SHA256SUMS

@@ -8,7 +8,7 @@
 # 2. the click-to-run blocks of every step, in the order of index.json, then of the finish page, are TYPED into the
 #    tmux window the learner is in, each followed by waiting for the shell's prompt; a block that is one of the words
 #    alice, bob or chain moves the learner to that window (no key is needed anywhere: the chain is a background job of its
-#    window, which keeps its prompt); passphrase prompts are answered when they appear on the screen, as a person would;
+#    window, which keeps its prompt); a passphrase prompt on the screen fails the test (the windows carry SINGULAR_PASSPHRASE);
 #    the chain is stopped at the end by the block of the finish page (kill %1)
 # 3. the receipts of Alice's and Bob's directories are checked
 # KIT_BASE=file:///dir takes the kit from a folder instead of the release page (a kit not published yet); the
@@ -70,10 +70,6 @@ echo "ok    no page requires a key press (Ctrl-b is only offered as an extra to 
 # ---- the terminal
 declare -A started
 current="" # the tmux window the learner is in; empty before "tmux attach"
-# shellcheck disable=SC2034 # read through ${!pw} in run_block
-passwords_alice="alice"
-# shellcheck disable=SC2034 # read through ${!pw} in run_block
-passwords_bob="bob"
 
 tx() {
   tmux send-keys -t "demo:$1" -l -- "$2"
@@ -105,23 +101,18 @@ run_block() {
   hist0=$(tmux capture-pane -p -J -S - -t "demo:$w" | grep -c .)
   local line
   while IFS= read -r line; do tx "$w" "$line"; done <"$file"
-  local answered=-1 waited=0
+  local waited=0
   while :; do
     local have
     have=$(wc -l <"/tmp/prompts-$w")
     [ "$have" -ge $((base + expected)) ] && break
-    # one snapshot of the screen: the last line and the line count must come from the same moment, or a shell prompt
-    # that appears in between makes the last passphrase prompt look new, and the answer is typed into the shell
+    # one snapshot of the screen, so the last line is read from one moment
     local snap
     snap=$(tmux capture-pane -p -J -S - -t "demo:$w" | grep .)
     if printf '%s\n' "$snap" | tail -1 | grep -qi 'passphrase: *$'; then
-      local c
-      c=$(printf '%s\n' "$snap" | wc -l)
-      if [ "$c" -gt "$answered" ]; then
-        local pw="passwords_$w"
-        tx "$w" "${!pw}"
-        answered=$c
-      fi
+      echo "FAIL  a passphrase prompt appeared in window $w; the windows carry SINGULAR_PASSPHRASE:"
+      cat "$file"
+      return 1
     fi
     sleep 0.4
     waited=$((waited + 1))
@@ -232,10 +223,7 @@ fi; }
 export PATH="$kit/bin:$PATH" # jq for the checks
 cd "$HOME/singular-demo-run" || exit 1
 check alice/receipts/01-create.json '.outcome=="success"'
-if grep -q 'processTime' alice/receipts/02-describe.txt 2>/dev/null; then echo "ok    alice/receipts/02-describe.txt  shows the registry's rules"; else
-  echo "FAIL  alice/receipts/02-describe.txt  no registry page"
-  fail=1
-fi
+check alice/receipts/02-describe.json '.outcome=="success" and .rules.processTime>0'
 check alice/receipts/03-insert-alice.json '.outcome=="success"'
 check bob/receipts/04-fold-insert.json '.outcome=="waiting-for-signatures"'
 check bob/receipts/04-fold-insert.submitted.json '(.submissions|length)>=1'

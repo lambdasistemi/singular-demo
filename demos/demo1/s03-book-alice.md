@@ -18,7 +18,7 @@ Alice adds a key. She books `alice` with a first piece of data, the payload: her
 echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
 ```
 
-**The booking.** Alice signs from her vault and the command sends it; it asks for her passphrase. The request now waits at the registry and is not part of it until it is folded.
+**The booking.** Alice signs from her vault and the command sends it. The request now waits at the registry and is not part of it until it is folded.
 
 - `request` in the output is the pending request (transaction and output number)
 - `foldDeadline` is the slot by which it must be folded

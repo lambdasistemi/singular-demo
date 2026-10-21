@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Singular v0.13.1 — Demo 1 on a private development chain (devnet).
+# Singular v0.14.0 — Demo 1 on a private development chain (devnet).
 #
 # Alice runs an "open datum" registry: a table of keys, each holding a small
 # piece of data that only its owner may change. The script walks the whole
@@ -356,9 +356,9 @@ pause_if_asked
 #| from the chain's provider, so it is what the chain says and not a signed statement.
 step 2 "read the registry's page"
 cmd "singular registry describe <registry> <provider>      (the \"describeCommand\" of the create receipt)"
-capture receipts/02-describe.txt 0 bash -c "$(jq -r .describeCommand receipts/01-create.json)"
-grep -E '^(registry|release|rules|state):|^  (stateToken|version|releaseUrl|processTime|retractTime|maxKeyBytes|root|activeKeys|terminalKeys|pendingRequests):' receipts/02-describe.txt | shorten | sed 's/^/    /'
-saved receipts/02-describe.txt
+capture receipts/02-describe.json 0 bash -c "$(jq -r .describeCommand receipts/01-create.json)"
+facts receipts/02-describe.json 'row("state token (its name)"; .registry.stateToken | split(".") | (.[0] | s) + " . " + (.[1] | s)), row("release"; .release.version), row("release page"; .release.releaseUrl), row("time to fold"; "\(.rules.processTime / 1000) s"), row("time to take back"; "\(.rules.retractTime / 1000) s"), row("longest key"; "\(.rules.maxKeyBytes) bytes"), row("registry root"; .state.root | s), row("keys held"; .state.activeKeys), row("keys removed"; .state.terminalKeys), row("pending requests"; .state.pendingRequests | length)'
+saved receipts/02-describe.json
 
 #| Alice adds a key. She books "alice" with a first piece of data (the payload: here
 #| the number 42, written as Plutus data in JSON). The booking locks her deposit of

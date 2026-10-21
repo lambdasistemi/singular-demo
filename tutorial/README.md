@@ -19,7 +19,7 @@ No container rebuild; this starts a fresh shell/chain session and preserves your
 2. Wait for the development container and dependencies to finish installing.
 3. The welcome file opens as a rendered Markdown page with your exact **Open your tutorial** link. The tutorial port is also configured to open automatically. The **Ports** panel → **8765** → **Open in Browser** remains a fallback.
 4. The kit is already installed. Click the preparation command in the introduction to create the Alice, Bob and chain windows, then use the right arrow to begin. A previous demo folder is preserved under a dated `singular-demo-saved-*` folder.
-5. Click the play icon beside each command, in order. Use throwaway passphrases for the private-chain wallets. The copy icon is alongside it; the terminal's square stop icon sends Ctrl+C.
+5. Click the play icon beside each command, in order. The private-chain wallets open with a throwaway passphrase the windows already carry. The copy icon is alongside it; the terminal's square stop icon sends Ctrl+C.
 6. Finish the walkthrough and stop the chain, then stop your Codespace from https://github.com/codespaces. Closing the tutorial tab alone does not stop compute usage.
 
 GitHub still requires its sign-in and Codespace creation screens. Once the Codespace is known, its tutorial address is generated automatically from `CODESPACE_NAME` and `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`; nobody needs to assemble it manually.
@@ -62,7 +62,7 @@ tutorial/.venv/bin/python tutorial/stop.py
 bash tutorial/start.sh
 ```
 
-The tests check command execution, multiline shell state, hidden input, rejection of clicks during prompts, reconnects, Ctrl+C, origin checks and single-tab ownership. Browser checks also cover inline icon placement, accessible labels, mobile overflow and reconnects. `test-demo.cjs` executes every runnable lesson through its browser controls using the real release kit, enters passphrases through xterm, and checks the resulting receipts. It preserves the real processing/retract windows (about seven minutes of waiting) and includes the optional wallet and transaction inspections. CI saves screenshots and the terminal transcript. These checks do not provision a Codespace or test GitHub's creation/auto-opening UI.
+The tests check command execution, multiline shell state, hidden input, rejection of clicks during prompts (typed input in the terminal), reconnects, Ctrl+C, origin checks and single-tab ownership. Browser checks also cover inline icon placement, accessible labels, mobile overflow and reconnects. `test-demo.cjs` executes every runnable lesson through its browser controls using the real release kit, fails if any command asks for a passphrase, and checks the resulting receipts. It preserves the real processing/retract windows (about seven minutes of waiting) and includes the optional wallet and transaction inspections. CI saves screenshots and the terminal transcript. These checks do not provision a Codespace or test GitHub's creation/auto-opening UI.
 
 To run the browser checks locally after installing dependencies:
 

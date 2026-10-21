@@ -6,7 +6,7 @@ Alice, as the key's controller, replaces the payload with 43. Only she may; nobo
 echo '{"constructor":0,"fields":[{"int":43}]}' > payload-new.json
 ```{{exec}}
 
-**The update.** It asks for Alice's passphrase and takes effect at once.
+**The update.** It takes effect at once.
 
 ```bash
 open-datum update \

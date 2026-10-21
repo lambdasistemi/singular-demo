@@ -12,7 +12,7 @@ open-datum insert \
 jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDeadline} | with_entries(select(.value != null))' receipts/12-insert-bob.json
 ```
 
-**Bob signs** (his passphrase):
+**Bob signs:**
 
 ```bash
 singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert-bob.bundle

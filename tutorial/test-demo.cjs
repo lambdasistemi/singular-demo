@@ -1,5 +1,5 @@
 // Exercise the published lessons through the same run buttons and terminal as a visitor.
-// Uses real release binaries, wallet prompts and unmodified chain time windows.
+// Uses real release binaries, vaults opened from SINGULAR_PASSPHRASE and unmodified chain time windows.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -44,9 +44,7 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     page.on('pageerror', (error) => errors.push(error.message));
     let ready = false,
       ran = null,
-      promptBuffer = '',
-      prompts = 0,
-      expectedPrompts = 0;
+      promptBuffer = '';
     page.on('websocket', (ws) =>
       ws.on('framereceived', ({ payload }) => {
         const message = JSON.parse(payload.toString());
@@ -55,18 +53,12 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         if (message.type === 'error') errors.push(message.message);
         if (message.type === 'output') {
           transcript += message.data;
-          promptBuffer += message.data;
-          // Source: Singular.CLI.Passphrase at v0.12.0. Handles split PTY chunks.
-          const pattern = /(?:New vault|Confirm vault|Vault) passphrase: /g;
-          let end = 0;
-          while (pattern.exec(promptBuffer)) {
-            if (expectedPrompts > 0) {
-              prompts++;
-              expectedPrompts--;
-            }
-            end = pattern.lastIndex;
+          // The vaults open from SINGULAR_PASSPHRASE, so no command may ask for one. Handles split PTY chunks.
+          promptBuffer = (promptBuffer + message.data).slice(-200);
+          if (/(?:New vault|Confirm vault|Vault) passphrase: /.test(promptBuffer)) {
+            errors.push(`a passphrase prompt appeared: ${promptBuffer.slice(-100)}`);
+            promptBuffer = '';
           }
-          promptBuffer = end ? promptBuffer.slice(end) : promptBuffer.slice(-100);
         }
       }),
     );
@@ -80,18 +72,8 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       for (const block of lessons[i].blocks.filter(
         (block) => block.id !== null && block.kind === 'code',
       )) {
-        const password = block.text.includes('bob.vault')
-          ? 'demo-bob-passphrase'
-          : 'demo-alice-passphrase';
-        prompts = 0;
-        promptBuffer = '';
         ran = null;
         ready = false;
-        expectedPrompts = block.text.includes('--vault ')
-          ? block.text.includes('wallet create')
-            ? 2
-            : 1
-          : 0;
         await page.locator(`.run-command[data-id="${block.id}"]`).click();
         const deadline = Date.now() + 360000;
         while (ran !== block.id || !ready) {
@@ -99,19 +81,8 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             Date.now() < deadline,
             `Timed out at command ${block.id}: ${block.text}\n${transcript.slice(-3000)}`,
           );
-          if (prompts > 0) {
-            prompts--;
-            assert(await page.locator(`.run-command[data-id="${block.id}"]`).isDisabled());
-            await page.locator('.xterm-helper-textarea').fill(password);
-            await page.locator('.xterm-helper-textarea').press('Enter');
-          }
           await pause(100);
         }
-        assert(
-          !transcript.includes('demo-alice-passphrase') &&
-            !transcript.includes('demo-bob-passphrase'),
-          'Passphrase echoed',
-        );
         console.log(`  command ${block.id} returned to prompt`);
       }
       if ([4, 9, 15, 18, 24].includes(i))
@@ -150,12 +121,12 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     assert.equal(read('05-inspect.json').leaf, 'active');
     assert.equal(read('10-inspect.json').leaf, 'terminal');
     assert.equal(read('16b-inspect-dave.json').leaf, 'active');
-    assert(fs.readFileSync(receiptPath('02-describe.txt'), 'utf8').includes('processTime'));
+    assert(read('02-describe.json').rules.processTime > 0);
     assert(read('tx-info.json').length > 0);
     assert(!/jq: error|command not found|curl: \(/.test(transcript));
     assert.deepEqual(errors, []);
     console.log(
-      'PASS: full Singular demo, real wallet prompts, signatures, submissions, time windows, receipts and extras.',
+      'PASS: full Singular demo, real wallets, signatures, submissions, time windows, receipts and extras.',
     );
   } catch (error) {
     if (page)
