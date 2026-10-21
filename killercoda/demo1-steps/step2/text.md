@@ -4,7 +4,9 @@ Two command-line programs are used in this demo, `singular` and `open-datum`. He
 
 **An application gives the keys their meaning.** It decides what a key holds, who may change it, and what happens to the deposit locked with it. Applications plug into the registry and bring their own rules.
 
-**`open-datum` is the application used here.** In it a key holds a piece of data, the payload, that only the key's controller may replace. The controller's deposit stays locked while the key exists and is released when the key is removed. `open-datum` is built on the registry: its commands create a registry tied to this application, and book, change, remove and read the keys.
+**The registry is tied to its application for good.** A registry is created with one application and keeps it for its whole life. A booking is folded only if it carries the application's approval, so every key's output is one the application accepted, and the application's script decides how that output may change afterwards. The registry runs no application code when it folds and never looks inside the data.
+
+**`open-datum` is the application used here.** In it a key holds a piece of data, the payload, that only the key's controller may replace. The controller's deposit stays locked while the key exists and is released when the key is removed. In `open-datum` a key's output carries a token named after the key, minted by the fold, and data in two parts: a fixed part, which names the registry, the key, its controller and the deposit and which no update may change, and the payload. `open-datum` is built on the registry: its commands create a registry tied to this application, and book, change, remove and read the keys.
 
 Which program a command belongs to follows one rule:
 

@@ -1,6 +1,6 @@
 # Step 6: change the data (Alice)
 
-Alice, as the key's controller, replaces the payload with 43. Only she may; nobody else's signature would be accepted. An update is immediate, with no booking and no fold, and the registry's root does not change.
+Alice, as the key's controller, replaces the payload with 43. Only she may; nobody else's signature would be accepted. And only the payload changes: `open-datum` refuses an update that would change the fixed part of the output, move its token or send it elsewhere. An update is immediate, with no booking and no fold, and the registry's root does not change.
 
 **The new payload**: the integer 43.
 
