@@ -12,7 +12,8 @@
       "!structure.json",
       "!demos/demo1/demo.html",
       "!docs/demo1/interactive.html",
-      "!tutorial/package-lock.json"
+      "!tutorial/package-lock.json",
+      "!demos/pay-by-name/offchain/package-lock.json"
     ]
   },
   "formatter": {

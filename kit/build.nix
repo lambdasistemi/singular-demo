@@ -14,6 +14,8 @@
   play,
   scenario,
   revision,
+  sinkTools,
+  sinkBlueprint,
 }:
 let
   version = pkgs.lib.removeSuffix "\n" (builtins.readFile (source + "/version.txt"));
@@ -45,6 +47,8 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
       txTools
       play
       scenario
+      sinkTools
+      sinkBlueprint
       ;
     jq = pkgs.pkgsStatic.jq.bin;
     curl = pkgs.pkgsStatic.curl.bin;
@@ -56,6 +60,7 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     readme = ./README.txt;
     demo = ./demo.sh;
     drive = ./drive.sh;
+    sinkLauncher = ./sink-tools.sh;
   }
   ''
     set -euo pipefail
@@ -158,6 +163,14 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     cp "$scenario/index.json" "$OUT/share/scenario/"
     cp -r "$scenario"/step* "$scenario/finish" "$OUT/share/scenario/"
     chmod -R u+w "$OUT/share/play" "$OUT/share/scenario"
+    # the tools of the pay-by-name scenario: one file for the machine's own node, the compiled sink validator beside it,
+    # and the launcher that runs it
+    mkdir -p "$OUT/share/sink-tools"
+    cp "$sinkTools/sink-tools.cjs" "$OUT/share/sink-tools/"
+    cp "$sinkBlueprint" "$OUT/share/sink-tools/plutus.json"
+    cp "$sinkLauncher" "$OUT/bin/sink-tools"
+    chmod 755 "$OUT/bin/sink-tools"
+    chmod -R u+w "$OUT/share/sink-tools"
 
     # pack: fixed time, sorted names, no owner, no gzip name/time field
     mkdir -p "$out"

@@ -3,11 +3,11 @@ Singular v0.14.0 demo kit, release v0.14.0-1 (Ubuntu 24.04, x86_64, no Nix neede
 
 What is in here
   bin/       the programs: singular, open-datum, devnet, cardano-node, the transaction tools
-             tx-inspect and tx-diff, plus jq, curl and tmux
+             tx-inspect and tx-diff, plus jq, curl and tmux, and sink-tools (see below)
   libexec/   the real executables that bin/ starts (do not run these directly)
   lib/       the libraries they run on (the kit brings its own C library)
-  share/     the contracts (plutus.json), the devnet's genesis, the packaged data, and the pages
-             and the window setup drive.sh plays
+  share/     the contracts (plutus.json), the devnet's genesis, the packaged data, the pages
+             and the window setup drive.sh plays, and share/sink-tools/ (see below)
   VERSION    the release tag and commit this kit was built from
   demo.sh    the annotated Demo 1 journey, 16 steps, on a private devnet
   drive.sh   the same journey as a tutorial you play step by step, as Alice and as Bob, in tmux windows
@@ -39,6 +39,13 @@ the page. A terminal about 160 columns wide fits both. It takes about 15 minutes
   ./drive.sh                              # again: back to the same windows and page
   bin/tmux -L singular-demo kill-server   # ends the windows
 
+The tools of the pay-by-name scenario: bin/sink-tools applies the sink validator to a name, checks a registry, pays a
+sink and moves money out of it. It is JavaScript in one file, share/sink-tools/sink-tools.cjs, with the compiled
+sink validator inside and again beside it as share/sink-tools/plutus.json. It runs on the machine's own node, version
+18 or newer, which the kit does not bring; on Ubuntu 24.04 the package is enough:
+  sudo apt install nodejs
+  bin/sink-tools                          # lists its commands
+
 The programs also work on their own: put bin/ first on PATH
   export PATH="$PWD/bin:$PATH"
   singular --help
@@ -53,5 +60,6 @@ The transaction tools (cardano-tx-tools 0.2.3.0) read a transaction in the TextE
 Needs: a 64-bit Linux with kernel 3.10 or newer, bash, and the usual base tools
 (coreutils, sed, grep, awk, util-linux for setsid). No Nix, no Docker, no root, no
 FUSE, no user namespaces. Nothing is installed outside the folder you unpacked.
+Only sink-tools also needs node, version 18 or newer.
 
 Everything here is a private test chain. Nothing touches a public network.

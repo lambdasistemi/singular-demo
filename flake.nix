@@ -50,6 +50,9 @@
 
       txTools = import ./kit/tx-tools.nix { inherit pkgs; };
 
+      # The pay-by-name scenario: its validator and the tools that apply it
+      payByName = import ./demos/pay-by-name/build.nix { inherit pkgs; };
+
       # The kit's revision, kit/revision: the only place it is written by hand. The release is Singular's and this, as in v0.14.0-1.
       revision = pkgs.lib.removeSuffix "\n" (builtins.readFile ./kit/revision);
 
@@ -64,6 +67,8 @@
           ;
         inherit singular devnet revision;
         openDatum = open-datum-exe;
+        sinkTools = payByName.tools;
+        sinkBlueprint = payByName.sink;
         # drive.sh plays the generated scenario with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;
@@ -78,6 +83,7 @@
           pkgs.gnugrep
           pkgs.gnutar
           pkgs.gzip
+          pkgs.nodejs
         ];
         text = ''
           export KIT_DIR=${kit}
@@ -142,6 +148,8 @@
     {
       packages.${system} = {
         inherit kit kit-verify docs-env;
+        pay-by-name-sink = payByName.sink;
+        pay-by-name-tools = payByName.tools;
       };
 
       apps.${system} = {
@@ -170,6 +178,8 @@
       checks.${system} = {
         format = repoCheck "format" "format.sh check";
         lint = repoCheck "lint" "lint.sh";
+        pay-by-name-aiken = payByName.aikenCheck;
+        pay-by-name-tools = payByName.tools;
       };
 
       devShells.${system} = {

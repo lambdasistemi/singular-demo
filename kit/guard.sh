@@ -8,13 +8,16 @@
 # downloads of those tools
 # (release executables from GitHub, checked against a hash: downloads, not
 # compiles), and the kit's static tmux with its one static library, small C
-# builds of seconds. The Haskell stack takes hours to build; a missing cache entry must
+# builds of seconds. The pay-by-name scenario adds small builds, none of which compiles
+# Haskell: the blueprints of its validator and of the variant the tests use (Aiken, seconds),
+# the npm packages of its tools (a download checked against a hash) and the bundles made
+# from them (esbuild, seconds). The Haskell stack takes hours to build; a missing cache entry must
 # fail the run at once and name the derivation, not start compiling.
 #   kit/guard.sh INSTALLABLE...     e.g.  kit/guard.sh .#kit .#kit-verify .#devShells.x86_64-linux.default
 #   GUARD_ALLOW   extended regex for the derivation names that may be built
 #   NIX_ARGS      extra arguments for nix (for example --store DIR --option substituters URL)
 set -uo pipefail
-GUARD_ALLOW=${GUARD_ALLOW:-'^(singular-demo-kit-[0-9.]+-[0-9]+|singular-demo(-env)?|kit-verify|singular-contracts-v[0-9.]+|cardano-tx-tools-[0-9.]+|tx-(inspect|diff)-[0-9.]+-x86_64-linux-musl\.tar\.gz|source|packages\.toml|devnet|(registry|open-datum)-plutus-blueprint-[0-9.]+|open-datum-deployment-blueprint|tmux-static-x86_64-unknown-linux-musl-[0-9a-z.]+|utf8proc-static-x86_64-unknown-linux-musl-[0-9.]+)\.drv$'}
+GUARD_ALLOW=${GUARD_ALLOW:-'^(singular-demo-kit-[0-9.]+-[0-9]+|singular-demo(-env)?|kit-verify|singular-contracts-v[0-9.]+|cardano-tx-tools-[0-9.]+|tx-(inspect|diff)-[0-9.]+-x86_64-linux-musl\.tar\.gz|source|packages\.toml|devnet|(registry|open-datum)-plutus-blueprint-[0-9.]+|open-datum-deployment-blueprint|tmux-static-x86_64-unknown-linux-musl-[0-9a-z.]+|utf8proc-static-x86_64-unknown-linux-musl-[0-9.]+|pay-by-name-(sink|sink-variant)-blueprint|pay-by-name-tools-[0-9.]+(-npm-deps)?)\.drv$'}
 [ $# -gt 0 ] || {
   echo "usage: guard.sh INSTALLABLE..." >&2
   exit 2

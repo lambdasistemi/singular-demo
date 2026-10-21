@@ -49,5 +49,24 @@ done
 echo "RPATH/RUNPATH entries over $m files in libexec/ and lib/: $rp"
 check "no RPATH/RUNPATH entry" $((rp != 0))
 
+# the tools of the pay-by-name scenario: present, and the bundle runs with node alone and carries the compiled validator
+status() { "$@" >/dev/null 2>&1 && echo 0 || echo 1; }
+for f in bin/sink-tools share/sink-tools/sink-tools.cjs share/sink-tools/plutus.json; do
+  check "$f is in the kit" "$(status test -s "$K/$f")"
+done
+check "bin/sink-tools is executable" "$(status test -x "$K/bin/sink-tools")"
+if command -v node >/dev/null; then
+  # the sink of the name alice under a fixed active policy: its script hash pins the compiled validator the bundle carries
+  got=$("$K/bin/sink-tools" sink-address --active-policy 1ea53ee2878802fce8f05958db13186e49a3c179f7c2f1f446834577 --name alice | grep '"scriptHash"' | cut -d'"' -f4)
+  echo "sink-tools sink-address, script hash: $got"
+  check "sink-tools runs with node alone and its sink script hash is the expected one" "$(status test "$got" = 9946eda863be029e31bdfc7ce24ef111c270eda863c7faa84be25f08)"
+  # control: the same command with the blueprint beside the bundle must give the same hash, or one of the two files is not the other
+  beside=$(SINK_BLUEPRINT="$K/share/sink-tools/plutus.json" "$K/bin/sink-tools" sink-address --active-policy 1ea53ee2878802fce8f05958db13186e49a3c179f7c2f1f446834577 --name alice | grep '"scriptHash"' | cut -d'"' -f4)
+  check "the blueprint beside the bundle and the one inside it give the same script hash" "$(status test "$beside" = "$got")"
+else
+  echo "no node on this machine: the run of sink-tools is not checked"
+  check "node is available to run sink-tools" 1
+fi
+
 echo "files in the kit: $(find "$K" -type f | wc -l)"
 exit $fail
