@@ -151,7 +151,7 @@ pkgs.runCommand "singular-demo-kit-${version}"
     # Codespaces, and the pages of the generated scenario (not its intro, which sets up a Killercoda machine)
     cp "$drive" "$OUT/drive.sh"; chmod 755 "$OUT/drive.sh"
     mkdir -p "$OUT/share/play" "$OUT/share/scenario"
-    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,drive-rc.sh} "$OUT/share/play/"
+    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,drive-rc.sh,short-windows.sh} "$OUT/share/play/"
     cp "$scenario/index.json" "$OUT/share/scenario/"
     cp -r "$scenario"/step* "$scenario/finish" "$OUT/share/scenario/"
     chmod -R u+w "$OUT/share/play" "$OUT/share/scenario"

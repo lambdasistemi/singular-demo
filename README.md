@@ -53,7 +53,7 @@ cd singular-demo-$version-x86_64-linux
 - `WORK=/some/folder ./demo.sh` chooses where vaults, receipts and bundles are kept.
 - `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./demo.sh` shortens the registry's two windows, and the waits with them.
 
-**The tutorial step by step in your terminal.** `./drive.sh`, in the same folder, plays the Killercoda scenario on your machine: the page on the left and, beside it, the window of the person who acts (Alice's, Bob's or the chain's), in tmux. Enter types the next command into that window and waits until it is over; `s` skips a command, `c` sends it Ctrl-C, `n` and `p` turn the page, `q` closes the page. The kit brings its own tmux, and a terminal about 160 columns wide fits both. Run again, it goes back to the same windows and page; `bin/tmux -L singular-demo kill-server` ends them. It takes about 15 minutes.
+**The tutorial step by step in your terminal.** `./drive.sh`, in the same folder, plays the Killercoda scenario on your machine: the page on the left and, beside it, the window of the person who acts (Alice's, Bob's or the chain's), in tmux. Enter types the next command into that window and waits until it is over; `s` skips a command, `c` sends it Ctrl-C, `n` and `p` turn the page, `q` closes the page. The kit brings its own tmux, and a terminal about 160 columns wide fits both. Run again, it goes back to the same windows and page; `bin/tmux -L singular-demo kill-server` ends them. It takes about 15 minutes. `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./drive.sh` writes shorter windows into the create step, so the two waits last less.
 
 The daily kit, built from `main` every day, always has it:
 
