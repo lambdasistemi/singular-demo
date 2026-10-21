@@ -1,6 +1,6 @@
 The other way out of a pending request is for its owner to take it back. That is a reclaim, and it is only allowed in the retract window: after the registry's processing window has ended and before the retract window ends. Alice books `carol`, and nobody folds it. Reclaiming straight away is refused, because the processing window is still open. Once the chain tip passes the processing deadline, Alice can take the request back. The [documentation](https://lambdasistemi.github.io/singular/docs/singular-node/#reclaiming-your-pending-request).
 
-**Alice books `carol`** (her passphrase). The receipt names the request, which she needs to take it back: `carol_request` keeps it, and `carol_opens` keeps the slot after which the retract window opens.
+**Alice books `carol`.** The receipt names the request, which she needs to take it back: `carol_request` keeps it, and `carol_opens` keeps the slot after which the retract window opens.
 
 ```bash
 open-datum insert \
@@ -37,7 +37,7 @@ jq '{outcome, reason} | with_entries(select(.value != null))' receipts/14b-recla
 wait_for_slot "$carol_opens"
 ```{{exec}}
 
-**Reclaim**, with one command (her passphrase). Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.
+**Reclaim**, with one command. Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.
 
 ```bash
 singular registry reclaim \

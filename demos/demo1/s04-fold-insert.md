@@ -16,7 +16,7 @@ open-datum fold \
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/04-fold-insert.json
 ```
 
-**Bob signs the bundle** (his passphrase):
+**Bob signs the bundle:**
 
 ```bash
 singular wallet sign --vault bob.vault --out witnesses/fold-insert bundles/fold-insert.bundle
@@ -46,7 +46,7 @@ curl -fsS "$(koios_url)/tip" | jq '.[0] | {abs_slot}'
 ```
 
 - While the chain's slot is **below** `foldDeadline.slot`, the fold is still possible: run the three commands again.
-- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim (her passphrase). Then book again (step 3) and fold at once:
+- Once it is **past** `foldDeadline.slot` and the retract window is still open, Alice takes her request back with a reclaim. Then book again (step 3) and fold at once:
 
 ```bash skip
 singular registry reclaim \

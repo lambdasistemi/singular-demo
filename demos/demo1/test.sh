@@ -13,18 +13,9 @@ work=$(mktemp -d /tmp/rb-XXXXXX)
 for f in "$here"/s*.md; do awk -v f="$(basename "$f")" '/^```bash$/{on=1; n++; print "echo \"@@ BLOCK " f " " n "\""; next} /^```/{on=0} on' "$f"; done >"$work/blocks.sh"
 # shellcheck disable=SC2016 # this writes the text of a script: its $ expansions happen when that script runs
 {
-  printf 'export HOME=%q TMPDIR=%q PASSDIR=%q LOGFILE=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp" "$work/pass" "$work/log.txt"
+  printf 'export HOME=%q TMPDIR=%q LOGFILE=%q\nmkdir -p "$HOME" "$TMPDIR"\n' "$work/home" "$work/tmp" "$work/log.txt"
   # With KIT_DIR set (the unpacked Ubuntu kit, no Nix), the programs and the contracts come from the kit.
   if [ -n "${KIT_DIR:-}" ]; then printf 'export PATH=%q:"$PATH"\nexport blueprint=%q\n' "$KIT_DIR/bin" "$KIT_DIR/share/plutus.json"; fi
-  # The pasted blocks ask for passphrases at a prompt. The test cannot type, so these two
-  # functions answer for it: when a command names a vault, the passphrase comes from a file.
-  printf 'mkdir -p %q; printf "%%s\\n" "alice test" > %q/alice; printf "%%s\\n" "bob test" > %q/bob\n' "$work/pass" "$work/pass" "$work/pass"
-  cat <<'WRAP'
-_with_pass() { local prog=$1 a v=""; shift; for a in "$@"; do case "$a" in *.vault) v=$(basename "$a" .vault);; esac; done
-  if [ -n "$v" ]; then command "$prog" "$@" --passphrase-fd 3 3< "$PASSDIR/$v"; else command "$prog" "$@"; fi; }
-singular() { _with_pass singular "$@"; }
-open-datum() { _with_pass open-datum "$@"; }
-WRAP
   # The helpers every window of the play has (koios_url, wait_for_slot, wallet_show), as the play loads them.
   printf 'PLAY_RUN="$HOME/singular-demo-run"\n. %q\n' "$here/play/helpers.sh"
   cat "$work/blocks.sh"

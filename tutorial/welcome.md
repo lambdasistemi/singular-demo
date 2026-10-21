@@ -8,7 +8,7 @@ Build a registry on a private Cardano chain. Book a key, fold it into the regist
 
 Click **▷** beside a command to run it. The adjacent copy icon copies it. Alice, Bob and the chain have separate terminal windows, each with its own shell and files. The next page shows how to switch between them. You can type directly in the terminal too.
 
-When a wallet asks for a passphrase, type it in the terminal and press Enter. Characters stay hidden. Use throwaway passphrases such as `alice` and `bob`. Run controls pause until the shell is ready; the square stop icon sends Ctrl+C.
+The windows carry the vaults' passphrase in `SINGULAR_PASSPHRASE` (`demo`, a throwaway word), so no command asks for it. Run controls pause until the shell is ready; the square stop icon sends Ctrl+C.
 
 ## Ready to begin
 

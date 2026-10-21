@@ -1,4 +1,4 @@
-The reclaimed request is settled: its deposit is back with Alice. She books one more key, `dave` (her passphrase).
+The reclaimed request is settled: its deposit is back with Alice. She books one more key, `dave`.
 
 ```bash
 open-datum insert \

@@ -7,6 +7,8 @@
 export PATH="$PLAY_KIT/bin:$PATH"
 export blueprint="$PLAY_KIT/share/plutus.json"
 export SINGULAR_CONFIG="$PLAY_RUN/singular.json"
+# the vaults of the play open with this throwaway passphrase; no command asks for it (accepted on a private chain only)
+export SINGULAR_PASSPHRASE=demo
 # the helpers of the play: koios_url, wait_for_slot, wallet_show
 . "$(dirname "${BASH_SOURCE[0]}")/helpers.sh"
 # one word goes to a window

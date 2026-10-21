@@ -22,9 +22,9 @@ jq . singular.json
 **How to read the commands from here on.** The chain, the contracts and the journal folder come from `singular.json`, so each command shows only what it does:
 
 - its own options: the key, the payload, the windows
-- the wallet that signs: `--vault` for a wallet that signs in one command (it asks for the passphrase), or `--wallet-address` with `--bundle` for the external way
+- the wallet that signs: `--vault` for a wallet that signs in one command, or `--wallet-address` with `--bundle` for the external way
 
-**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It asks for her passphrase, and returns when everything has landed.
+**Create.** It spends a coin of Alice's as the seed and publishes the registry, signed by her vault. It returns when everything has landed.
 
 - `process_ms`: how long the registry has to process a request, in milliseconds
 - `retract_ms`: how long after that the owner may take a request back

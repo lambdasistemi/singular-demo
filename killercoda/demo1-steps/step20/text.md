@@ -15,7 +15,7 @@ open-datum fold \
 jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/16a-fold-dave.json
 ```{{exec}}
 
-**Bob signs** (his passphrase):
+**Bob signs:**
 
 ```bash
 singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-dave.bundle

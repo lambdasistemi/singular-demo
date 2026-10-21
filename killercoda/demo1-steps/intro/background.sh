@@ -7,7 +7,7 @@ cat > /root/play/install-kit.sh <<'PLAY_EOF'
 # Downloads the Ubuntu kit of a release, checks it against the release's SHA256SUMS and unpacks it.
 # Every environment of the play (Killercoda, Codespaces, the tests) installs the kit with this script.
 #   install-kit.sh VERSION [DIR]
-#     VERSION   the release, for example v0.13.1
+#     VERSION   the release, for example v0.14.0
 #     DIR       where the kit folder goes (default: $HOME)
 #   PLAY_KIT_BASE   takes the files from this address instead of the release page; file:///dir tests a kit that is not released yet
 set -euo pipefail
@@ -83,6 +83,8 @@ cat > /root/play/windows.rc <<'PLAY_EOF'
 export PATH="$PLAY_KIT/bin:$PATH"
 export blueprint="$PLAY_KIT/share/plutus.json"
 export SINGULAR_CONFIG="$PLAY_RUN/singular.json"
+# the vaults of the play open with this throwaway passphrase; no command asks for it (accepted on a private chain only)
+export SINGULAR_PASSPHRASE=demo
 # the helpers of the play: koios_url, wait_for_slot, wallet_show
 . "$(dirname "${BASH_SOURCE[0]}")/helpers.sh"
 # one word goes to a window
@@ -106,9 +108,9 @@ $t new-window -d -t demo -n chain -c "$run" "$shell"
 $t set-option -g mouse on
 echo "The windows alice, bob and chain are ready."
 PLAY_EOF
-bash /root/play/install-kit.sh v0.13.1 /root
+bash /root/play/install-kit.sh v0.14.0 /root
 # tmux holds the three windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-bash /root/play/prepare.sh /root/singular-demo-v0.13.1-x86_64-linux /root/singular-demo-run
+bash /root/play/prepare.sh /root/singular-demo-v0.14.0-x86_64-linux /root/singular-demo-run
 touch /tmp/finished

@@ -129,6 +129,10 @@ const label = (t) =>
                 : t.slice(0, 14);
 const nav = steps.map((s, i) => `<a href="#s${i}">${esc(label(s.title))}</a>`).join('');
 const template = fs.readFileSync(path.join(dir, 'template.html'), 'utf8');
-const page = template.replace('<!--NAV-->', nav).replace('<!--STEPS-->', html);
+const page = template
+  .split('@VERSION@')
+  .join(VERSION)
+  .replace('<!--NAV-->', nav)
+  .replace('<!--STEPS-->', html);
 fs.writeFileSync(path.join(dir, 'demo.html'), page);
 console.log(`built DEMO.md and demo.html from ${steps.length} step files`);
