@@ -38,7 +38,7 @@ singular registry describe --blueprint "$blueprint" > describe.json
 jq '.registry | {stateToken, stateOutput, activeScript, applicationScript}' describe.json
 ```{{exec}}
 
-**The sink script.** Bob will pay people by name, and the money has to wait somewhere. That place is a script, the **sink**, closed over two things: the registry's active policy and a name. Carol applies the sink validator to the active policy only. What comes out is the same for every name of this registry, and each person's name is applied to it later. `sink-tools` is the tool of this scenario that does this.
+**The sink script.** Money paid to a name waits in a script, the **sink**, closed over two things: the registry's active policy and a name. Carol applies the sink validator to the active policy only. What comes out is the same for every name of this registry; applying a name to it gives that name's sink. `sink-tools` is the tool of this scenario that does this.
 
 ```bash
 active=$(jq -r .registry.activeScript describe.json)

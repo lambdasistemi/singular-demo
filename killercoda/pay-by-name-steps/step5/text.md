@@ -1,4 +1,4 @@
-Alice adds the key `alice`. Its payload is her address, written as an address in Plutus data. Whoever pays `alice` will be sending money to the address that is registered there.
+Alice adds the key `alice`. Its payload is her address, written as an address in Plutus data. Money paid to `alice` goes to the address registered there.
 
 ```bash
 sink-tools addr-json "$alice_addr" > payload.json
