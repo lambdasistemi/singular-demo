@@ -11,6 +11,8 @@
   source,
   blueprint,
   txTools,
+  play,
+  scenario,
 }:
 let
   version = pkgs.lib.removeSuffix "\n" (builtins.readFile (source + "/version.txt"));
@@ -38,15 +40,19 @@ pkgs.runCommand "singular-demo-kit-${version}"
       source
       blueprint
       txTools
+      play
+      scenario
       ;
     jq = pkgs.pkgsStatic.jq.bin;
     curl = pkgs.pkgsStatic.curl.bin;
+    tmux = pkgs.pkgsStatic.tmux;
     inherit version kitName;
     commit = source.rev;
     nodeVersion = pkgs.lib.getVersion cardanoNode;
     launcher = ./launcher.c;
     readme = ./README.txt;
     demo = ./demo.sh;
+    drive = ./drive.sh;
   }
   ''
     set -euo pipefail
@@ -123,22 +129,32 @@ pkgs.runCommand "singular-demo-kit-${version}"
     cp "$blueprint" "$OUT/share/plutus.json"; cp "$source/version.txt" "$OUT/share/version.txt"
     chmod -R u+w "$OUT/share"
 
-    # launcher (static, musl) installed under the four program names, plus static jq and curl
+    # launcher (static, musl) installed under the four program names, plus static jq, curl and tmux
     x86_64-unknown-linux-musl-gcc -O2 -static -Wall -o "$W/launcher" "$launcher"
     strip "$W/launcher"
     for n in singular open-datum devnet cardano-node; do cp "$W/launcher" "$OUT/bin/$n"; done
     cp --no-preserve=mode "$txTools/bin/tx-inspect" "$txTools/bin/tx-diff" "$OUT/bin/"
     cp --no-preserve=mode "$jq/bin/jq" "$OUT/bin/jq"
     cp --no-preserve=mode "$curl/bin/curl" "$OUT/bin/curl"
+    cp --no-preserve=mode "$tmux/bin/tmux" "$OUT/bin/tmux"
     chmod u+w "$OUT"/bin/*
-    # jq and curl are static; their compiled-in install paths are dead text.
+    # jq, curl and tmux are static; their compiled-in install paths are dead text (tmux reads the terminal's
+    # description from the host's /etc/terminfo, /lib/terminfo and /usr/share/terminfo, which it also names).
     # Same-length rewrite so no store path is left in bin/.
-    LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl"
+    LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl" "$OUT/bin/tmux"
     chmod 755 "$OUT"/bin/*
 
     printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" > "$OUT/VERSION"
     cp "$readme" "$OUT/README.txt"
     cp "$demo" "$OUT/demo.sh"; chmod 755 "$OUT/demo.sh"
+    # the tutorial step by step in a terminal: drive.sh, the scripts of the play it shares with Killercoda and
+    # Codespaces, and the pages of the generated scenario (not its intro, which sets up a Killercoda machine)
+    cp "$drive" "$OUT/drive.sh"; chmod 755 "$OUT/drive.sh"
+    mkdir -p "$OUT/share/play" "$OUT/share/scenario"
+    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,drive-rc.sh} "$OUT/share/play/"
+    cp "$scenario/index.json" "$OUT/share/scenario/"
+    cp -r "$scenario"/step* "$scenario/finish" "$OUT/share/scenario/"
+    chmod -R u+w "$OUT/share/play" "$OUT/share/scenario"
 
     # pack: fixed time, sorted names, no owner, no gzip name/time field
     mkdir -p "$out"

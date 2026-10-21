@@ -61,6 +61,9 @@
           ;
         inherit singular devnet;
         openDatum = open-datum-exe;
+        # drive.sh plays the generated scenario with the scripts of the play
+        play = ./demos/demo1/play;
+        scenario = ./killercoda/demo1-steps;
       };
 
       # Checks of the built tarball's contents (no container needed).
