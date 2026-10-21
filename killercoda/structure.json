@@ -5,6 +5,9 @@
     },
     {
       "path": "demo1-script"
+    },
+    {
+      "path": "pay-by-name-steps"
     }
   ]
 }

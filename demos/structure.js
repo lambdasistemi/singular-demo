@@ -10,7 +10,7 @@ if (!root) {
   process.exit(2);
 }
 // Each scenario is a folder of killercoda/ that a generator writes.
-const SCENARIOS = ['demo1-steps', 'demo1-script'];
+const SCENARIOS = ['demo1-steps', 'demo1-script', 'pay-by-name-steps'];
 
 const course = path.join(root, 'killercoda');
 fs.mkdirSync(course, { recursive: true });
