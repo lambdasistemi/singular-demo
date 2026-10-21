@@ -3,6 +3,7 @@
 # Runs demo.sh from the kit tarball in a clean Ubuntu container and judges the result.
 #   kit/container-run.sh good|short|control-main|control-node|control-window
 #     good          the kit as built: demo.sh must exit 0 and show all 16 steps
+#                   (with the windows of PROCESS_TIME_MS and RETRACT_TIME_MS when they are set)
 #     short         the same with the shortest allowed windows (PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000)
 #     control-window  windows below the least allowed (59999 and 29999): demo.sh must refuse both with exit 2
 #     control-main  the kit with one library of the Haskell programs removed: the run must fail
@@ -93,7 +94,7 @@ mkdir -m 777 "$OUT/run-$mode"
 {
   echo "# container-run.sh $mode  $(date -u +%FT%TZ)  image $IMAGE"
   docker run --rm --memory 8g --network none --user 1000:1000 --tmpfs /work:rw,exec,mode=1777 \
-    -e "TARBALL=$tarball" -e "KIT=$kit" \
+    -e "TARBALL=$tarball" -e "KIT=$kit" -e PROCESS_TIME_MS -e RETRACT_TIME_MS \
     -v "$(dirname "$TARBALL"):/dist:ro" -v "$OUT/run-$mode:/out" "$IMAGE" bash -c "$inner"
   echo "== docker run exit status: $?"
 } >"$log" 2>&1

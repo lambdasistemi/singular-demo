@@ -8,6 +8,7 @@
 #   TARBALL   the kit tarball (required)
 #   IMAGE     container image reference (default mirror.gcr.io/library/ubuntu:24.04)
 #   OUT       directory for the log, the run's folder and the screens (default ./out)
+#   PROCESS_TIME_MS, RETRACT_TIME_MS   the registry's windows for the run, passed to drive.sh (default: the tutorial's)
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 TARBALL=$(readlink -f "${TARBALL:?path of the kit tarball}")
@@ -55,7 +56,7 @@ mkdir -m 777 "$OUT/run-drive"
 {
   echo "# drive-run.sh  $(date -u +%FT%TZ)  image $IMAGE"
   docker run --rm --memory 8g --network none --user 1000:1000 --tmpfs /work:rw,exec,mode=1777 \
-    -e "TARBALL=$tarball" -e HOME=/work \
+    -e "TARBALL=$tarball" -e HOME=/work -e PROCESS_TIME_MS -e RETRACT_TIME_MS \
     -v "$(dirname "$TARBALL"):/dist:ro" -v "$here/../demos/demo1/play/check-receipts.sh:/check-receipts.sh:ro" \
     -v "$OUT/run-drive:/out" "$IMAGE" bash -c "$inner"
   echo "== docker run exit status: $?"
