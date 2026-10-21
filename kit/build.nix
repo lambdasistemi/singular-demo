@@ -13,12 +13,15 @@
   txTools,
   play,
   scenario,
+  revision,
 }:
 let
   version = pkgs.lib.removeSuffix "\n" (builtins.readFile (source + "/version.txt"));
-  kitName = "singular-demo-v${version}-x86_64-linux";
+  # The release of the kit: the Singular release and the kit's revision, as in v0.14.0-1 (the revision is kit/revision).
+  release = "v${version}-${revision}";
+  kitName = "singular-demo-${release}-x86_64-linux";
 in
-pkgs.runCommand "singular-demo-kit-${version}"
+pkgs.runCommand "singular-demo-kit-${version}-${revision}"
   {
     nativeBuildInputs = [
       pkgs.patchelf
@@ -46,7 +49,7 @@ pkgs.runCommand "singular-demo-kit-${version}"
     jq = pkgs.pkgsStatic.jq.bin;
     curl = pkgs.pkgsStatic.curl.bin;
     tmux = pkgs.pkgsStatic.tmux;
-    inherit version kitName;
+    inherit version release kitName;
     commit = source.rev;
     nodeVersion = pkgs.lib.getVersion cardanoNode;
     launcher = ./launcher.c;
@@ -144,7 +147,7 @@ pkgs.runCommand "singular-demo-kit-${version}"
     LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl" "$OUT/bin/tmux"
     chmod 755 "$OUT"/bin/*
 
-    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" > "$OUT/VERSION"
+    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" "kit $release" > "$OUT/VERSION"
     cp "$readme" "$OUT/README.txt"
     cp "$demo" "$OUT/demo.sh"; chmod 755 "$OUT/demo.sh"
     # the tutorial step by step in a terminal: drive.sh, the scripts of the play it shares with Killercoda and

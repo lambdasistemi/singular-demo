@@ -18,21 +18,23 @@ case "${1:?json|notes}" in
     jq -n \
       --arg date "$(date -u +%FT%TZ)" --arg run "$RUN_URL" \
       --arg tag "$(sed -n 's/^singular //p' <<<"$version")" \
+      --arg release "$(sed -n 's/^kit //p' <<<"$version")" \
       --arg commit "$(sed -n 's/^commit //p' <<<"$version")" \
       --arg node "$(sed -n 's/^cardano-node //p' <<<"$version")" \
       --arg nix "$NIX_VERSION" --arg runner "$RUNNER_IMAGE" --arg kit "${KIT_COMMIT:-}" \
       --arg image "$IMAGE_REF" --arg digest "$IMAGE_DIGEST" \
       --arg tarball "$(basename "$tarball")" --arg sha "$sha" \
       --argjson steps "$steps" --argjson passed "$passed" \
-      '{date: $date, run_url: $run, kit_commit: $kit, singular_tag: $tag, singular_commit: $commit, cardano_node: $node,
+      '{date: $date, run_url: $run, kit_commit: $kit, kit_release: $release, singular_tag: $tag, singular_commit: $commit, cardano_node: $node,
         nix_version: $nix, runner_image: $runner, container_image: $image, container_image_digest: $digest,
         tarball: $tarball, tarball_sha256: $sha, steps_passed: $steps, steps_total: 16,
         result: (if $passed and $steps == 16 then "pass" else "fail" end)}'
     ;;
   notes)
-    jq -r '(.tarball | rtrimstr(".tar.gz")) as $dir | "Daily rebuild of the Ubuntu kit for Singular \(.singular_tag), rebuilt and run from scratch on \(.date).\n\n"
+    jq -r '(.tarball | rtrimstr(".tar.gz")) as $dir | "Daily rebuild of the Ubuntu kit \(.kit_release) for Singular \(.singular_tag), rebuilt and run from scratch on \(.date).\n\n"
       + "| | |\n|---|---|\n"
       + "| result | \(.result): \(.steps_passed) of \(.steps_total) steps passed in a clean Ubuntu 24.04 container |\n"
+      + "| kit | \(.kit_release) |\n"
       + "| Singular | \(.singular_tag), commit \(.singular_commit) |\n"
       + "| cardano-node | \(.cardano_node) |\n"
       + "| run | \(.run_url) |\n"
@@ -41,13 +43,13 @@ case "${1:?json|notes}" in
       + "| container image | \(.container_image_digest) |\n"
       + "| nix | \(.nix_version) |\n"
       + "| runner | \(.runner_image) |\n\n"
-      + "This release is overwritten every day; the numbered releases, such as \(.singular_tag), are fixed.\n\n"
+      + "This release is overwritten every day; the numbered releases, such as \(.kit_release), are fixed.\n\n"
       + "Use: download the tarball and SHA256SUMS, then\n\n"
       + "```\nsha256sum -c SHA256SUMS\ntar xzf \(.tarball)\ncd \($dir)\n./demo.sh\n```\n\n"
       + "demo-run.log is the full output of the run; run-summary.json holds the table above."' "${SUMMARY:?run-summary.json}"
     ;;
   release-notes)
-    jq -r '(.tarball | rtrimstr(".tar.gz")) as $dir | "Singular \(.singular_tag) Demo 1 kit for Ubuntu 24.04 on x86_64. No Nix needed.\n\n"
+    jq -r '(.tarball | rtrimstr(".tar.gz")) as $dir | "Demo 1 kit \(.kit_release) for Ubuntu 24.04 on x86_64, from Singular \(.singular_tag). No Nix needed.\n\n"
       + "Contents: `singular`, `open-datum`, `devnet` and the `cardano-node` \(.cardano_node) it starts, the transaction tools `tx-inspect` and `tx-diff`, `jq` and `curl`, with their libraries and the C library, the contracts (`plutus.json`, same bytes as the release archive), the devnet genesis, and `demo.sh`, the annotated 16-step journey on a private devnet.\n\n"
       + "Built from the Singular \(.singular_tag) release (commit \(.singular_commit)) by `nix build .#kit` from the lock file of this repository at commit \(.kit_commit), built and proved by \(.run_url). Run in a clean `ubuntu:24.04` container with no `/nix`: the demo run is \(.result): \(.steps_passed) of \(.steps_total) steps. Not independently audited.\n\n"
       + "Use: unpack the tarball, `cd` into it, run `./demo.sh`. The steps are in the README of this repository.\n\n"

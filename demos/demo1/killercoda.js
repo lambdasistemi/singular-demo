@@ -1,5 +1,6 @@
 // Builds a Killercoda scenario (Ubuntu, no Nix) from the runbook step files.
-//   node demos/demo1/killercoda.js ROOT   writes ROOT/killercoda/demo1-steps and ROOT/killercoda/demo1-script, and the two structure.json files
+//   node demos/demo1/killercoda.js ROOT   writes ROOT/killercoda/demo1-steps and ROOT/killercoda/demo1-script
+// (the structure.json files that list the scenarios are written by demos/structure.js)
 //
 // The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `chain` (the private
 // chain, a background job of its window), each person in a directory of their own with their own vault, receipts and
@@ -22,8 +23,9 @@ const course = path.join(root, 'killercoda');
 const out = path.join(course, 'demo1-steps');
 
 const VERSION = require('./version.js');
-const KIT = `singular-demo-${VERSION}-x86_64-linux`;
-const _BASE = `https://github.com/lambdasistemi/singular-demo/releases/download/${VERSION}`;
+const RELEASE = require('./release.js');
+const KIT = `singular-demo-${RELEASE}-x86_64-linux`;
+const _BASE = `https://github.com/lambdasistemi/singular-demo/releases/download/${RELEASE}`;
 const _RUN = '~/singular-demo-run';
 
 // ---- reading the step files
@@ -70,7 +72,14 @@ function parse(text) {
 }
 
 const read = (f) =>
-  parse(fs.readFileSync(path.join(dir, f), 'utf8').split('@VERSION@').join(VERSION));
+  parse(
+    fs
+      .readFileSync(path.join(dir, f), 'utf8')
+      .split('@VERSION@')
+      .join(VERSION)
+      .split('@RELEASE@')
+      .join(RELEASE),
+  );
 const stepFiles = fs
   .readdirSync(dir)
   .filter((f) => /^s\d.*\.md$/.test(f))
@@ -336,14 +345,6 @@ for (const f of stepPages) {
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(course, { recursive: true });
-fs.writeFileSync(
-  path.join(root, 'structure.json'),
-  `${JSON.stringify({ items: [{ path: 'killercoda', title: 'Singular demos' }] }, null, 2)}\n`,
-);
-fs.writeFileSync(
-  path.join(course, 'structure.json'),
-  `${JSON.stringify({ items: [{ path: 'demo1-steps' }, { path: 'demo1-script' }] }, null, 2)}\n`,
-);
 const w = (p, s) => {
   fs.mkdirSync(path.dirname(path.join(out, p)), { recursive: true });
   fs.writeFileSync(path.join(out, p), s);
@@ -413,7 +414,7 @@ w(
 set -x
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/play
-${embed(PLAYFILES)}bash /root/play/install-kit.sh ${VERSION} /root
+${embed(PLAYFILES)}bash /root/play/install-kit.sh ${RELEASE} /root
 # tmux holds the three windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
@@ -493,7 +494,7 @@ ws(
   `#!/bin/bash
 set -x
 mkdir -p /root/play
-${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${VERSION} /root
+${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${RELEASE} /root
 touch /tmp/finished
 `,
 );

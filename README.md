@@ -37,12 +37,12 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 **Without Nix**, on Ubuntu 24.04 (x86_64): a kit with the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
 
 ```bash
-version=v0.14.0
-curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$version/singular-demo-$version-x86_64-linux.tar.gz
-curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$version/SHA256SUMS
+release=v0.14.0-1
+curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/singular-demo-$release-x86_64-linux.tar.gz
+curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/SHA256SUMS
 sha256sum -c SHA256SUMS
-tar xzf singular-demo-$version-x86_64-linux.tar.gz
-cd singular-demo-$version-x86_64-linux
+tar xzf singular-demo-$release-x86_64-linux.tar.gz
+cd singular-demo-$release-x86_64-linux
 ./demo.sh
 ```
 
@@ -58,13 +58,13 @@ cd singular-demo-$version-x86_64-linux
 The daily kit, built from `main` every day, always has it:
 
 ```bash
-version=v0.14.0
+release=v0.14.0-1
 base=https://github.com/lambdasistemi/singular-demo/releases/download/daily
-curl -fLO $base/singular-demo-$version-x86_64-linux.tar.gz
+curl -fLO $base/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO $base/SHA256SUMS
 sha256sum -c SHA256SUMS
-tar xzf singular-demo-$version-x86_64-linux.tar.gz
-cd singular-demo-$version-x86_64-linux
+tar xzf singular-demo-$release-x86_64-linux.tar.gz
+cd singular-demo-$release-x86_64-linux
 ./drive.sh
 ```
 
@@ -72,9 +72,9 @@ cd singular-demo-$version-x86_64-linux
 
 | What | Where it comes from | What checks it |
 |---|---|---|
-| The Ubuntu kit, a release for each Singular version | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z` publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; `drive.sh` playing the whole tutorial in a clean Ubuntu container with no tmux, no Nix and no network |
+| The Ubuntu kit, a release for each Singular version | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; `drive.sh` playing the whole tutorial in a clean Ubuntu container with no tmux, no Nix and no network |
 | The tutorial and the runs | `demos/demo1/s*.md`, run by `demos/demo1/test.sh` against a fresh devnet | the receipts of all 16 steps; the log of the run becomes the page `run` |
-| The Killercoda scenarios | generated into `killercoda/` by `node demos/demo1/killercoda.js .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
+| The Killercoda scenarios | generated into `killercoda/` by `bash tools/generate.sh .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
 | The Codespaces tutorial | `.devcontainer/` and `tutorial/`; it plays the same scenario | its own tests, in a browser, up to the whole demo through the buttons |
 | The documentation site | `mkdocs.yml`, `docs/`, built by `docs/build.sh` | the site is built from the logs of the same run |
 

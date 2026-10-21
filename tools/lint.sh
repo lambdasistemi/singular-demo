@@ -29,21 +29,26 @@ actionlint -config-file .github/actionlint.yaml .github/workflows/*.yml || fail=
 step "the step files (lint.sh of the demo)"
 bash demos/demo1/lint.sh demos/demo1/s*.md || fail=1
 
-step "the README names the Singular version pinned in flake.nix"
+step "the README and the kit's readme name the Singular version pinned in flake.nix and the kit release"
 version=$(node -p "require('./demos/demo1/version.js')")
-grep -q "^version=$version\$" README.md || {
-  echo "README.md: the version= line is not $version" >&2
+release=$(node -p "require('./demos/demo1/release.js')")
+grep -q "^release=$release\$" README.md || {
+  echo "README.md: the release= line is not $release" >&2
   fail=1
 }
 grep -q "Singular release used is $version\." README.md || {
   echo "README.md: it does not say 'Singular release used is $version.'" >&2
   fail=1
 }
+grep -q "singular-demo-$release-x86_64-linux" kit/README.txt || {
+  echo "kit/README.txt: it does not name singular-demo-$release-x86_64-linux" >&2
+  fail=1
+}
 
 step "the Killercoda scenarios are the generated ones"
 generated=$(mktemp -d)
 trap 'rm -rf "$generated"' EXIT
-node demos/demo1/killercoda.js "$generated" >/dev/null
+bash tools/generate.sh "$generated" >/dev/null
 diff -r "$generated/killercoda" killercoda || fail=1
 diff "$generated/structure.json" structure.json || fail=1
 

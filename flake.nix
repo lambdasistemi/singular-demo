@@ -50,6 +50,9 @@
 
       txTools = import ./kit/tx-tools.nix { inherit pkgs; };
 
+      # The kit's revision, kit/revision: the only place it is written by hand. The release is Singular's and this, as in v0.14.0-1.
+      revision = pkgs.lib.removeSuffix "\n" (builtins.readFile ./kit/revision);
+
       # The Ubuntu kit: tarball plus SHA256SUMS, built from this lock only.
       kit = import ./kit/build.nix {
         inherit
@@ -59,7 +62,7 @@
           cardanoNode
           txTools
           ;
-        inherit singular devnet;
+        inherit singular devnet revision;
         openDatum = open-datum-exe;
         # drive.sh plays the generated scenario with the scripts of the play
         play = ./demos/demo1/play;

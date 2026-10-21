@@ -4,7 +4,7 @@
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 play="$root/demos/demo1/play"
-version=$(node -p "require('$root/demos/demo1/version.js')")
+release=$(node -p "require('$root/demos/demo1/release.js')")
 bash "$root/tutorial/install-kit.sh"
 : "${TUTORIAL_TMUX_SOCKET:?Open this command in the tutorial terminal}"
 : "${TUTORIAL_STATE_DIR:?Open this command in the tutorial terminal}"
@@ -21,6 +21,6 @@ if [[ -e "$run" ]]; then
   mv "$run" "$saved/run"
   printf 'Your previous demo files are saved in %s/run\n' "$saved"
 fi
-bash "$play/prepare.sh" "$HOME/singular-demo-$version-x86_64-linux" "$run"
+bash "$play/prepare.sh" "$HOME/singular-demo-$release-x86_64-linux" "$run"
 bash "$play/windows.sh" "$run"
 printf 'Alice, Bob and chain windows are ready. Continue to the next lesson.\n'

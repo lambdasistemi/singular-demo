@@ -1,8 +1,9 @@
 name: release
 
-# Pushing a tag vX.Y.Z runs the whole CI on the kit of the pinned Singular release and then publishes the
+# Pushing a tag vX.Y.Z-N runs the whole CI on the kit of the pinned Singular release and then publishes the
 # numbered release: the tarball, its checksum, the full log of the demo run and the run summary. The tag must
-# name the Singular version the kit was built from. The release is created once and never overwritten.
+# name the kit that was built: the pinned Singular release and the kit's revision (kit/revision), as in v0.14.0-1.
+# The release is created once and never overwritten.
 
 on:
   push:
@@ -35,11 +36,11 @@ jobs:
         with:
           name: release
           path: release
-      - name: The tag names the Singular version of the kit
+      - name: The tag names the kit that was built
         run: nix develop .#dev --command bash kit/check-release.sh "$TAG"
       - name: Create the release
         run: |
           nix develop .#dev --command gh release create "$TAG" --verify-tag --latest \
-            --title "Singular $TAG Demo 1 kit for Ubuntu 24.04 (x86_64)" \
+            --title "Demo 1 kit $TAG for Ubuntu 24.04 (x86_64)" \
             --notes-file release/release-notes.md \
             release/*.tar.gz release/SHA256SUMS release/demo-run.log release/run-summary.json

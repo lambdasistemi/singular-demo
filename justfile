@@ -22,7 +22,7 @@ check:
 
 # Regenerate the Killercoda scenarios and the structure file from the step files.
 generate:
-    node demos/demo1/killercoda.js .
+    bash tools/generate.sh .
 
 # Run every block of the tutorial against a fresh private devnet (about ten minutes).
 test-demo1:
