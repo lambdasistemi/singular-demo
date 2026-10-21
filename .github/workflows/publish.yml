@@ -41,7 +41,18 @@ jobs:
         with:
           name: release
           path: release
+      # The workflow's own token may not put a tag on a commit that changes workflow files; this app may.
+      - name: Token for the daily tag
+        id: tag-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.DAILY_TAG_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DAILY_TAG_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
       - name: Publish
+        env:
+          TAG_TOKEN: ${{ steps.tag-token.outputs.token }}
         run: nix develop .#dev --command bash kit/publish-daily.sh
 
   pages:
