@@ -2,6 +2,12 @@
 
 Bob folds the termination, the external way again: build (exit status 19), sign, send. When it lands, the key's token is burned and the deposit goes back to Alice. Run the three pieces before the fold deadline of step 8.
 
+**Now Bob.**
+
+```bash
+bob
+```
+
 **Build the bundle**, as in step 4: nothing is signed or sent.
 
 ```bash

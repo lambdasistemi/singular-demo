@@ -14,6 +14,7 @@ open-datum insert \
 ```bash
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/11a-insert-late.json
 ```{{exec}}
+
 **Now Bob.** Go to Bob's window: click `bob`, or press `Ctrl-b 1`.
 
 ```bash

@@ -2,6 +2,12 @@
 
 Bob folds `dave`, external signing as before: build (exit status 19), sign, send. Afterwards an independent read asks the chain for the key and finds it active. That is the last proof that the whole journey worked.
 
+**Now Bob.**
+
+```bash
+bob
+```
+
 **Build the bundle**, as in steps 4 and 9: nothing is sent yet.
 
 ```bash
@@ -23,6 +29,12 @@ singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-da
 singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
   bundles/fold-dave.bundle
+```
+
+**Now Alice.**
+
+```bash
+alice
 ```
 
 **Read `dave` back**, the independent check. It should be active.

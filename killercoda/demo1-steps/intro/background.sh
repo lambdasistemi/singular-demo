@@ -36,7 +36,8 @@ PLAY_EOF
 cat > /root/play/prepare.sh <<'PLAY_EOF'
 #!/usr/bin/env bash
 # Makes the folders of the play: one directory for Alice and one for Bob, each with the folders for
-# their receipts, bundles and witnesses, the settings file they share, and the shell setup every window starts with.
+# their receipts, bundles and witnesses and an empty settings file of their own (alice.json, bob.json), and the shell setup
+# every window starts with.
 #   prepare.sh KIT_DIR RUN_DIR
 set -euo pipefail
 kit=$(cd "${1:?usage: prepare.sh KIT_DIR RUN_DIR}" && pwd)
@@ -44,8 +45,8 @@ run=${2:?usage: prepare.sh KIT_DIR RUN_DIR}
 here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$run"/{alice,bob}/{receipts,bundles,witnesses}
 run=$(cd "$run" && pwd)
-# the settings file Alice's and Bob's windows share; step 1 fills it
-[ -f "$run/singular.json" ] || echo '{}' >"$run/singular.json"
+# the settings files of Alice and Bob, each in the person's folder; the steps fill them
+for who in alice bob; do [ -f "$run/$who/$who.json" ] || echo '{}' >"$run/$who/$who.json"; done
 printf 'PLAY_KIT=%q\nPLAY_RUN=%q\n' "$kit" "$run" >"$run/play.env"
 cp "$here/windows.rc" "$here/helpers.sh" "$run/"
 echo "The folders of the play are ready: $run"
@@ -74,15 +75,16 @@ wallet_show() {
 }
 PLAY_EOF
 cat > /root/play/windows.rc <<'PLAY_EOF'
-# What every window of the play starts with: the usual bash setup, the programs, the shared settings
-# file, the helpers, and one word for each window. prepare.sh copies this file and helpers.sh next to play.env.
+# What every window of the play starts with: the usual bash setup, the programs, the settings file of the window's
+# person, the helpers, and one word for each window. prepare.sh copies this file and helpers.sh next to play.env.
 [ -f ~/.bashrc ] && . ~/.bashrc
 . "$(dirname "${BASH_SOURCE[0]}")/play.env"
 # an environment that needs more in its windows (the Codespaces tutorial's prompt tracking) names its file here
 [ -z "${PLAY_RC_HOOK:-}" ] || . "$PLAY_RC_HOOK"
 export PATH="$PLAY_KIT/bin:$PATH"
 export blueprint="$PLAY_KIT/share/plutus.json"
-export SINGULAR_CONFIG="$PLAY_RUN/singular.json"
+# a person's window (windows.sh names the person in PLAY_PERSON) reads that person's own settings file, in the person's folder
+[ -z "${PLAY_PERSON:-}" ] || export SINGULAR_CONFIG="$PWD/$PLAY_PERSON.json"
 # the vaults of the play open with this throwaway passphrase; no command asks for it (accepted on a private chain only)
 export SINGULAR_PASSPHRASE=demo
 # the helpers of the play: koios_url, wait_for_slot, wallet_show
@@ -94,15 +96,16 @@ chain() { tmux select-window -t chain; }
 PLAY_EOF
 cat > /root/play/windows.sh <<'PLAY_EOF'
 #!/usr/bin/env bash
-# Starts the three windows of the play in one tmux session: 0 alice, 1 bob, 2 chain, each with the shell setup of windows.rc.
+# Starts the three windows of the play in one tmux session: 0 alice, 1 bob, 2 chain, each with the shell setup of windows.rc
+# and, for Alice and Bob, the name of the person (PLAY_PERSON), which windows.rc turns into the person's settings file.
 #   windows.sh RUN_DIR
 #   PLAY_TMUX   the tmux command with its options (default: tmux); an environment with its own tmux server sets it
 set -euo pipefail
 run=$(cd "${1:?usage: windows.sh RUN_DIR}" && pwd)
 t=${PLAY_TMUX:-tmux}
 shell="exec bash --rcfile $run/windows.rc -i"
-$t new-session -d -s demo -n alice -c "$run/alice" "$shell"
-$t new-window -d -t demo -n bob -c "$run/bob" "$shell"
+$t new-session -d -s demo -n alice -c "$run/alice" "exec env PLAY_PERSON=alice bash --rcfile $run/windows.rc -i"
+$t new-window -d -t demo -n bob -c "$run/bob" "exec env PLAY_PERSON=bob bash --rcfile $run/windows.rc -i"
 $t new-window -d -t demo -n chain -c "$run" "$shell"
 # the mouse switches windows and scrolls
 $t set-option -g mouse on

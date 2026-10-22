@@ -22,6 +22,13 @@ mkdir -p receipts bundles witnesses
 export SINGULAR_PASSPHRASE=demo
 ```
 
+**Two settings files.** Alice and Bob would each keep their settings on their own machine. Here they share the folder, so the files are `alice.json` and `bob.json`, and the variable `SINGULAR_CONFIG` names the one a command reads. Two words set it, `alice` for Alice's file and `bob` for Bob's:
+
+```bash
+alice() { export SINGULAR_CONFIG="$PWD/alice.json"; }
+bob() { export SINGULAR_CONFIG="$PWD/bob.json"; }
+```
+
 **Alice's vault.** `singular wallet create` makes the vault file and prints her address. The `$(...)` keeps the printed address in `alice_addr`.
 
 - `--vault alice.vault`: the file to create

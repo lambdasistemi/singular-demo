@@ -2,6 +2,12 @@
 
 Anyone may fold, and here Alice does. The fold is a single command, because it is her vault that signs and sends it: build, sign, send and wait. It prints its receipt when it has landed. Run it before the fold deadline of step 12.
 
+**Now Alice.**
+
+```bash
+alice
+```
+
 In the output, `settled` lists the requests now part of the registry and `root` is the registry's new fingerprint.
 
 ```bash

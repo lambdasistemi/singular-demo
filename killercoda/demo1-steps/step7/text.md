@@ -1,4 +1,4 @@
-Alice adds a key. She books `alice` with a first piece of data, the payload: here the number 42, written as Plutus data in JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
+Alice adds a key. She books `alice` with a first piece of data, the payload: here the document `{"answer": 42}`, written as plain JSON. The booking locks her deposit of 2 ada in a request at the registry. It does not change the registry yet: the request is pending until somebody folds it, and the receipt names the deadline for that, the fold deadline. Alice's wallet becomes the key's controller, the only one who may change it.
 
 **Why two stages, booking and then folding?** The registry's state is one output on the chain, and only a fold changes the registry's root. A booking never touches that output: it only creates a request, an output of its own that holds the deposit. So several people can book at the same time without competing for the registry's state, and one fold then settles up to nine requests together. The price is the wait: until a fold, the request is pending and the key does not exist yet. The [documentation](https://lambdasistemi.github.io/singular/docs/singular-node/#booking-and-folding); the contracts that hold a request and fold it are [request.ak](https://github.com/lambdasistemi/singular/blob/v0.16.0/onchain/validators/request.ak) and [fold.ak](https://github.com/lambdasistemi/singular/blob/v0.16.0/onchain/lib/registry/fold.ak).
 
@@ -10,10 +10,16 @@ Alice adds a key. She books `alice` with a first piece of data, the payload: her
 - **The options on the fold.** `--wallet-address` names who will pay and sign later; `--bundle` is the file the finished, unsigned transactions go to (in `bundles/`); `--out` is where the signatures go (in `witnesses/`); `--receipt` is where the proof of landing goes (in `receipts/`).
 - **The clock starts at the booking.** The fold must run within the registry's processing window (3 minutes here). Book, then go straight to the next page and run its three commands without stopping to read.
 
-**The payload**: the data stored under the key, as Plutus data in JSON, constructor 0 holding the integer 42.
+**Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 
 ```bash
-echo '{"constructor":0,"fields":[{"int":42}]}' > payload.json
+alice
+```{{exec}}
+
+**The payload**: the data stored under the key, as plain JSON.
+
+```bash
+echo '{"answer": 42}' > payload.json
 ```{{exec}}
 
 **The booking.** Alice signs from her vault and the command sends it. The request now waits at the registry and is not part of it until it is folded.

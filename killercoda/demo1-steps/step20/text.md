@@ -28,6 +28,7 @@ singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
   bundles/fold-dave.bundle
 ```{{exec}}
+
 **Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 
 ```bash

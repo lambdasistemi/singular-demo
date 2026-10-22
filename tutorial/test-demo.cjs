@@ -137,6 +137,16 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     assert.equal(read('10-inspect.json').leaf, 'terminal');
     assert.equal(read('16b-inspect-dave.json').leaf, 'active');
     assert(read('02-describe.json').rules.processTime > 0);
+    assert(read('02-describe-bob.json').rules.processTime > 0);
+    // the registry is named by its address alone: Alice's file has the one create printed, Bob's has the one Alice gave him
+    const registry = read('01-create.json').registry;
+    assert.match(registry, /^singular_devnet1[0-9a-z]+$/);
+    assert.equal(fs.readFileSync(path.join(demo, 'registry.address'), 'utf8').trim(), registry);
+    for (const who of ['alice', 'bob']) {
+      const settings = JSON.parse(fs.readFileSync(path.join(demo, who, `${who}.json`), 'utf8'));
+      assert.equal(settings.registry, registry, `${who}.json`);
+      assert(!('state-token' in settings), `${who}.json has a state token`);
+    }
     assert(read('tx-info.json').length > 0);
     assert(!/jq: error|command not found|curl: \(/.test(transcript));
     assert.deepEqual(errors, []);

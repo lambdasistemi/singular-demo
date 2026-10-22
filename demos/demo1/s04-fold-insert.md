@@ -2,6 +2,12 @@
 
 Run these three, one after the other, now. They build Bob's fold of the booking, sign it with his vault and send it; what each one is was explained on the previous page.
 
+**Now Bob.**
+
+```bash
+bob
+```
+
 **Build the fold into a bundle file** (exit status 19, nothing sent). In the output, `settling` is what the fold will settle and `msLeft` the time left before the fold deadline.
 
 ```bash
