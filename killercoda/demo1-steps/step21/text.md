@@ -1,4 +1,4 @@
-The steps above show what Demo 1 does. Some limits of its design cannot be seen in a command, or only as a refusal. They are stated here as they hold in this release (v0.14.0). Each one says how it is known: shown in the steps, tried on a private chain like this one without being part of the steps, or taken from the project's documentation.
+The steps above show what Demo 1 does. Some limits of its design cannot be seen in a command, or only as a refusal. They are stated here as they hold in this release (v0.16.0). Each one says how it is known: shown in the steps, tried on a private chain like this one without being part of the steps, or taken from the project's documentation.
 
 **A booking reserves nothing.** Tried on a private chain. Two people can book the same key, and both bookings succeed. Only the fold decides: it takes one of the two requests and leaves the other out, and its receipt names the reason (`key-in-batch`: an earlier included request names the same key). In the run that was tried, the fold took the request booked first. The request left out stays pending with its deposit locked, until its owner takes it back with a reclaim while the retract window is open.
 
@@ -10,7 +10,7 @@ The steps above show what Demo 1 does. Some limits of its design cannot be seen 
 
 **A booking that never lands is not recovered by waiting.** From the documentation. A fold carries a deadline; a booking does not. A booking that did not reach the chain, or was rolled back and not included again, stays unresolved however far the chain moves on, and every later write stops on it. The documentation calls this a [known limit of the commands](https://lambdasistemi.github.io/singular/docs/cli-recovery/#when-a-transaction-can-never-land) The steps above did not meet it.
 
-**A key does not come back.** Shown in the steps. A key is added once and can be ended for good; nothing returns it to unknown, and `alice` stays terminal. Reusable names are not part of this release; the contract admits only [these two changes](https://github.com/lambdasistemi/singular/blob/v0.14.0/onchain/validators/state.ak).
+**A key does not come back.** Shown in the steps. A key is added once and can be ended for good; nothing returns it to unknown, and `alice` stays terminal. Reusable names are not part of this release; the contract admits only [these two changes](https://github.com/lambdasistemi/singular/blob/v0.16.0/onchain/validators/state.ak).
 
 **The application protects the payload and the deposit, nothing more.** From the documentation. `open-datum` is a demonstration of the registry's mechanics, not a way to guard names or secrets. The project [says the same](https://lambdasistemi.github.io/singular/docs/demo1-devnet/#what-this-does-not-claim).
 

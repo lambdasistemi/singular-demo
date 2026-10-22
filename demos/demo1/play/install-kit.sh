@@ -2,7 +2,7 @@
 # Downloads the Ubuntu kit of a release, checks it against the release's SHA256SUMS and unpacks it.
 # Every environment of the play (Killercoda, Codespaces, the tests) installs the kit with this script.
 #   install-kit.sh RELEASE [DIR]
-#     RELEASE   the kit's release: the Singular release and the kit's revision, for example v0.14.0-1
+#     RELEASE   the kit's release: the Singular release and the kit's revision, for example v0.16.0-1
 #     DIR       where the kit folder goes (default: $HOME)
 #   PLAY_KIT_BASE   takes the files from this address instead of the release page; file:///dir tests a kit that is not released yet
 set -euo pipefail

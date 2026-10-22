@@ -1,6 +1,6 @@
 # Singular demos
 
-Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, played on a private test chain. Nothing here touches a public network. The Singular release used is v0.14.0.
+Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, played on a private test chain. Nothing here touches a public network. The Singular release used is v0.16.0.
 
 ## Demo 1: Alice and Bob keep a registry
 
@@ -45,7 +45,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 **Without Nix**, on Ubuntu 24.04 (x86_64): a kit with the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
 
 ```bash
-release=v0.14.0-1
+release=v0.16.0-1
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/SHA256SUMS
 sha256sum -c SHA256SUMS
@@ -66,7 +66,7 @@ cd singular-demo-$release-x86_64-linux
 The daily kit, built from `main` every day, always has it:
 
 ```bash
-release=v0.14.0-1
+release=v0.16.0-1
 base=https://github.com/lambdasistemi/singular-demo/releases/download/daily
 curl -fLO $base/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO $base/SHA256SUMS
@@ -101,7 +101,7 @@ nix develop .#dev --command just ci
 
 When Singular publishes a release, `just bump vX.Y.Z` moves this repository to it: it rewrites the version in the flake, this README and the kit's script, starts the kit's revision again at 1, updates the pinned Singular inputs, regenerates the scenarios and runs the checks. Review the diff, open a pull request, and once it is merged push the tag `vX.Y.Z-1`; the release workflow builds, proves and publishes the kit.
 
-The kit's release is the Singular release and the kit's revision, as in `v0.14.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
+The kit's release is the Singular release and the kit's revision, as in `v0.16.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
 
 A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the six jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the pay-by-name scenario with its controls, the kit's `drive.sh` playing both scenarios and the Codespaces tutorial. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 
