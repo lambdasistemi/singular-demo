@@ -5,15 +5,15 @@ cat > /root/play/install-kit.sh <<'PLAY_EOF'
 #!/usr/bin/env bash
 # Downloads the Ubuntu kit of a release, checks it against the release's SHA256SUMS and unpacks it.
 # Every environment of the play (Killercoda, Codespaces, the tests) installs the kit with this script.
-#   install-kit.sh VERSION [DIR]
-#     VERSION   the release, for example v0.14.0
+#   install-kit.sh RELEASE [DIR]
+#     RELEASE   the kit's release: the Singular release and the kit's revision, for example v0.16.0-1
 #     DIR       where the kit folder goes (default: $HOME)
 #   PLAY_KIT_BASE   takes the files from this address instead of the release page; file:///dir tests a kit that is not released yet
 set -euo pipefail
-version=${1:?usage: install-kit.sh VERSION [DIR]}
+release=${1:?usage: install-kit.sh RELEASE [DIR]}
 dir=${2:-$HOME}
-base=${PLAY_KIT_BASE:-https://github.com/lambdasistemi/singular-demo/releases/download/$version}
-name=singular-demo-$version-x86_64-linux
+base=${PLAY_KIT_BASE:-https://github.com/lambdasistemi/singular-demo/releases/download/$release}
+name=singular-demo-$release-x86_64-linux
 mkdir -p "$dir"
 if [ -x "$dir/$name/bin/singular" ] && [ -f "$dir/$name/.verified" ]; then
   echo "The kit is already installed: $dir/$name"
@@ -32,5 +32,5 @@ tar xzf "$tmp/$name.tar.gz" -C "$dir"
 touch "$dir/$name/.verified"
 echo "The kit is installed: $dir/$name"
 PLAY_EOF
-bash /root/play/install-kit.sh v0.14.0 /root
+bash /root/play/install-kit.sh v0.16.0-1 /root
 touch /tmp/finished

@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const dir = __dirname;
 const VERSION = require('./version.js');
+const RELEASE = require('./release.js');
 const files = fs
   .readdirSync(dir)
   .filter((f) => /^s\d.*\.md$/.test(f))
@@ -61,7 +62,14 @@ function parse(text) {
 
 const steps = files.map((f) => ({
   file: f,
-  ...parse(fs.readFileSync(path.join(dir, f), 'utf8').split('@VERSION@').join(VERSION)),
+  ...parse(
+    fs
+      .readFileSync(path.join(dir, f), 'utf8')
+      .split('@VERSION@')
+      .join(VERSION)
+      .split('@RELEASE@')
+      .join(RELEASE),
+  ),
 }));
 
 // DEMO.md: GitHub shows a copy button on every code block.

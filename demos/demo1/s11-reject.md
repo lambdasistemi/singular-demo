@@ -17,6 +17,12 @@ open-datum insert \
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/11a-insert-late.json
 ```
 
+**Now Bob.**
+
+```bash
+bob
+```
+
 **Bob asks to reject it now**, naming only his address, no key. It is too early, so the program refuses: exit status 10, outcome `client-refusal`, nothing built. The refusal says when the retract window closes: `retractEndsSlot` is the slot where the window closes and `tipSlot` is where the chain is now.
 
 ```bash

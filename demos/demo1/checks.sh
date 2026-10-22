@@ -1,12 +1,43 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2016 # jq programs: the $ names are jq's, not the shell's
 echo "=== checks"
 fail=0
-check() { if jq -e "$2" "$1" >/dev/null 2>&1; then echo "ok    $1  $2"; else
-  echo "FAIL  $1  $2"
-  fail=1
-fi; }
+check() { # FILE [jq options...] FILTER
+  local file=$1 filter=${!#}
+  set -- "${@:2:$#-2}"
+  if jq -e "$@" "$filter" "$file" >/dev/null 2>&1; then echo "ok    $file  $filter"; else
+    echo "FAIL  $file  $filter"
+    fail=1
+  fi
+}
 check receipts/01-create.json '.outcome=="success"'
 check receipts/02-describe.json '.outcome=="success" and .rules.processTime>0'
+check receipts/02-describe-bob.json '.outcome=="success" and .rules.processTime>0'
+# the registry is named by its address alone: the one create printed is in Alice's file and, handed over, in Bob's;
+# neither file has a state token; both pages name the same registry
+registry=$(jq -r .registry receipts/01-create.json)
+check receipts/01-create.json '.registry|test("^singular_devnet1[0-9a-z]+$")'
+check alice.json --arg r "$registry" '.registry==$r and has("network-magic") and (has("state-token")|not)'
+check bob.json --arg r "$registry" '.registry==$r and has("network-magic") and (has("state-token")|not)'
+if [ "$(cat registry.address)" = "$registry" ]; then echo "ok    registry.address holds the address and nothing else"; else
+  echo "FAIL  registry.address is not the address create printed"
+  fail=1
+fi
+# what the page printed of Bob's file before the address was handed over names no registry, and after it the address
+block() { awk -v b="@@ BLOCK $1 $2" '$0 == b {p = 1; next} /^@@ BLOCK /{p = 0} p' "$LOGFILE"; }
+if block s02-describe.md 4 | jq -e 'has("state-dir") and (has("registry") | not)' >/dev/null 2>&1 &&
+  block s02-describe.md 5 | jq -e --arg r "$registry" '.registry == $r' >/dev/null 2>&1; then
+  echo "ok    Bob's file named no registry before the address was handed over, and the address after"
+else
+  echo "FAIL  Bob's file before and after the hand-over"
+  fail=1
+fi
+if jq -e -s '.[0].registry.address == .[1].registry.address' receipts/02-describe.json receipts/02-describe-bob.json >/dev/null 2>&1; then
+  echo "ok    Alice's page and Bob's page name the same registry"
+else
+  echo "FAIL  Alice's page and Bob's page do not name the same registry"
+  fail=1
+fi
 check receipts/03-insert-alice.json '.outcome=="success"'
 check receipts/04-fold-insert.json '.outcome=="waiting-for-signatures"'
 check receipts/04-fold-insert.submitted.json '(.submissions|length)>=1'

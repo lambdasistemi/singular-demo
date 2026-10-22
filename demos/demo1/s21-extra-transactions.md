@@ -2,6 +2,12 @@
 
 Everything the demo sent is a real transaction on the devnet, and each can be examined: what the program prepared, which transaction landed and where, and what the chain says about it. Run these any time after step 4.
 
+**Now Bob.**
+
+```bash
+bob
+```
+
 **What a prepared transaction is for.** A bundle is a JSON file written by a command run with `--bundle`. Its `effects` say in plain words what each transaction does, and `deadline` is the slot by which it must be sent.
 
 ```bash

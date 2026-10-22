@@ -1,5 +1,5 @@
 {
-  description = "Singular v0.14.0, Demo 1: a shell with singular, open-datum, devnet, the blueprint and the genesis in place";
+  description = "Singular v0.16.0, Demo 1: a shell with singular, open-datum, devnet, the blueprint and the genesis in place";
 
   # Binary caches. The programs are built by the project's CI and pushed to
   # paolino.cachix.org (public); cardano-node is also in cache.iog.io. Without
@@ -18,14 +18,14 @@
   inputs = {
     # The tagged source tree: the devnet's genesis files live in it.
     source = {
-      url = "github:lambdasistemi/singular/v0.14.0";
+      url = "github:lambdasistemi/singular/v0.16.0";
       flake = false;
     };
     # The three programs, built by the release's own flakes at the same tag.
-    offchain.url = "github:lambdasistemi/singular/v0.14.0?dir=offchain";
-    open-datum.url = "github:lambdasistemi/singular/v0.14.0?dir=applications/open-datum/offchain";
+    offchain.url = "github:lambdasistemi/singular/v0.16.0?dir=offchain";
+    open-datum.url = "github:lambdasistemi/singular/v0.16.0?dir=applications/open-datum/offchain";
     # The merged deployment blueprint the release archive carries as onchain/plutus.json.
-    open-datum-onchain.url = "github:lambdasistemi/singular/v0.14.0?dir=applications/open-datum/onchain";
+    open-datum-onchain.url = "github:lambdasistemi/singular/v0.16.0?dir=applications/open-datum/onchain";
     # The package set the kit's helper tools (static jq and curl, the musl C
     # compiler, patchelf) come from: the one the programs themselves are built on.
     nixpkgs.follows = "offchain/nixpkgs";
@@ -50,6 +50,12 @@
 
       txTools = import ./kit/tx-tools.nix { inherit pkgs; };
 
+      # The pay-by-name scenario: its validator and the tools that apply it
+      payByName = import ./demos/pay-by-name/build.nix { inherit pkgs; };
+
+      # The kit's revision, kit/revision: the only place it is written by hand. The release is Singular's and this, as in v0.16.0-1.
+      revision = pkgs.lib.removeSuffix "\n" (builtins.readFile ./kit/revision);
+
       # The Ubuntu kit: tarball plus SHA256SUMS, built from this lock only.
       kit = import ./kit/build.nix {
         inherit
@@ -59,8 +65,13 @@
           cardanoNode
           txTools
           ;
-        inherit singular devnet;
+        inherit singular devnet revision;
         openDatum = open-datum-exe;
+        sinkTools = payByName.tools;
+        sinkBlueprint = payByName.sink;
+        nodejs = pkgs.nodejs-slim;
+        payByNamePlay = ./demos/pay-by-name/play;
+        payByNameScenario = ./killercoda/pay-by-name-steps;
         # drive.sh plays the generated scenario with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;
@@ -83,7 +94,7 @@
       };
       blueprint = open-datum-onchain.packages.${system}.open-datum-blueprint;
       # The commands look for version.txt beside the contracts file, so the two travel together.
-      contracts = pkgs.runCommand "singular-contracts-v0.14.0" { } ''
+      contracts = pkgs.runCommand "singular-contracts-v0.16.0" { } ''
         mkdir -p $out
         cp ${blueprint} $out/plutus.json
         cp ${source}/version.txt $out/version.txt
@@ -139,6 +150,8 @@
     {
       packages.${system} = {
         inherit kit kit-verify docs-env;
+        pay-by-name-sink = payByName.sink;
+        pay-by-name-tools = payByName.tools;
       };
 
       apps.${system} = {
@@ -167,6 +180,8 @@
       checks.${system} = {
         format = repoCheck "format" "format.sh check";
         lint = repoCheck "lint" "lint.sh";
+        pay-by-name-aiken = payByName.aikenCheck;
+        pay-by-name-tools = payByName.tools;
       };
 
       devShells.${system} = {
@@ -187,7 +202,7 @@
             # A short temporary directory: the devnet's node socket path has a length limit.
             export TMPDIR=/tmp/singular-demo-$(id -u)
             mkdir -p -m 700 "$TMPDIR"
-            echo "Singular v0.14.0, Demo 1 shell"
+            echo "Singular v0.16.0, Demo 1 shell"
             echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl   on the PATH"
             echo "  \$blueprint          = $blueprint"
             echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"

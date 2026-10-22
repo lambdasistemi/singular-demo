@@ -1,4 +1,4 @@
-What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock. The [documentation](https://lambdasistemi.github.io/singular/docs/singular-node/#rejecting-expired-requests); the contract that settles the refund of a rejected request is [settlement.ak](https://github.com/lambdasistemi/singular/blob/v0.14.0/onchain/lib/registry/settlement.ak).
+What if nobody folds a request? Alice books the key `late` and nobody touches it. A request that stays pending keeps its deposit locked, and other requests can still be folded meanwhile. Once its two windows (processing, then retract) are over, the cure is a reject, which sends the deposit back to the owner. While a window is still open the program refuses to build it, and says so: that refusal comes first. Windows are judged by the chain's own latest block (its tip), never by this computer's clock. The [documentation](https://lambdasistemi.github.io/singular/docs/singular-node/#rejecting-expired-requests); the contract that settles the refund of a rejected request is [settlement.ak](https://github.com/lambdasistemi/singular/blob/v0.16.0/onchain/lib/registry/settlement.ak).
 
 **Alice books `late`.** Nobody will fold it, so the request stays pending.
 
@@ -14,6 +14,7 @@ open-datum insert \
 ```bash
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/11a-insert-late.json
 ```{{exec}}
+
 **Now Bob.** Go to Bob's window: click `bob`, or press `Ctrl-b 1`.
 
 ```bash

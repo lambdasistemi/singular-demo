@@ -1,13 +1,16 @@
 // Builds a Killercoda scenario (Ubuntu, no Nix) from the runbook step files.
-//   node demos/demo1/killercoda.js ROOT   writes ROOT/killercoda/demo1-steps and ROOT/killercoda/demo1-script, and the two structure.json files
+//   node demos/demo1/killercoda.js ROOT   writes ROOT/killercoda/demo1-steps and ROOT/killercoda/demo1-script
+// (the structure.json files that list the scenarios are written by demos/structure.js)
 //
 // The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `chain` (the private
-// chain, a background job of its window), each person in a directory of their own with their own vault, receipts and
-// journal. The two people share one settings file, singular.json, which the Singular commands read by themselves
-// (the variable SINGULAR_CONFIG names it). Every "bash" block of the step files
-// becomes a block the learner runs with a click, in the window of the person who acts. Wherever the person changes,
-// the page gives the word to click (alice, bob or chain); the keys Ctrl-b 0, 1 and 2 are only an extra, nothing needs a
-// keyboard. "bash skip" blocks are shown only.
+// chain, a background job of its window), each person in a directory of their own with their own vault, receipts,
+// journal and settings file (alice.json and bob.json: the window sets the variable SINGULAR_CONFIG to its person's
+// file). Every "bash" block of the step files becomes a block the learner runs with a click, in the window of the
+// person who acts. A step file says where the person changes: a paragraph "**Now Bob.**" followed by the block `bob`
+// (in a single terminal that block chooses Bob's settings file; here it is the word that moves to his window). The
+// page then gives the word to click (alice, bob or chain); the keys Ctrl-b 0, 1 and 2 are only an extra, nothing needs
+// a keyboard. A block of another person than the one the page has named stops the generator. "bash skip" blocks are
+// shown only.
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -22,8 +25,9 @@ const course = path.join(root, 'killercoda');
 const out = path.join(course, 'demo1-steps');
 
 const VERSION = require('./version.js');
-const KIT = `singular-demo-${VERSION}-x86_64-linux`;
-const _BASE = `https://github.com/lambdasistemi/singular-demo/releases/download/${VERSION}`;
+const RELEASE = require('./release.js');
+const KIT = `singular-demo-${RELEASE}-x86_64-linux`;
+const _BASE = `https://github.com/lambdasistemi/singular-demo/releases/download/${RELEASE}`;
 const _RUN = '~/singular-demo-run';
 
 // ---- reading the step files
@@ -70,7 +74,14 @@ function parse(text) {
 }
 
 const read = (f) =>
-  parse(fs.readFileSync(path.join(dir, f), 'utf8').split('@VERSION@').join(VERSION));
+  parse(
+    fs
+      .readFileSync(path.join(dir, f), 'utf8')
+      .split('@VERSION@')
+      .join(VERSION)
+      .split('@RELEASE@')
+      .join(RELEASE),
+  );
 const stepFiles = fs
   .readdirSync(dir)
   .filter((f) => /^s\d.*\.md$/.test(f))
@@ -115,7 +126,7 @@ function actorOf(code) {
   if (/open-datum inspect/.test(code)) return 'alice'; // reads are Alice's: she owns the receipts the next steps compare
   if (/bob\.vault|\$bob_addr|bundles\//.test(code)) return 'bob';
   if (/alice\.vault|\$alice_addr/.test(code)) return 'alice';
-  if (/^echo '\{"constructor"/.test(code)) return 'next'; // payload files belong to whoever uses them next
+  if (/^echo '\{"answer"/.test(code)) return 'next'; // payload files belong to whoever uses them next
   return null; // neutral: runs where the learner already is (read-backs of the last receipt, waits)
 }
 
@@ -124,9 +135,27 @@ function actorOf(code) {
 const pages = []; // { title, md }
 let current = 'alice';
 
+// A block that is only a person's word, preceded by the paragraph "**Now Bob.**", names the person from there on.
+const PEOPLE = ['alice', 'bob'];
+function markWords(page, file) {
+  page.parts.forEach((p, i) => {
+    if (p.code === undefined || p.skip || !PEOPLE.includes(p.code.trim())) return;
+    const before = page.parts[i - 1];
+    const caption = `**Now ${NAME[p.code.trim()]}.**`;
+    if (!before || before.text === undefined || !before.text.trimEnd().endsWith(caption)) {
+      console.error(
+        `killercoda.js: ${file}: the block ${p.code.trim()} must come right after the paragraph ${caption}`,
+      );
+      process.exit(1);
+    }
+    before.text = before.text.trimEnd().slice(0, -caption.length);
+    p.word = p.code.trim();
+  });
+}
+
 function render(page, { actors }) {
   // decide the window of every exec block, with a look ahead for the blocks that belong to the next one
-  const codes = page.parts.filter((p) => p.code !== undefined && !p.skip);
+  const codes = page.parts.filter((p) => p.code !== undefined && !p.skip && !p.word);
   codes.forEach((p, _i) => {
     p.actor = actorOf(p.code);
   });
@@ -137,32 +166,27 @@ function render(page, { actors }) {
     }
   });
   let md = '';
-  let chunkStart = -1; // where the text chunk just before this block starts, -1 when a block came last
   for (const p of page.parts) {
     if (p.text !== undefined) {
-      chunkStart = md.length;
       md += `${p.text}\n`;
       continue;
     }
     if (p.skip) {
       md += `\`\`\`bash\n${p.code}\n\`\`\`\n`;
-      chunkStart = -1;
+      continue;
+    }
+    if (p.word) {
+      // the step file names the person: the learner moves to that window, unless already there
+      if (p.word !== current) md += `\n${goTo(p.word, `**Now ${NAME[p.word]}.** `)}\n\n`;
+      current = p.word;
       continue;
     }
     if (actors && p.actor && p.actor !== current) {
-      const line = `${goTo(p.actor, `**Now ${NAME[p.actor]}.** `)}\n\n`;
-      // the keys come before the caption of the block (the last paragraph of the text above it), so the learner
-      // is in the right window when reading what that person does
-      if (chunkStart >= 0) {
-        const cut = md.trimEnd().lastIndexOf('\n\n');
-        const at = cut >= chunkStart ? cut + 2 : chunkStart;
-        md = md.slice(0, at) + line + md.slice(at);
-      } else {
-        md += `\n${line}`;
-      }
-      current = p.actor;
+      console.error(
+        `killercoda.js: a block of ${NAME[p.actor]} comes while the page has named ${NAME[current]}; put "**Now ${NAME[p.actor]}.**" and the block ${p.actor} above it:\n${p.code}`,
+      );
+      process.exit(1);
     }
-    chunkStart = -1;
     md += `\`\`\`bash\n${p.code}\n\`\`\`{{exec}}\n`;
   }
   return `${md.replace(/\n{3,}/g, '\n\n').trim()}\n`;
@@ -278,23 +302,29 @@ tail -n 20 ../devnet.log
 const stepPages = [...pick(/^s(0[1-9]|1[0-7])-/), ...pick(/^s2[01]-/)];
 for (const f of stepPages) {
   const pg = read(f);
+  markWords(pg, f);
 
-  if (/^s01-/.test(f)) {
-    // one settings file for both windows, named by SINGULAR_CONFIG; the devnet's line is in the folder above
+  if (/^s0[12]-/.test(f)) {
+    // the devnet's line and the address Alice gives Bob are in the folder above the person's folder
     for (const p of pg.parts)
       if (p.code !== undefined)
         p.code = p.code
           .replace(/\bdevnet\.out/g, '../devnet.out')
-          .replace(/\bsingular\.json/g, '"$SINGULAR_CONFIG"');
-    const w = pg.parts.findIndex((p) => p.text?.includes('**For this tutorial, the JSON file**'));
+          .replace(/\bregistry\.address/g, '../registry.address');
+  }
+  if (/^s01-/.test(f)) {
+    // the window names the settings file in the variable SINGULAR_CONFIG
+    const w = pg.parts.findIndex((p) =>
+      p.text?.includes('**For this tutorial, a JSON file for each person**'),
+    );
     if (w < 0) {
       console.error('killercoda.js: s01 settings paragraph not found');
       process.exit(1);
     }
     pg.parts[w].text = swap(
       pg.parts[w].text,
-      "The devnet's settings line has two of the values; `jq` builds the file from it.",
-      "The devnet's settings line has two of the values; `jq` builds the file from it. Here the file's name is in the variable `SINGULAR_CONFIG`.",
+      "Alice's file is `alice.json`. The devnet's settings line has two of the values; `jq` builds the file from it.",
+      "Alice's file is `alice.json`, and her window names it in the variable `SINGULAR_CONFIG`. The devnet's settings line has two of the values; `jq` builds the file from it.",
     );
   }
   if (/^s12-/.test(f)) {
@@ -336,14 +366,6 @@ for (const f of stepPages) {
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(course, { recursive: true });
-fs.writeFileSync(
-  path.join(root, 'structure.json'),
-  `${JSON.stringify({ items: [{ path: 'killercoda', title: 'Singular demos' }] }, null, 2)}\n`,
-);
-fs.writeFileSync(
-  path.join(course, 'structure.json'),
-  `${JSON.stringify({ items: [{ path: 'demo1-steps' }, { path: 'demo1-script' }] }, null, 2)}\n`,
-);
 const w = (p, s) => {
   fs.mkdirSync(path.dirname(path.join(out, p)), { recursive: true });
   fs.writeFileSync(path.join(out, p), s);
@@ -413,7 +435,7 @@ w(
 set -x
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/play
-${embed(PLAYFILES)}bash /root/play/install-kit.sh ${VERSION} /root
+${embed(PLAYFILES)}bash /root/play/install-kit.sh ${RELEASE} /root
 # tmux holds the three windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
@@ -493,7 +515,7 @@ ws(
   `#!/bin/bash
 set -x
 mkdir -p /root/play
-${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${VERSION} /root
+${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${RELEASE} /root
 touch /tmp/finished
 `,
 );

@@ -6,6 +6,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const VERSION = require('./version.js');
+const RELEASE = require('./release.js');
 
 const [logFile, outFile] = process.argv.slice(2);
 if (!logFile || !outFile) {
@@ -54,6 +55,8 @@ for (const f of files) {
     .readFileSync(path.join(dir, f), 'utf8')
     .split('@VERSION@')
     .join(VERSION)
+    .split('@RELEASE@')
+    .join(RELEASE)
     .split('\n');
   const title = lines.shift().replace(/^#\s+/, '');
   md += `\n## ${title}\n`;

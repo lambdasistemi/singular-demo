@@ -1,6 +1,6 @@
 # Step 7: read the key back again
 
-The same read as step 5. The payload is now 43; the owner and the deposit are unchanged.
+The same read as step 5. The payload is now `{"answer": 43}`; the controller and the deposit are unchanged.
 
 ```bash
 open-datum inspect \

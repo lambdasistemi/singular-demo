@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Singular v0.14.0 — Demo 1 on a private development chain (devnet).
+# Singular v0.16.0 — Demo 1 on a private development chain (devnet).
 #
 # Alice runs an "open datum" registry: a table of keys, each holding a small
-# piece of data that only its owner may change. The script walks the whole
+# piece of data that only its controller may change. The script walks the whole
 # life of that registry in 16 steps, using only the programs in this kit.
 #
 # How to read this file: every line that starts with "#|" is the explanation
@@ -197,8 +197,8 @@ bob_signs_and_sends() { # NAME STEP-PREFIX
   cmd "singular wallet sign --vault bob.vault --passphrase-fd 3 --out witnesses/$name bundles/$name.bundle   (passphrase: 3< bob.passphrase)"
   capture "receipts/$prefix-$name.signed.txt" 0 singular wallet sign --vault bob.vault --passphrase-fd 3 --out "witnesses/$name" "bundles/$name.bundle" 3<bob.passphrase
   sed -n '1p;2p' "receipts/$prefix-$name.signed.txt.err" | cut -d, -f1,2 | shorten | sed 's/^/    /'
-  cmd "singular submit --witnesses witnesses/$name <provider> --receipt receipts/$prefix-$name.submitted.json bundles/$name.bundle"
-  capture "receipts/$prefix-$name.submit.json" 0 singular submit --witnesses "witnesses/$name" "${PROVIDER[@]}" --receipt "receipts/$prefix-$name.submitted.json" "bundles/$name.bundle"
+  cmd "singular submit --witnesses witnesses/$name --receipt receipts/$prefix-$name.submitted.json bundles/$name.bundle"
+  capture "receipts/$prefix-$name.submit.json" 0 "${AS_BOB[@]}" singular submit --witnesses "witnesses/$name" --receipt "receipts/$prefix-$name.submitted.json" "bundles/$name.bundle"
   facts "receipts/$prefix-$name.submitted.json" '.submissions[] | row("landed"; "slot \(.chainPoint.slot), \(.confirmations) confirmations"), row("effect"; .claims[0] | gsub("[0-9a-f]{12}[0-9a-f]{20,}"; "…"))'
   saved "receipts/$prefix-$name.submitted.json"
 }
@@ -310,20 +310,22 @@ else
 fi
 
 #| The chain printed one line of settings (devnet.json; the first line is copied to
-#| settings.json). "providerUrl" is the web API that answers every read and accepts
+#| chain.json). "providerUrl" is the web API that answers every read and accepts
 #| every transaction; "networkTimeDirectory" holds the chain's clock data (which slot
 #| happens at which moment), which the programs need to turn a deadline into a slot;
 #| "networkMagic" is the chain's number, 42.
 why
-cmd "jq . settings.json"
-head -n 1 devnet.json >settings.json
-KOIOS_URL=$(jq -r .providerUrl settings.json)
-TIME_DIR=$(jq -r .networkTimeDirectory settings.json)
-facts settings.json 'row("provider URL"; .providerUrl), row("network magic"; .networkMagic), row("chain clock data"; .networkTimeDirectory | split("/")[-3:] | join("/") | "…/" + .)'
+cmd "jq . chain.json"
+head -n 1 devnet.json >chain.json
+KOIOS_URL=$(jq -r .providerUrl chain.json)
+TIME_DIR=$(jq -r .networkTimeDirectory chain.json)
+facts chain.json 'row("provider URL"; .providerUrl), row("network magic"; .networkMagic), row("chain clock data"; .networkTimeDirectory | split("/")[-3:] | join("/") | "…/" + .)'
 until tip_slot >/dev/null 2>&1; do sleep 1; done
 more "The chain is up and producing blocks (one every ${SLOT_MS} milliseconds)."
-PROVIDER=(--koios-url "$KOIOS_URL" --network-time "$TIME_DIR" --network-magic 42)
 ALICE=(--vault alice.vault --passphrase-fd 3)
+# a command is run with the settings file of the person who runs it (SINGULAR_CONFIG names it)
+AS_ALICE=(env "SINGULAR_CONFIG=$PWD/alice.json")
+AS_BOB=(env "SINGULAR_CONFIG=$PWD/bob.json")
 
 # =============================================================================
 # THE 16 STEPS
@@ -332,43 +334,68 @@ ALICE=(--vault alice.vault --passphrase-fd 3)
 #| A registry is created from one unspent coin, the "seed": whoever holds that coin
 #| can create exactly one registry from it, which is what makes its identity unique.
 #| The command picks one of Alice's coins as the seed by itself. The registry's name is
-#| its "state token". One command opens Alice's vault, builds the transactions that publish
-#| the registry's scripts and its first state, signs them, sends them, and prints a receipt
+#| its address. One command opens Alice's vault, builds the transactions that publish the
+#| registry's scripts and its first state, signs them, sends them, and prints a receipt
 #| when everything has landed. The windows are short on purpose, so the waits later last
-#| minutes: @PROCESS_S@ seconds for the registry to process a request, @RETRACT_S@ more for its owner to take it back.
+#| minutes: @PROCESS_S@ seconds for the registry to process a request, @RETRACT_S@ more for its owner
+#| to take it back.
 step 1 "create the registry (Alice)"
-cmd "open-datum create --process-time $PROCESS_TIME_MS --retract-time $RETRACT_TIME_MS --state-dir reg --blueprint plutus.json <provider> <alice>"
-capture receipts/01-create.json 0 open-datum create --process-time "$PROCESS_TIME_MS" --retract-time "$RETRACT_TIME_MS" --state-dir reg --blueprint "$BLUEPRINT" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
-STATE_TOKEN=$(jq -r .stateToken receipts/01-create.json)
-facts receipts/01-create.json 'row("outcome"; .outcome), row("seed (a coin of Alice)"; .seed | sr), row("state token (its name)"; .stateToken | split(".") | (.[0] | s) + " . " + (.[1] | s)), row("transactions landed"; .transactions | length), row("processing window"; "\(.processTime / 1000) s"), row("retract window"; "\(.retractTime / 1000) s"), row("root (empty registry)"; .root | s)'
+more "Alice keeps her settings in a file of her own, alice.json: where the chain answers, its clock" \
+  "data, the chain's number (42), the compiled contracts and a folder for her journal."
+cmd "jq … > alice.json"
+jq -n --arg koios "$KOIOS_URL" --arg time "$TIME_DIR" --arg blueprint "$BLUEPRINT" '{"koios-url": $koios, "network-time": $time, "network-magic": 42, "blueprint": $blueprint, "state-dir": "alice-journal"}' >alice.json
+cmd "open-datum create --process-time $PROCESS_TIME_MS --retract-time $RETRACT_TIME_MS <alice>"
+capture receipts/01-create.json 0 "${AS_ALICE[@]}" open-datum create --process-time "$PROCESS_TIME_MS" --retract-time "$RETRACT_TIME_MS" "${ALICE[@]}" 3<alice.passphrase
+REGISTRY_ADDRESS=$(jq -r .registry receipts/01-create.json)
+facts receipts/01-create.json 'row("outcome"; .outcome), row("seed (a coin of Alice)"; .seed | sr), row("registry (its name)"; .registry | .[0:24] + "…"), row("fingerprint"; .fingerprint), row("transactions landed"; .transactions | length), row("processing window"; "\(.processTime / 1000) s"), row("retract window"; "\(.retractTime / 1000) s"), row("root (empty registry)"; .root | s)'
 saved receipts/01-create.json
-REGISTRY=(--state-dir reg --blueprint "$BLUEPRINT" --state-token "$STATE_TOKEN")
-more "" "From here on, three groups of options repeat on every command, so they are abbreviated:" \
-  "  <provider> = --koios-url URL --network-time DIR --network-magic 42   (which chain to talk to)" \
-  "  <registry> = --state-dir reg --blueprint plutus.json --state-token TOKEN   (which registry: its journal" \
-  "               folder reg, the compiled contracts, and the name printed above)" \
-  "  <alice>    = --vault alice.vault --passphrase-fd 3   (and 3< alice.passphrase)"
+more "" "Every command from here on names the registry by its address. It goes into Alice's file as \"registry\":"
+cmd "jq '.registry = ADDRESS' alice.json"
+jq --arg address "$REGISTRY_ADDRESS" '.registry = $address' alice.json >alice.new && mv alice.new alice.json
+more "" "A command reads the settings file of the person who runs it (alice.json or bob.json): the chain, the" \
+  "contracts, the journal folder and the registry's address. The one option that repeats is abbreviated:" \
+  "  <alice> = --vault alice.vault --passphrase-fd 3   (and 3< alice.passphrase)"
 pause_if_asked
 
 #| The registry describes itself: which registry this is, which release of Singular runs it,
-#| its rules and what it holds now. The create receipt contained this exact command (the
-#| field "describeCommand"), and this is that command, run as printed. The page is read
-#| from the chain's provider, so it is what the chain says and not a signed statement.
-step 2 "read the registry's page"
-cmd "singular registry describe <registry> <provider>      (the \"describeCommand\" of the create receipt)"
-capture receipts/02-describe.json 0 bash -c "$(jq -r .describeCommand receipts/01-create.json)"
-facts receipts/02-describe.json 'row("state token (its name)"; .registry.stateToken | split(".") | (.[0] | s) + " . " + (.[1] | s)), row("release"; .release.version), row("release page"; .release.releaseUrl), row("time to fold"; "\(.rules.processTime / 1000) s"), row("time to take back"; "\(.rules.retractTime / 1000) s"), row("longest key"; "\(.rules.maxKeyBytes) bytes"), row("registry root"; .state.root | s), row("keys held"; .state.activeKeys), row("keys removed"; .state.terminalKeys), row("pending requests"; .state.pendingRequests | length)'
+#| its rules and what it holds now. Alice's settings give the command the registry, the
+#| contracts and the chain. The page is read from the chain's provider, so it is what the
+#| chain says and not a signed statement.
+step 2 "read the registry's page, and give its address to Bob"
+cmd "singular registry describe      (Alice's settings)"
+capture receipts/02-describe.json 0 "${AS_ALICE[@]}" singular registry describe
+facts receipts/02-describe.json 'row("registry (its name)"; .registry.address | .[0:24] + "…"), row("release"; .release.version), row("release page"; .release.releaseUrl), row("time to fold"; "\(.rules.processTime / 1000) s"), row("time to take back"; "\(.rules.retractTime / 1000) s"), row("longest key"; "\(.rules.maxKeyBytes) bytes"), row("registry root"; .state.root | s), row("keys held"; .state.activeKeys), row("keys removed"; .state.terminalKeys), row("pending requests"; .state.pendingRequests | length)'
 saved receipts/02-describe.json
 
+#| Bob is on another machine, with a wallet and settings of his own. Alice gives him one
+#| thing, the registry's address; a message would carry it, and here the file registry.address
+#| stands for the message. Bob writes it into his own settings file as "registry". Then he reads
+#| the same page.
+why
+cmd "echo ADDRESS > registry.address      (Alice gives Bob the address, and nothing else)"
+printf '%s\n' "$REGISTRY_ADDRESS" >registry.address
+more "$(cat registry.address)"
+cmd "jq … > bob.json      (Bob's own settings: the chain, the contracts, his own journal, no registry yet)"
+jq -n --arg koios "$KOIOS_URL" --arg time "$TIME_DIR" --arg blueprint "$BLUEPRINT" '{"koios-url": $koios, "network-time": $time, "network-magic": 42, "blueprint": $blueprint, "state-dir": "bob-journal"}' >bob.json
+cmd "jq '.registry = ADDRESS' bob.json      (the address from registry.address)"
+jq --arg address "$(cat registry.address)" '.registry = $address' bob.json >bob.new && mv bob.new bob.json
+cmd "singular registry describe      (Bob's settings)"
+capture receipts/02-describe-bob.json 0 "${AS_BOB[@]}" singular registry describe
+facts receipts/02-describe-bob.json 'row("registry (its name)"; .registry.address | .[0:24] + "…"), row("keys held"; .state.activeKeys), row("pending requests"; .state.pendingRequests | length)'
+[ "$(jq -r .registry.address receipts/02-describe.json)" = "$(jq -r .registry.address receipts/02-describe-bob.json)" ] || die "Bob's page names another registry"
+more "Bob's page names the same registry as Alice's."
+saved receipts/02-describe-bob.json
+pause_if_asked
+
 #| Alice adds a key. She books "alice" with a first piece of data (the payload: here
-#| the number 42, written as Plutus data in JSON). The booking locks her deposit of
+#| the document {"answer": 42}, written as plain JSON). The booking locks her deposit of
 #| 2 ada in a request at the registry. It does not change the registry yet: the request is
 #| PENDING until somebody folds it, and the receipt names the deadline for that, the
 #| "fold deadline". Alice's wallet becomes the key's controller, the only one who may change it.
 step 3 "book the key \"alice\" (Alice)"
-echo '{"constructor":0,"fields":[{"int":42}]}' >payload.json
-cmd "open-datum insert --key alice --payload payload.json <registry> <provider> <alice>"
-capture receipts/03-insert-alice.json 0 open-datum insert "${REGISTRY[@]}" --key alice --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+echo '{"answer": 42}' >payload.json
+cmd "open-datum insert --key alice --payload payload.json <alice>"
+capture receipts/03-insert-alice.json 0 "${AS_ALICE[@]}" open-datum insert --key alice --payload payload.json "${ALICE[@]}" 3<alice.passphrase
 facts receipts/03-insert-alice.json 'row("outcome"; .outcome), row("pending request"; .request | sr), row("key"; .keyText), row("deposit locked"; .envelope.fields[0].fields[5].int | ada), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 saved receipts/03-insert-alice.json
 pause_if_asked
@@ -377,30 +404,30 @@ pause_if_asked
 #| here Bob does, the external way: his command only names his address and a bundle file.
 #| It builds the transactions, writes them into that file, signs nothing and sends nothing.
 step 4 "fold it (Bob signs outside the program)"
-cmd "open-datum fold <registry> <provider> --wallet-address BOB --bundle bundles/fold-insert.bundle      → exits 19"
-capture receipts/04-fold-insert.json 19 open-datum fold "${REGISTRY[@]}" "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/fold-insert.bundle
+cmd "open-datum fold --wallet-address BOB --bundle bundles/fold-insert.bundle      → exits 19"
+capture receipts/04-fold-insert.json 19 "${AS_BOB[@]}" open-datum fold --wallet-address "$BOB_ADDR" --bundle bundles/fold-insert.bundle
 facts receipts/04-fold-insert.json 'row("outcome"; .outcome), (.expected.settled[] | row("would settle"; "\(.key | unhex) (\(.edge)), request \(.request | sr)")), row("new root would be"; .expected.root | s), row("time left to fold"; "\(.expected.remainingMs / 1000 | floor) s")'
 saved receipts/04-fold-insert.json
 bob_signs_and_sends fold-insert 04
 pause_if_asked
 
 #| Reading is free and needs no key and no wallet. "inspect" asks the chain for the key's
-#| state and prints what it found: the key is now ACTIVE, with its payload, its owner and
+#| state and prints what it found: the key is now ACTIVE, with its payload, its controller and
 #| the deposit that stays locked with it.
 step 5 "read the key back"
-cmd "open-datum inspect --key alice <registry> <provider>"
-capture receipts/05-inspect.json 0 open-datum inspect "${REGISTRY[@]}" --key alice "${PROVIDER[@]}"
+cmd "open-datum inspect --key alice"
+capture receipts/05-inspect.json 0 "${AS_ALICE[@]}" open-datum inspect --key alice
 facts receipts/05-inspect.json 'row("key"; .keyText), row("state"; .leaf), row("payload"; .applicationOutput.payload | tojson), row("deposit"; .applicationOutput.deposit | ada), row("held in output"; .applicationOutput.output | sr), row("registry root"; .root | s)'
 saved receipts/05-inspect.json
 pause_if_asked
 
-#| Alice, as the key's controller, replaces the payload with 43. Only she may; nobody
+#| Alice, as the key's controller, replaces the payload with {"answer": 43}. Only she may; nobody
 #| else's signature would be accepted. An update is immediate (no booking, no fold), and
 #| the registry's root does not change: the receipt shows the root before and after.
 step 6 "change the data (Alice)"
-echo '{"constructor":0,"fields":[{"int":43}]}' >payload-new.json
-cmd "open-datum update --key alice --payload payload-new.json <registry> <provider> <alice>"
-capture receipts/06-update.json 0 open-datum update "${REGISTRY[@]}" --key alice --payload payload-new.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+echo '{"answer": 43}' >payload-new.json
+cmd "open-datum update --key alice --payload payload-new.json <alice>"
+capture receipts/06-update.json 0 "${AS_ALICE[@]}" open-datum update --key alice --payload payload-new.json "${ALICE[@]}" 3<alice.passphrase
 ROOT_BEFORE=$(jq -r .root receipts/05-inspect.json)
 ROOT_AFTER=$(jq -r .root receipts/06-update.json)
 facts receipts/06-update.json 'row("outcome"; .outcome), row("new payload"; .payload | tojson)'
@@ -409,10 +436,10 @@ printf "    %-24s%s\n" "root before:" "${ROOT_BEFORE:0:12}…" "root after:" "${
 saved receipts/06-update.json
 pause_if_asked
 
-#| The same read again: the payload is now 43, the owner and the deposit are unchanged.
+#| The same read again: the payload is now {"answer": 43}, the controller and the deposit are unchanged.
 step 7 "read the key back again"
-cmd "open-datum inspect --key alice <registry> <provider>"
-capture receipts/07-inspect.json 0 open-datum inspect "${REGISTRY[@]}" --key alice "${PROVIDER[@]}"
+cmd "open-datum inspect --key alice"
+capture receipts/07-inspect.json 0 "${AS_ALICE[@]}" open-datum inspect --key alice
 facts receipts/07-inspect.json 'row("state"; .leaf), row("payload"; .applicationOutput.payload | tojson), row("deposit"; .applicationOutput.deposit | ada), row("registry root"; .root | s)'
 saved receipts/07-inspect.json
 pause_if_asked
@@ -421,8 +448,8 @@ pause_if_asked
 #| names the pending request, the live output the fold will release, and the deposit
 #| that will come back to her.
 step 8 "book the removal of the key (Alice)"
-cmd "open-datum terminate --key alice <registry> <provider> <alice>"
-capture receipts/08-terminate.json 0 open-datum terminate "${REGISTRY[@]}" --key alice "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "open-datum terminate --key alice <alice>"
+capture receipts/08-terminate.json 0 "${AS_ALICE[@]}" open-datum terminate --key alice "${ALICE[@]}" 3<alice.passphrase
 facts receipts/08-terminate.json 'row("outcome"; .outcome), row("pending request"; .request | sr), row("will release"; .released | sr), row("deposit to return"; .deposit | ada), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 saved receipts/08-terminate.json
 pause_if_asked
@@ -430,8 +457,8 @@ pause_if_asked
 #| Bob folds the termination, the external way again. When it lands, the key's token is
 #| burned and the deposit goes back to Alice.
 step 9 "fold the removal (Bob signs outside the program)"
-cmd "open-datum fold <registry> <provider> --wallet-address BOB --bundle bundles/fold-terminate.bundle      → exits 19"
-capture receipts/09-fold-terminate.json 19 open-datum fold "${REGISTRY[@]}" "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/fold-terminate.bundle
+cmd "open-datum fold --wallet-address BOB --bundle bundles/fold-terminate.bundle      → exits 19"
+capture receipts/09-fold-terminate.json 19 "${AS_BOB[@]}" open-datum fold --wallet-address "$BOB_ADDR" --bundle bundles/fold-terminate.bundle
 facts receipts/09-fold-terminate.json 'row("outcome"; .outcome), (.expected.settled[] | row("would settle"; "\(.key | unhex) (\(.edge)), request \(.request | sr)")), row("time left to fold"; "\(.expected.remainingMs / 1000 | floor) s")'
 saved receipts/09-fold-terminate.json
 bob_signs_and_sends fold-terminate 09
@@ -440,24 +467,24 @@ pause_if_asked
 #| Read it back: the key is now TERMINAL (gone for good, it can never be used again) and
 #| nothing holds it any more.
 step 10 "read the removed key"
-cmd "open-datum inspect --key alice <registry> <provider>"
-capture receipts/10-inspect.json 0 open-datum inspect "${REGISTRY[@]}" --key alice "${PROVIDER[@]}"
+cmd "open-datum inspect --key alice"
+capture receipts/10-inspect.json 0 "${AS_ALICE[@]}" open-datum inspect --key alice
 facts receipts/10-inspect.json 'row("state"; .leaf), row("holding"; .applicationOutput.absent // "?"), row("registry root"; .root | s)'
 saved receipts/10-inspect.json
 pause_if_asked
 
 #| What if nobody folds a request? Alice books the key "late" and nobody touches it. A
-#| request that stays pending past its two windows (processing, then retract) blocks the
-#| registry, and the cure is a REJECT, which sends the deposit back to the owner. While
-#| a window is still open the program refuses to build it, and says so; that refusal is
-#| the first thing shown. Windows are judged by the chain's own latest block (its "tip"),
-#| never by this computer's clock.
+#| request that stays pending keeps its deposit locked, and other requests can still be
+#| folded meanwhile. Once its two windows (processing, then retract) are over, the cure is
+#| a REJECT, which sends the deposit back to the owner. While a window is still open the
+#| program refuses to build it, and says so; that refusal is the first thing shown. Windows
+#| are judged by the chain's own latest block (its "tip"), never by this computer's clock.
 step 11 "a request nobody folded: wait out its windows, then reject it"
-cmd "open-datum insert --key late --payload payload.json <registry> <provider> <alice>"
-capture receipts/11a-insert-late.json 0 open-datum insert "${REGISTRY[@]}" --key late --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "open-datum insert --key late --payload payload.json <alice>"
+capture receipts/11a-insert-late.json 0 "${AS_ALICE[@]}" open-datum insert --key late --payload payload.json "${ALICE[@]}" 3<alice.passphrase
 facts receipts/11a-insert-late.json 'row("pending request"; .request | sr), row("fold deadline"; "slot \(.foldDeadline.slot)")'
-cmd "singular registry reject <registry> <provider> --wallet-address BOB --bundle bundles/reject.bundle      → refused for now"
-capture receipts/11b-reject-too-early.json 10 singular registry reject "${REGISTRY[@]}" "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/reject.bundle
+cmd "singular registry reject --wallet-address BOB --bundle bundles/reject.bundle      → refused for now"
+capture receipts/11b-reject-too-early.json 10 "${AS_BOB[@]}" singular registry reject --wallet-address "$BOB_ADDR" --bundle bundles/reject.bundle
 facts receipts/11b-reject-too-early.json 'row("outcome"; .outcome), (.pendingRequests[] | row("still in a window"; "\(.request | sr), retract window closes at slot \(.retractEndsSlot)")), row("chain tip now"; "slot \(.tipSlot)")'
 saved receipts/11b-reject-too-early.json
 more "Refused, and nothing was built: the request is still inside its windows. So we wait for the chain" \
@@ -467,8 +494,8 @@ wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject
 #| Both windows are over. Bob asks again, the external way (anyone may reject), and this time
 #| the program builds the transaction: it returns the request's locked value to its owner, Alice.
 why
-cmd "singular registry reject <registry> <provider> --wallet-address BOB --bundle bundles/reject.bundle      → exits 19"
-capture receipts/11c-reject.json 19 singular registry reject "${REGISTRY[@]}" "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/reject.bundle
+cmd "singular registry reject --wallet-address BOB --bundle bundles/reject.bundle      → exits 19"
+capture receipts/11c-reject.json 19 "${AS_BOB[@]}" singular registry reject --wallet-address "$BOB_ADDR" --bundle bundles/reject.bundle
 facts receipts/11c-reject.json 'row("outcome"; .outcome), (.expected.rejected[] | row("rejects"; "\(.key | unhex), request \(.request | sr)"), row("locked value"; "\(.locked.lovelace | ada) and the request token"), row("refund to"; "\(.returned.recipient | .[0:20])… (Alice), \(.returned.lovelace | ada)")), row("registry root"; "unchanged: \(.expected.root | s)")'
 saved receipts/11c-reject.json
 bob_signs_and_sends reject 11
@@ -478,8 +505,8 @@ pause_if_asked
 #| external flow from the start: his command names his address and a bundle file, and the
 #| bundle holds the booking.
 step 12 "book the key \"bob\" (Bob signs outside the program)"
-cmd "open-datum insert --key bob --payload payload.json <registry> <provider> --wallet-address BOB --bundle bundles/insert-bob.bundle      → exits 19"
-capture receipts/12-insert-bob.json 19 open-datum insert "${REGISTRY[@]}" --key bob --payload payload.json "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/insert-bob.bundle
+cmd "open-datum insert --key bob --payload payload.json --wallet-address BOB --bundle bundles/insert-bob.bundle      → exits 19"
+capture receipts/12-insert-bob.json 19 "${AS_BOB[@]}" open-datum insert --key bob --payload payload.json --wallet-address "$BOB_ADDR" --bundle bundles/insert-bob.bundle
 facts receipts/12-insert-bob.json 'row("outcome"; .outcome), row("pending request"; .expected.request | sr), row("fold deadline"; "slot \(.expected.foldDeadline.slot)")'
 saved receipts/12-insert-bob.json
 bob_signs_and_sends insert-bob 12
@@ -488,8 +515,8 @@ pause_if_asked
 #| Alice folds Bob's request. Here the fold is a single command, because it is her vault
 #| that signs and sends it, and it prints its receipt when it has landed.
 step 13 "fold Bob's key (Alice, vault in one command)"
-cmd "open-datum fold <registry> <provider> <alice>"
-capture receipts/13-fold-bob.json 0 open-datum fold "${REGISTRY[@]}" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "open-datum fold <alice>"
+capture receipts/13-fold-bob.json 0 "${AS_ALICE[@]}" open-datum fold "${ALICE[@]}" 3<alice.passphrase
 facts receipts/13-fold-bob.json 'row("outcome"; .outcome), (.settled[] | row("settled"; "\(.key | unhex) (\(.edge)), request \(.request | sr)")), row("new root"; .root | s)'
 saved receipts/13-fold-bob.json
 pause_if_asked
@@ -500,13 +527,13 @@ pause_if_asked
 #| it. Reclaiming straight away is refused (the processing window is still open); once the chain
 #| tip passes the processing deadline, Alice can take the request back.
 step 14 "take back a request: wait for the retract window, then reclaim it"
-cmd "open-datum insert --key carol --payload payload.json <registry> <provider> <alice>"
-capture receipts/14a-insert-carol.json 0 open-datum insert "${REGISTRY[@]}" --key carol --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "open-datum insert --key carol --payload payload.json <alice>"
+capture receipts/14a-insert-carol.json 0 "${AS_ALICE[@]}" open-datum insert --key carol --payload payload.json "${ALICE[@]}" 3<alice.passphrase
 CAROL_REQUEST=$(jq -r .request receipts/14a-insert-carol.json)
 CAROL_OPENS=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 facts receipts/14a-insert-carol.json 'row("pending request"; .request | sr), row("retract window opens"; "after slot \(.foldDeadline.slot)")'
-cmd "singular registry reclaim --request $(printf %s "${CAROL_REQUEST%%#*}" | shorten)#0 <registry> <provider> <alice>      → refused for now"
-capture receipts/14b-reclaim-too-early.json 10 singular registry reclaim "${REGISTRY[@]}" --request "$CAROL_REQUEST" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "singular registry reclaim --request $(printf %s "${CAROL_REQUEST%%#*}" | shorten)#0 <alice>      → refused for now"
+capture receipts/14b-reclaim-too-early.json 10 "${AS_ALICE[@]}" singular registry reclaim --request "$CAROL_REQUEST" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/14b-reclaim-too-early.json 'row("outcome"; .outcome), row("reason"; .reason | gsub("[0-9]{13} ms"; "…"))'
 saved receipts/14b-reclaim-too-early.json
 wait_for_slot "$CAROL_OPENS" "waiting for the processing window to end (the retract window then opens)"
@@ -515,16 +542,16 @@ wait_for_slot "$CAROL_OPENS" "waiting for the processing window to end (the retr
 #| command. The receipt names the request, the transaction that retracted it, and the money
 #| it returned to her.
 why
-cmd "singular registry reclaim --request $(printf %s "${CAROL_REQUEST%%#*}" | shorten)#0 <registry> <provider> <alice>"
-capture receipts/14c-reclaim.json 0 singular registry reclaim "${REGISTRY[@]}" --request "$CAROL_REQUEST" "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "singular registry reclaim --request $(printf %s "${CAROL_REQUEST%%#*}" | shorten)#0 <alice>"
+capture receipts/14c-reclaim.json 0 "${AS_ALICE[@]}" singular registry reclaim --request "$CAROL_REQUEST" "${ALICE[@]}" 3<alice.passphrase
 facts receipts/14c-reclaim.json 'row("outcome"; .outcome), row("reclaimed request"; .request | sr), row("returned to"; "\(.returned.recipient | .[0:20])… (Alice), \(.returned.lovelace | ada)"), row("window"; "slots \(.processingEndsSlot) to \(.retractEndsSlot); chain tip was \(.tipSlot)")'
 saved receipts/14c-reclaim.json
 pause_if_asked
 
 #| The reclaimed request no longer blocks anything, so Alice books one more key, "dave".
 step 15 "book the key \"dave\" (Alice)"
-cmd "open-datum insert --key dave --payload payload.json <registry> <provider> <alice>"
-capture receipts/15-insert-dave.json 0 open-datum insert "${REGISTRY[@]}" --key dave --payload payload.json "${PROVIDER[@]}" "${ALICE[@]}" 3<alice.passphrase
+cmd "open-datum insert --key dave --payload payload.json <alice>"
+capture receipts/15-insert-dave.json 0 "${AS_ALICE[@]}" open-datum insert --key dave --payload payload.json "${ALICE[@]}" 3<alice.passphrase
 facts receipts/15-insert-dave.json 'row("outcome"; .outcome), row("pending request"; .request | sr), row("fold deadline"; "slot \(.foldDeadline.slot)")'
 saved receipts/15-insert-dave.json
 pause_if_asked
@@ -532,13 +559,13 @@ pause_if_asked
 #| Bob folds "dave", external signing as before. Afterwards an independent read asks the
 #| chain for the key and finds it ACTIVE: the last proof that the whole journey worked.
 step 16 "fold \"dave\" (Bob signs outside the program), then read it"
-cmd "open-datum fold <registry> <provider> --wallet-address BOB --bundle bundles/fold-dave.bundle      → exits 19"
-capture receipts/16a-fold-dave.json 19 open-datum fold "${REGISTRY[@]}" "${PROVIDER[@]}" --wallet-address "$BOB_ADDR" --bundle bundles/fold-dave.bundle
+cmd "open-datum fold --wallet-address BOB --bundle bundles/fold-dave.bundle      → exits 19"
+capture receipts/16a-fold-dave.json 19 "${AS_BOB[@]}" open-datum fold --wallet-address "$BOB_ADDR" --bundle bundles/fold-dave.bundle
 facts receipts/16a-fold-dave.json 'row("outcome"; .outcome), (.expected.settled[] | row("would settle"; "\(.key | unhex) (\(.edge)), request \(.request | sr)")), row("time left to fold"; "\(.expected.remainingMs / 1000 | floor) s")'
 saved receipts/16a-fold-dave.json
 bob_signs_and_sends fold-dave 16
-cmd "open-datum inspect --key dave <registry> <provider>"
-capture receipts/16b-inspect-dave.json 0 open-datum inspect "${REGISTRY[@]}" --key dave "${PROVIDER[@]}"
+cmd "open-datum inspect --key dave"
+capture receipts/16b-inspect-dave.json 0 "${AS_ALICE[@]}" open-datum inspect --key dave
 facts receipts/16b-inspect-dave.json 'row("key"; .keyText), row("state"; .leaf), row("payload"; .applicationOutput.payload | tojson), row("registry root"; .root | s)'
 [ "$(jq -r .leaf receipts/16b-inspect-dave.json)" = active ] || die "dave is not active"
 saved receipts/16b-inspect-dave.json

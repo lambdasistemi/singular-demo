@@ -16,6 +16,9 @@ with tempfile.TemporaryDirectory(prefix="tutorial-update-") as temp:
     shutil.copytree(repo / "killercoda/demo1-steps", root / "killercoda/demo1-steps")
     shutil.copytree(repo / "demos/demo1/play", root / "demos/demo1/play")
     shutil.copy(repo / "demos/demo1/version.js", root / "demos/demo1/version.js")
+    shutil.copy(repo / "demos/demo1/release.js", root / "demos/demo1/release.js")
+    (root / "kit").mkdir()
+    shutil.copy(repo / "kit/revision", root / "kit/revision")
     shutil.copy(repo / "flake.nix", root / "flake.nix")
     for name in [
         "server.py",
@@ -40,13 +43,13 @@ with tempfile.TemporaryDirectory(prefix="tutorial-update-") as temp:
     )
     home = root / "home"
     home.mkdir()
-    version = subprocess.run(
-        ["node", "-p", "require('" + str(root / "demos/demo1/version.js") + "')"],
+    release = subprocess.run(
+        ["node", "-p", "require('" + str(root / "demos/demo1/release.js") + "')"],
         capture_output=True,
         text=True,
         check=True,
     ).stdout.strip()
-    kit = home / ("singular-demo-" + version + "-x86_64-linux")
+    kit = home / ("singular-demo-" + release + "-x86_64-linux")
     (kit / "bin").mkdir(parents=True)
     (kit / "bin/singular").write_text("#!/bin/sh\n")
     (kit / "bin/singular").chmod(0o755)

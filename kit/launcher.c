@@ -1,5 +1,5 @@
-/* Kit launcher: one tiny static program, installed under four names
- * (singular, open-datum, devnet, cardano-node).
+/* Kit launcher: one tiny static program, installed under five names
+ * (singular, open-datum, devnet, cardano-node, node).
  *
  * It finds the kit root from /proc/self/exe, then starts the real
  * executable libexec/<name> through the kit's own dynamic loader with the kit's
@@ -21,13 +21,18 @@
 
 #define LOADER "ld-linux-x86-64.so.2"
 
+/* three library sets, each with the C library it was built against: the Haskell programs (main),
+ * cardano-node (node) and Node.js, the JavaScript runtime of sink-tools (js) */
 static const char *libset(const char *name) {
-  return strcmp(name, "cardano-node") == 0 ? "node" : "main";
+  if (strcmp(name, "cardano-node") == 0) return "node";
+  if (strcmp(name, "node") == 0) return "js";
+  return "main";
 }
 
 static int known(const char *name) {
   return !strcmp(name, "singular") || !strcmp(name, "open-datum") ||
-         !strcmp(name, "devnet") || !strcmp(name, "cardano-node");
+         !strcmp(name, "devnet") || !strcmp(name, "cardano-node") ||
+         !strcmp(name, "node");
 }
 
 int main(int argc, char **argv) {

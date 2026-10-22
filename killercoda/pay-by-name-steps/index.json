@@ -1,0 +1,71 @@
+{
+  "title": "Pay by name on a private chain",
+  "description": "Bob owes money to Alice and Dave and does not know where they receive it. He pays them by name, in a registry that Carol made. Play the five of them yourself, in five tmux windows, on a private Cardano test chain. Ubuntu, nothing to install.",
+  "details": {
+    "intro": {
+      "text": "intro/text.md",
+      "foreground": "intro/foreground.sh",
+      "background": "intro/background.sh"
+    },
+    "steps": [
+      {
+        "title": "tmux, in five words",
+        "text": "step1/text.md"
+      },
+      {
+        "title": "Setup: five wallets and a private chain",
+        "text": "step2/text.md"
+      },
+      {
+        "title": "Carol creates the registry and publishes it",
+        "text": "step3/text.md"
+      },
+      {
+        "title": "Alice checks the registry before she uses it",
+        "text": "step4/text.md"
+      },
+      {
+        "title": "Alice registers her name",
+        "text": "step5/text.md"
+      },
+      {
+        "title": "Bob checks the registry and asks",
+        "text": "step6/text.md"
+      },
+      {
+        "title": "Alice replies",
+        "text": "step7/text.md"
+      },
+      {
+        "title": "Dave checks the registry Bob named",
+        "text": "step8/text.md"
+      },
+      {
+        "title": "Dave registers his name and replies",
+        "text": "step9/text.md"
+      },
+      {
+        "title": "Bob pays both names",
+        "text": "step10/text.md"
+      },
+      {
+        "title": "Alice and Dave move their money",
+        "text": "step11/text.md"
+      },
+      {
+        "title": "Alice changes her address",
+        "text": "step12/text.md"
+      },
+      {
+        "title": "What this does, and where it stops",
+        "text": "step13/text.md"
+      }
+    ],
+    "finish": {
+      "text": "finish/text.md"
+    }
+  },
+  "backend": {
+    "imageid": "ubuntu-4GB"
+  }
+}
