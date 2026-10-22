@@ -67,8 +67,14 @@ done
 date -u +%FT%TZ
 echo "PAGES reached=$(cat $state/page 2>/dev/null) of=$pages"
 echo "== the chain, after the last page stopped it with kill %1"
-# devnet and cardano-node run through the loader the kit brings, lib/*/ld-linux-x86-64.so.2
-n=0; for p in /proc/[0-9]*; do case "$(readlink $p/exe 2>/dev/null)" in /work/*/lib/*/ld-linux*) echo "LEFT: pid ${p#/proc/} $(tr "\0" " " <$p/cmdline | cut -c1-80)"; n=$((n+1));; esac; done
+# devnet and cardano-node run through the loader the kit brings, lib/*/ld-linux-x86-64.so.2; kill %1 asks them to stop, which
+# takes a moment on a busy machine, so the scan waits up to 30 seconds for them to be gone
+for i in $(seq 1 30); do
+  n=0; for p in /proc/[0-9]*; do case "$(readlink $p/exe 2>/dev/null)" in /work/*/lib/*/ld-linux*) n=$((n+1));; esac; done
+  [ "$n" = 0 ] && break
+  sleep 1
+done
+for p in /proc/[0-9]*; do case "$(readlink $p/exe 2>/dev/null)" in /work/*/lib/*/ld-linux*) echo "LEFT: pid ${p#/proc/} $(tr "\0" " " <$p/cmdline | cut -c1-80)";; esac; done
 echo "CHAIN processes=$n"
 for w in $WINDOWS; do $t capture-pane -p -J -S - -t demo:$w >/out/window-$w.log; done
 $t kill-server
