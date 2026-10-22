@@ -7,7 +7,7 @@ cat ../messages/bob-to-alice.json
 ```
 
 ```bash alice
-[ "$(jq -r '."state-token"' ../messages/bob-to-alice.json)" = "$(jq -r '."state-token"' singular.json)" ] && echo "the same registry" || echo "a different registry"
+[ "$(jq -r .registry ../messages/bob-to-alice.json)" = "$(jq -r .registry singular.json)" ] && echo "the same registry" || echo "a different registry"
 ```
 
 She has a name, so she replies at once. The reply is one line: her name, read back from the key.

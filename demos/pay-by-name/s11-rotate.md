@@ -9,12 +9,12 @@ sink-tools addr-json "$alice2_addr" > payload-new.json
 ```
 
 ```bash alice
-open-datum update --key alice --payload payload-new.json --vault alice.vault > update.json
+open-datum update --key alice --payload payload-new.json --payload-schema detailed --vault alice.vault > update.json
 ```
 
 ```bash alice
 jq '{outcome}' update.json
-open-datum inspect --key alice | jq -c '.applicationOutput.payload'
+open-datum inspect --key alice | jq -c '.applicationOutput | {payloadSchema, payload}'
 cat payload-new.json
 ```
 

@@ -7,7 +7,7 @@ sink-tools addr-json "$dave_addr" > payload.json
 ```
 
 ```bash dave
-open-datum insert --key dave --payload payload.json --vault dave.vault > insert.json
+open-datum insert --key dave --payload payload.json --payload-schema detailed --vault dave.vault > insert.json
 ```
 
 ```bash dave

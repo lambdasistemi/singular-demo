@@ -14,6 +14,7 @@ import {
   readFileSync,
 } from './lib.mjs';
 import { sinkScript } from './sink.mjs';
+import { registryToken } from './addr.mjs';
 import { textToHex } from './lib.mjs';
 
 export const redeemerFor = (ref) => Data.to(new Constr(0, [ref.txHash, BigInt(ref.outputIndex)]));
@@ -51,7 +52,7 @@ export async function hand({ lucid, built, from, command, effects, bundle }) {
       command,
       networkMagic: config()['network-magic'],
       signers: [from],
-      stateToken: config()['state-token'],
+      stateToken: config().registry ? registryToken(config().registry) : undefined,
       transactions: [
         {
           deadline: Number(ttl),

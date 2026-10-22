@@ -1,6 +1,6 @@
 # Alice registers her name
 
-Alice adds the key `alice`. Its payload is her address, written as an address in Plutus data. Money paid to `alice` goes to the address registered there.
+Alice adds the key `alice`. Its payload is her address, written as an address in Plutus data, in its detailed JSON form: an address is made of constructors and fields, which plain JSON cannot hold, so the commands that read this file say `--payload-schema detailed`. Money paid to `alice` goes to the address registered there.
 
 ```bash alice
 sink-tools addr-json "$alice_addr" > payload.json
@@ -10,7 +10,7 @@ cat payload.json
 **The booking.** Her vault signs it. It does not change the registry yet: it makes a request, which waits until somebody folds it into the registry. A fold is a command of its own, and anyone may run it. The request waits ten minutes for one.
 
 ```bash alice
-open-datum insert --key alice --payload payload.json --vault alice.vault > insert.json
+open-datum insert --key alice --payload payload.json --payload-schema detailed --vault alice.vault > insert.json
 ```
 
 ```bash alice

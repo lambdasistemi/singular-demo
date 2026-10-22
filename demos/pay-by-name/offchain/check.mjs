@@ -1,17 +1,22 @@
-// check-registry: is this registry's pinned application the release's open-datum validator applied to this state token?
+// check-registry: is this registry's pinned application the release's open-datum validator applied to this state token,
+// and is the sink script a registry's creator published the sink validator applied to this registry's active policy?
 import { applyParamsToScript, validatorToScriptHash } from '@lucid-evolution/lucid';
 import { Data, config, utxosWithUnit, provider, readFileSync } from './lib.mjs';
-import { addrJson } from './addr.mjs';
+import { addrJson, registryToken } from './addr.mjs';
 import { registrySinkScript } from './sink.mjs';
 
 // args: { describe?: path, published?: path, stateToken?, stateOutput?: "txid#ix" }   exit code 1 on any mismatch
+// The registry is named by a describe file, by --state-token, or by the "registry" (its address) of the settings file.
 export async function checkRegistry(args) {
   const cfg = config();
   const describe = args.describe ? JSON.parse(readFileSync(args.describe, 'utf8')) : undefined;
-  const token = args.stateToken ?? describe?.registry?.stateToken ?? cfg['state-token'];
+  const token =
+    args.stateToken ??
+    describe?.registry?.stateToken ??
+    (cfg.registry ? registryToken(cfg.registry) : undefined);
   if (!token)
     throw new Error(
-      'no state token: pass --state-token, a describe file, or put "state-token" in singular.json',
+      'no registry: pass --state-token, a describe file, or put "registry" (its address) in the settings file',
     );
   const [policy, name] = token.split('.');
   const blueprint = JSON.parse(
@@ -31,6 +36,7 @@ export async function checkRegistry(args) {
     out = live[0];
   }
   if (!out?.datum) throw new Error('the state output is not found or carries no inline datum');
+  if (describe?.registry?.address) say(`registry:               ${describe.registry.address}`);
   say(`state token:            ${token}`);
   say(
     `state output:           ${out.txHash}#${out.outputIndex}${args.stateOutput ? ' (named on the command line)' : ' (found on chain by the token)'}`,
@@ -72,22 +78,19 @@ export async function checkRegistry(args) {
     bad = true;
   }
 
-  // 5. the active policy
+  // 5. the active policy: the registry's programs derive it from the release; here it is read for the sink script below
   say(`active policy (state datum):                              ${pinnedActive}`);
-  if (describe) {
-    const ok = describe.registry.activeScript === pinnedActive;
-    say(
-      `describe registry.activeScript:                          ${describe.registry.activeScript}`,
-    );
-    say(ok ? 'active policy: matches describe' : 'active policy: does not match describe');
-    if (!ok) bad = true;
-  }
 
   // 6. the registry's sink script published by the registry's creator: is it the sink validator applied to this active policy?
   if (args.published) {
     const pub = JSON.parse(readFileSync(args.published, 'utf8'));
-    if (pub['state-token'] !== token) {
-      say(`published state token ${pub['state-token']} is NOT the token checked`);
+    let pubToken;
+    try {
+      pubToken = registryToken(pub.registry);
+    } catch {}
+    if (pubToken === token) say('published registry: matches');
+    else {
+      say(`published registry: does not match (${pub.registry} is not the registry checked)`);
       bad = true;
     }
     const mine = registrySinkScript(pinnedActive, args.sinkBlueprint);

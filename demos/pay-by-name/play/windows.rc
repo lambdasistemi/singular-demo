@@ -11,11 +11,11 @@ export SINGULAR_PASSPHRASE=demo
 # the helpers of the play: koios_url, wait_for_slot, wallet_show
 . "$(dirname "${BASH_SOURCE[0]}")/helpers.sh"
 
-# settings [STATE_TOKEN]: writes singular.json in this folder. The programs read it to find the chain, the network, the
-# compiled contracts and the folder where this person keeps the journal of their writes, and, when a registry is named, its state token.
+# settings [ADDRESS]: writes singular.json in this folder. The programs read it to find the chain, the network, the
+# compiled contracts and the folder where this person keeps the journal of their writes, and, when a registry is named, its address.
 settings() {
-  jq -n --slurpfile chain "$PLAY_RUN/devnet.out" --arg blueprint "$blueprint" --arg dir "$PWD/state" --arg token "${1:-}" \
-    '$chain[0] | {"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": $dir} + (if $token == "" then {} else {"state-token": $token} end)' >singular.json
+  jq -n --slurpfile chain "$PLAY_RUN/devnet.out" --arg blueprint "$blueprint" --arg dir "$PWD/state" --arg address "${1:-}" \
+    '$chain[0] | {"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": $dir} + (if $address == "" then {} else {"registry": $address} end)' >singular.json
 }
 
 # outputs_at ADDRESS [TRANSACTION]: the outputs at an address, one line each; only those of the transaction when it is given

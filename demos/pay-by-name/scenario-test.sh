@@ -13,7 +13,9 @@
 # 3. the story's files and screens are checked
 # 4. the controls: a stranger moves the money; an attacker, a forged output, another registry, a missing reference, two sinks in one
 #    transaction (and the variant without the check that stops it), a datum hash, an inline datum; a registry checked against a wrong
-#    state output and against a foreign application; a name ended and booked again; a dead sink. Each asserts its label or outcome.
+#    state output and against a foreign application, which the open-datum commands refuse by themselves; a published page that
+#    names another registry or carries another sink script; a name ended and booked again; a dead sink. Each asserts its
+#    label, outcome or text.
 # 5. the finish page stops the chain (kill %1)
 # KIT_BASE=file:///dir takes the kit from a folder instead of the release page (a kit not published yet); the setup script
 # reads it as PLAY_KIT_BASE. CONTROLS names the test-only controls (default /kit/controls.cjs).
@@ -237,7 +239,8 @@ sink_ada() { curl -s -X POST "$(koios_url)/address_utxos" -H 'content-type: appl
 [ "$(sink_ada "$(jq -r .address bob/sink-alice.json)")" = 13 ] && ok "Alice's sink holds 13 ada" || bad "Alice's sink does not hold 13 ada"
 [ "$(sink_ada "$(jq -r .address bob/sink-dave.json)")" = 10 ] && ok "Dave's sink holds 10 ada" || bad "Dave's sink does not hold 10 ada"
 active1=$(jq -r .registry.activeScript alice/describe.json)
-token1=$(jq -r '."state-token"' alice/singular.json)
+token1=$(jq -r .registry.stateToken alice/describe.json)
+registry1=$(jq -r .registry alice/singular.json)
 
 # ---- the controls
 echo "== controls: $(df -h / | tail -1)"
@@ -263,7 +266,7 @@ tx=$(sed -n 's/^transaction \([0-9a-f]*\) submitted and confirmed$/\1/p' alice/s
 echo "== Alice books alice-tips at the same address (needed by the two-sinks control)"
 (
   cd alice || exit 1
-  open-datum insert --key alice-tips --payload payload-new.json --vault alice.vault >insert-tips.json &&
+  open-datum insert --key alice-tips --payload payload-new.json --payload-schema detailed --vault alice.vault >insert-tips.json &&
     open-datum fold --vault alice.vault >fold-tips.json
 ) && check alice/insert-tips.json '.outcome=="success"' && check alice/fold-tips.json '.outcome=="success"' || bad "alice-tips was not booked and folded"
 
@@ -273,9 +276,9 @@ mkdir -p attacker
   cd attacker || exit 1
   settings
   open-datum create --wallet-skey ../keys/attacker.skey >create.json &&
-    settings "$(jq -r .stateToken create.json)" &&
+    settings "$(jq -r .registry create.json)" &&
     sink-tools addr-json "$(cat ../keys/attacker.address)" >payload.json &&
-    open-datum insert --key alice --payload payload.json --wallet-skey ../keys/attacker.skey >insert.json &&
+    open-datum insert --key alice --payload payload.json --payload-schema detailed --wallet-skey ../keys/attacker.skey >insert.json &&
     open-datum fold --wallet-skey ../keys/attacker.skey >fold.json &&
     singular registry describe --blueprint "$blueprint" >describe.json
 ) && check attacker/fold.json '.outcome=="success"' || bad "the attacker's registry was not made"
@@ -300,7 +303,7 @@ rc=$?
 cat "$work/wrong-output.log"
 [ $rc = 1 ] && grep -q '^application: does not match' "$work/wrong-output.log" && ok "check-registry against a wrong state output: application does not match, exit 1" || bad "check-registry against a wrong state output (exit $rc)"
 
-echo "== a registry that pins a foreign application: describe accepts it, check-registry does not"
+echo "== a registry that pins a foreign application: the open-datum commands refuse it, describe prints it unchecked, check-registry does not match"
 mkdir -p bogus
 (
   cd bogus || exit 1
@@ -308,15 +311,34 @@ mkdir -p bogus
   bogus_policy=$(node -e 'console.log(require("crypto").randomBytes(28).toString("hex"))')
   echo "pinned at creation: $bogus_policy"
   singular registry create --application-policy "$bogus_policy" --vault ../bob/bob.vault >create.json &&
-    settings "$(jq -r .stateToken create.json)" &&
+    settings "$(jq -r .registry create.json)" &&
     singular registry describe --blueprint "$blueprint" >describe.json
-  echo "describe exit $?; it prints applicationScript $(jq -r .registry.applicationScript describe.json)"
-  [ "$(jq -r .registry.applicationScript describe.json)" = "$bogus_policy" ]
-) && ok "describe accepted the registry and printed the foreign application, without a word" || bad "describe did not accept the registry that pins a foreign application"
+  echo "describe exit $?; it prints applicationScript $(jq -r .registry.applicationScript describe.json) and applicationPin $(jq -r .registry.applicationPin describe.json)"
+  [ "$(jq -r .registry.applicationScript describe.json)" = "$bogus_policy" ] && [ "$(jq -r .registry.applicationPin describe.json)" = not-checked-against-any-blueprint ]
+) && ok "describe printed the foreign application and marked it not-checked-against-any-blueprint" || bad "describe on the registry that pins a foreign application"
+for sub in "inspect --key alice" "insert --key alice --payload ../attacker/payload.json --payload-schema detailed --vault ../bob/bob.vault" "update --key alice --payload ../attacker/payload.json --payload-schema detailed --vault ../bob/bob.vault" "terminate --key alice --vault ../bob/bob.vault" "fold --vault ../bob/bob.vault"; do
+  (
+    read -ra words <<<"$sub"
+    cd bogus && open-datum "${words[@]}" >refusal.json 2>refusal.err
+    echo $? >refusal.rc
+  )
+  echo "open-datum ${sub%% *}: exit $(cat bogus/refusal.rc): $(jq -c '{outcome, reason}' bogus/refusal.json)"
+  [ "$(cat bogus/refusal.rc)" = 10 ] && jq -e '.outcome == "client-refusal" and (.reason | startswith("registry-pin-mismatch application: the datum"))' bogus/refusal.json >/dev/null &&
+    ok "open-datum ${sub%% *} on the foreign application: refused, exit 10, registry-pin-mismatch application" || bad "open-datum ${sub%% *} on the foreign application was not refused as registry-pin-mismatch (exit $(cat bogus/refusal.rc))"
+done
 (cd bogus && sink-tools check-registry describe.json) >"$work/foreign.log" 2>&1
 rc=$?
 cat "$work/foreign.log"
 [ $rc = 1 ] && grep -q '^application: does not match' "$work/foreign.log" && ok "check-registry on the foreign application: does not match, exit 1" || bad "check-registry on the foreign application (exit $rc)"
+echo "== a published page that names another registry"
+(
+  cd alice || exit 1
+  jq --arg r "$(jq -r .registry ../bogus/create.json)" '.registry = $r' ../publish/registry.json >../bogus/registry-other.json
+  sink-tools check-registry describe.json --published ../bogus/registry-other.json
+) >"$work/other.log" 2>&1
+rc=$?
+tail -4 "$work/other.log"
+[ $rc = 1 ] && grep -q '^published registry: does not match' "$work/other.log" && ok "a published page naming another registry: does not match, exit 1" || bad "the published page naming another registry (exit $rc)"
 echo "== a published sink script that is not the validator applied to this registry's active policy"
 (
   cd alice || exit 1
@@ -338,8 +360,8 @@ stale=$(cd alice && open-datum inspect --key alice | jq -r .applicationOutput.ou
 mkdir -p attacker1
 (
   cd attacker1 || exit 1
-  settings "$token1"
-  open-datum insert --key alice --payload ../attacker/payload.json --wallet-skey ../keys/attacker.skey >insert.json
+  settings "$registry1"
+  open-datum insert --key alice --payload ../attacker/payload.json --payload-schema detailed --wallet-skey ../keys/attacker.skey >insert.json
   echo "insert exit $?"
   jq -c '{outcome, reason}' insert.json
 )

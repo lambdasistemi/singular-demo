@@ -1,4 +1,5 @@
 // Address helpers. No packages: bech32 decoding by hand.
+//   registryToken(address) the state token POLICY.NAME of a registry, from the registry's address
 //   addrJson(addr)    the address as Aiken `cardano/address.Address`, Plutus-data JSON
 //   addrKeyhash(addr) the 28-byte payment key hash (hex); throws if the payment part is a script
 const C = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
@@ -50,4 +51,13 @@ export function addrKeyhash(addr) {
   if (kind & 1 || kind > 7)
     throw new Error('payment credential is a script (or not a payment address)');
   return Buffer.from(raw.slice(1, 29)).toString('hex');
+}
+
+// A registry's address (singular_preprod1..., singular_devnet1...) is bech32 over 60 bytes: the state policy (28) and the
+// state token's name (32). It gives back the state token POLICY.NAME, hex, which bundles name a registry by.
+export function registryToken(address) {
+  const { raw } = decode(address);
+  if (raw.length !== 60) throw new Error('not a registry address: its body is not 60 bytes');
+  const hex = Buffer.from(raw).toString('hex');
+  return `${hex.slice(0, 56)}.${hex.slice(56)}`;
 }
