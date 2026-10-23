@@ -54,6 +54,10 @@
 
       txTools = import ./kit/tx-tools.nix { inherit pkgs; };
 
+      # The static tutorial-stepper binary of its release (checked against
+      # that release's SHA256SUMS when the kit is built).
+      stepper = import ./kit/stepper.nix { inherit pkgs; };
+
       # The pay-by-name scenario: its validator and the tools that apply it
       payByName = import ./demos/pay-by-name/build.nix { inherit pkgs; };
 
@@ -75,7 +79,7 @@
           cardanoNode
           txTools
           ;
-        inherit singular devnet revision;
+        inherit singular devnet revision stepper;
         openDatum = open-datum-exe;
         sinkTools = payByName.tools;
         sinkBlueprint = payByName.sink;

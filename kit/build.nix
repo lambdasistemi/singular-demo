@@ -11,6 +11,7 @@
   source,
   blueprint,
   txTools,
+  stepper,
   play,
   scenario,
   revision,
@@ -48,6 +49,7 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
       source
       blueprint
       txTools
+      stepper
       play
       scenario
       sinkTools
@@ -67,6 +69,7 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     readme = ./README.txt;
     demo = ./demo.sh;
     drive = ./drive.sh;
+    stepperSums = ./tutorial-stepper.SHA256SUMS;
     sinkLauncher = ./sink-tools.sh;
   }
   ''
@@ -159,6 +162,11 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     cp --no-preserve=mode "$jq/bin/jq" "$OUT/bin/jq"
     cp --no-preserve=mode "$curl/bin/curl" "$OUT/bin/curl"
     cp --no-preserve=mode "$tmux/bin/tmux" "$OUT/bin/tmux"
+    # tutorial-stepper, the static binary of its release, checked against that release's SHA256SUMS
+    want=$(awk '/tutorial-stepper-0.4.1-x86_64-linux$/ {print $1}' "$stepperSums")
+    got=$(sha256sum "$stepper" | cut -d' ' -f1)
+    [ "$got" = "$want" ] || { echo "tutorial-stepper $got != SHA256SUMS $want" >&2; exit 1; }
+    cp --no-preserve=mode "$stepper" "$OUT/bin/tutorial-stepper"
     chmod u+w "$OUT"/bin/*
     # jq, curl and tmux are static; their compiled-in install paths are dead text (tmux reads the terminal's
     # description from the host's /etc/terminfo, /lib/terminfo and /usr/share/terminfo, which it also names).
