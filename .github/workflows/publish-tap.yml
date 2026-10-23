@@ -1,0 +1,55 @@
+name: publish-tap
+
+# Publishes the Homebrew formulas for a release tag to lambdasistemi/homebrew-tap.
+# The release workflow calls this after publishing the release; dispatching it by hand
+# re-publishes the formulas for an existing tag (the workflow file at the tag cannot
+# change, so re-running the failed release job would run the same broken script):
+#   gh workflow run publish-tap.yml --ref main -f tag=v0.16.0-2
+# Every publishing command runs inside the dev shell (homebrew/publish-tap.sh); nothing
+# in the job relies on the runner's own PATH beyond nix and bash.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag whose formulas to publish (for example v0.16.0-2)
+        required: true
+        type: string
+    secrets:
+      CI_APP_PRIVATE_KEY:
+        description: The private key of the organisation CI app that may write to homebrew-tap
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag whose formulas to publish (for example v0.16.0-2)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  tap:
+    name: Publish the Homebrew formulas
+    runs-on: nixos
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The tap is written with a token minted from the organisation's CI app, scoped to
+      # homebrew-tap; the workflow's own token never pushes there.
+      - name: Mint a scoped tap token
+        id: tap-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+          owner: lambdasistemi
+          repositories: homebrew-tap
+      - name: Render the formulas and push them to the tap
+        env:
+          TAP_TOKEN: ${{ steps.tap-token.outputs.token }}
+          TAG: ${{ inputs.tag }}
+        run: nix develop .#dev --command bash homebrew/publish-tap.sh --tag "$TAG"
