@@ -8,7 +8,7 @@ Every demo can be met in five ways:
 - **Play it in the browser, on Killercoda.** An Ubuntu machine opens in the browser and each command runs with a click.
 - **Play it in a Codespace.** The same lessons beside a terminal, in your own GitHub Codespace.
 - **Play it in your own terminal, on Linux.** The kit brings the programs, the chain, tmux and tutorial-stepper; `tutorial-stepper play share/tutorials/demo1` plays the same lessons beside the windows of Alice, Bob and the chain.
-- **Play it on a Mac, with Homebrew.** `brew install lambdasistemi/tap/singular-demo`, then `singular-demo` for Demo 1 or `singular-demo pay-by-name` for the pay-by-name story, played with tutorial-stepper's terminal face.
+- **Play it on a Mac, with Homebrew.** `brew tap lambdasistemi/tap`, `brew trust lambdasistemi/tap` (so Homebrew loads the tap's other formulas `singular-demo` depends on), `brew install lambdasistemi/tap/singular-demo`, then `singular-demo` for Demo 1 or `singular-demo pay-by-name` for the pay-by-name story, played with tutorial-stepper's terminal face.
 
 ## The demos
 

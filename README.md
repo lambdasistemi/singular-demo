@@ -57,10 +57,14 @@ cd singular-demo-$release-x86_64-linux
 **On a Mac**, with Homebrew: a formula with the same programs and both tutorials, played the same way with tutorial-stepper's terminal face.
 
 ```bash
+brew tap lambdasistemi/tap
+brew trust lambdasistemi/tap
 brew install lambdasistemi/tap/singular-demo
 singular-demo                  # Demo 1, as Alice and Bob
 singular-demo pay-by-name      # the pay-by-name story: Carol, Alice, Dave, Bob and the chain
 ```
+
+The trust step lets Homebrew load the tap's other formulas that `singular-demo` depends on.
 
 The runs are kept in `~/demo1-run` and `~/pay-by-name-run`. Further arguments go to `tutorial-stepper play`, for example `--run DIR`; a leading `--auto` with `--path short --run-setup --transcript FILE` plays unattended.
 
