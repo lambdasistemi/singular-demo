@@ -412,6 +412,9 @@ jobs:
           git commit -qm "singular-demo from the pull request"
           cd "$GITHUB_WORKSPACE"
           brew tap lambdasistemi/tap /tmp/tap
+          # A tap made from a local directory is untrusted: installing from it refuses to load
+          # its own formulae as dependencies until it is trusted (brew says so itself).
+          brew trust lambdasistemi/tap
       - name: Install singular-demo from the local tap
         run: |
           brew install lambdasistemi/tap/singular-demo
