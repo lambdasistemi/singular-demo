@@ -87,6 +87,10 @@ check "demo formula installs sink-tools" "$(
   grep -q "sink-tools" "$demo"
   echo $?
 )"
+check "demo formula carries the contracts beside the tutorials" "$(
+  grep -q "singular@0.16" "$demo" && grep -q "share/plutus.json" "$demo"
+  echo $?
+)"
 
 # The --local mode (the pull-request job) points both archives at fresh local tarballs,
 # with checksums computed from those files; only the urls differ from the release render.

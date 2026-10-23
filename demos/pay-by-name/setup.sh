@@ -18,11 +18,10 @@ for prog in singular open-datum devnet jq curl sink-tools; do
   case ":$path_add:" in *":$dir:"*) ;; *) path_add="$path_add${path_add:+:}$dir" ;; esac
 done
 printf 'PLAY_PATH=%q\n' "$path_add" >"$run/path.env"
-# In the kit the tutorial directory sits at <kit>/share/tutorials/<name> and the compiled
-# contracts travel with it; their path is written down too. In the repository the
+# The compiled contracts travel beside the tutorial: <kit>/share/plutus.json in the kit,
+# <prefix>/share/singular-demo/plutus.json in a Homebrew install. In the repository the
 # development shell (or CI) provides $blueprint instead, and nothing is written here.
-kit_root=$(cd "$here/../../.." && pwd)
-if [ -f "$kit_root/share/plutus.json" ]; then
-  printf 'PLAY_BLUEPRINT=%q\n' "$kit_root/share/plutus.json" >>"$run/path.env"
+if [ -f "$here/../../plutus.json" ]; then
+  printf 'PLAY_BLUEPRINT=%q\n' "$here/../../plutus.json" >>"$run/path.env"
 fi
 echo "The folders of the stepper run are ready: $run"
