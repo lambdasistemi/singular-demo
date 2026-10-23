@@ -53,11 +53,12 @@ echo "Alice: $(cat alice.address)"; echo "Bob:   $(cat ../bob/bob.address)"
 - `$(cat alice/alice.address)`: the address, read from the file Alice's window wrote (Bob's the same way)
 - `> devnet.out`: its one line of settings goes to this file, its messages to `devnet.err`
 - `&`: runs it in the background
-- `devnet_pid=$!`: remembers its process number, so the last step can stop it
+- `devnet_pid=$!`: remembers its process group. A trap stops the whole group when this shell exits, so an unattended run leaves nothing behind (the node outlives its wrapper); the last step shows the manual stop
 
 ```bash { window=chain }
 devnet --fund-address "$(cat alice/alice.address):6:2000000000" --fund-address "$(cat bob/bob.address):6:2000000000" > devnet.out 2> devnet.err &
 devnet_pid=$!
+trap 'kill -TERM -- -"$devnet_pid" 2>/dev/null' EXIT
 ```
 
 **Wait until the settings line has appeared**, then show it. `providerUrl` is where the chain's web API answers. If the devnet dies first, the wait stops at once and shows the devnet's messages instead of hanging.
