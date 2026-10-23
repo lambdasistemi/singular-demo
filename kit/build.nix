@@ -11,6 +11,7 @@
   source,
   blueprint,
   txTools,
+  stepper,
   play,
   scenario,
   revision,
@@ -19,6 +20,8 @@
   nodejs,
   payByNamePlay,
   payByNameScenario,
+  demo1Tutorial,
+  payByNameTutorial,
 }:
 let
   version = pkgs.lib.removeSuffix "\n" (builtins.readFile (source + "/version.txt"));
@@ -48,6 +51,7 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
       source
       blueprint
       txTools
+      stepper
       play
       scenario
       sinkTools
@@ -55,6 +59,8 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
       nodejs
       payByNamePlay
       payByNameScenario
+      demo1Tutorial
+      payByNameTutorial
       ;
     jq = pkgs.pkgsStatic.jq.bin;
     curl = pkgs.pkgsStatic.curl.bin;
@@ -66,7 +72,7 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     launcher = ./launcher.c;
     readme = ./README.txt;
     demo = ./demo.sh;
-    drive = ./drive.sh;
+    stepperSums = ./tutorial-stepper.SHA256SUMS;
     sinkLauncher = ./sink-tools.sh;
   }
   ''
@@ -159,27 +165,32 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     cp --no-preserve=mode "$jq/bin/jq" "$OUT/bin/jq"
     cp --no-preserve=mode "$curl/bin/curl" "$OUT/bin/curl"
     cp --no-preserve=mode "$tmux/bin/tmux" "$OUT/bin/tmux"
+    # tutorial-stepper, the static binary of its release, checked against that release's SHA256SUMS
+    want=$(awk '/tutorial-stepper-0.4.1-x86_64-linux$/ {print $1}' "$stepperSums")
+    got=$(sha256sum "$stepper" | cut -d' ' -f1)
+    [ "$got" = "$want" ] || { echo "tutorial-stepper $got != SHA256SUMS $want" >&2; exit 1; }
+    cp --no-preserve=mode "$stepper" "$OUT/bin/tutorial-stepper"
     chmod u+w "$OUT"/bin/*
-    # jq, curl and tmux are static; their compiled-in install paths are dead text (tmux reads the terminal's
-    # description from the host's /etc/terminfo, /lib/terminfo and /usr/share/terminfo, which it also names).
+    # jq, curl, tmux and tutorial-stepper are static; their compiled-in install paths are dead text (tmux reads the terminal's
+    # description from the host's /etc/terminfo, /lib/terminfo and /usr/share/terminfo, which it also names;
+    # tutorial-stepper's are debug paths already rewritten to eeeeeeee at its release).
     # Same-length rewrite so no store path is left in bin/.
-    LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl" "$OUT/bin/tmux"
+    LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl" "$OUT/bin/tmux" "$OUT/bin/tutorial-stepper"
     chmod 755 "$OUT"/bin/*
 
-    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" "kit $release" "nodejs $nodejsVersion" > "$OUT/VERSION"
+    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" "kit $release" "nodejs $nodejsVersion" "tutorial-stepper 0.4.1" > "$OUT/VERSION"
     cp "$readme" "$OUT/README.txt"
     cp "$demo" "$OUT/demo.sh"; chmod 755 "$OUT/demo.sh"
-    # the tutorial step by step in a terminal: drive.sh, the scripts of the play it shares with Killercoda and
-    # Codespaces, and the pages of the generated scenario (not its intro, which sets up a Killercoda machine)
-    cp "$drive" "$OUT/drive.sh"; chmod 755 "$OUT/drive.sh"
+    # the tutorial step by step in a terminal: the carried tutorials, played with tutorial-stepper;
+    # the scripts of the play stay for Killercoda and Codespaces
     mkdir -p "$OUT/share/play" "$OUT/share/scenario"
-    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,drive-rc.sh,short-windows.sh} "$OUT/share/play/"
+    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,short-windows.sh} "$OUT/share/play/"
     cp "$scenario/index.json" "$OUT/share/scenario/"
     cp -r "$scenario"/step* "$scenario/finish" "$OUT/share/scenario/"
     # the same for the pay-by-name scenario: its pages, and its own play scripts with the two of Demo 1's that do not depend on its people
     mkdir -p "$OUT/share/pay-by-name/play" "$OUT/share/pay-by-name/scenario"
     cp "$payByNamePlay"/{prepare.sh,windows.sh,windows.rc} "$OUT/share/pay-by-name/play/"
-    cp "$play"/{helpers.sh,drive-rc.sh} "$OUT/share/pay-by-name/play/"
+    cp "$play"/helpers.sh "$OUT/share/pay-by-name/play/"
     cp "$payByNameScenario/index.json" "$OUT/share/pay-by-name/scenario/"
     cp -r "$payByNameScenario"/step* "$payByNameScenario/finish" "$OUT/share/pay-by-name/scenario/"
     chmod -R u+w "$OUT/share/play" "$OUT/share/scenario" "$OUT/share/pay-by-name"
@@ -191,6 +202,11 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     cp "$sinkLauncher" "$OUT/bin/sink-tools"
     chmod 755 "$OUT/bin/sink-tools"
     chmod -R u+w "$OUT/share/sink-tools"
+    # both tutorials, verbatim: the stepper plays them with `tutorial-stepper play`
+    mkdir -p "$OUT/share/tutorials"
+    cp -r "$demo1Tutorial" "$OUT/share/tutorials/demo1"
+    cp -r "$payByNameTutorial" "$OUT/share/tutorials/pay-by-name"
+    chmod -R u+w "$OUT/share/tutorials"
 
     # pack: fixed time, sorted names, no owner, no gzip name/time field
     mkdir -p "$out"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The receipts a whole run of the two-window scenario leaves in Alice's and Bob's folders, and what each must say.
-# The scenario test (Killercoda's windows) and the kit's terminal test (drive.sh) both judge their run with it.
+# The scenario test (Killercoda's windows) and the kit's terminal test (stepper-run.sh) both judge their run with it.
 #   check-receipts.sh RUN_DIR    needs jq; exit 0 only if every receipt holds
 # shellcheck disable=SC2016 # jq programs: the $ names are jq's, not the shell's
 set -u

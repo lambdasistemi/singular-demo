@@ -5025,16 +5025,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1792758438,
-        "narHash": "sha256-fe7RCDzmOr14N+ZatAmou20Um0ePA+4NF/1tOMglM4c=",
+        "lastModified": 1792778821,
+        "narHash": "sha256-U0/R1rNvG+NY31g5LUt3EtfkfyVaSq8F3WhhB48s8R0=",
         "owner": "lambdasistemi",
         "repo": "tutorial-stepper",
-        "rev": "e3d2a9c93ad79ad8e47c55c40d9802a0ac2e6f22",
+        "rev": "bf7b3418ef8a102869387da2c136daae65f7fda8",
         "type": "github"
       },
       "original": {
         "owner": "lambdasistemi",
-        "ref": "v0.4.0",
+        "ref": "v0.4.1",
         "repo": "tutorial-stepper",
         "type": "github"
       }

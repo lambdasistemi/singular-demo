@@ -32,5 +32,5 @@ tar xzf "$tmp/$name.tar.gz" -C "$dir"
 touch "$dir/$name/.verified"
 echo "The kit is installed: $dir/$name"
 PLAY_EOF
-bash /root/play/install-kit.sh v0.16.0-1 /root
+bash /root/play/install-kit.sh v0.16.0-2 /root
 touch /tmp/finished

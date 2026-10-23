@@ -30,7 +30,7 @@
     # compiler, patchelf) come from: the one the programs themselves are built on.
     nixpkgs.follows = "offchain/nixpkgs";
     # The tutorial stepper that plays demos/demo1 in CI, pinned to its release.
-    tutorial-stepper.url = "github:lambdasistemi/tutorial-stepper/v0.4.0";
+    tutorial-stepper.url = "github:lambdasistemi/tutorial-stepper/v0.4.1";
   };
 
   outputs =
@@ -54,6 +54,10 @@
 
       txTools = import ./kit/tx-tools.nix { inherit pkgs; };
 
+      # The static tutorial-stepper binary of its release (checked against
+      # that release's SHA256SUMS when the kit is built).
+      stepper = import ./kit/stepper.nix { inherit pkgs; };
+
       # The pay-by-name scenario: its validator and the tools that apply it
       payByName = import ./demos/pay-by-name/build.nix { inherit pkgs; };
 
@@ -75,14 +79,21 @@
           cardanoNode
           txTools
           ;
-        inherit singular devnet revision;
+        inherit
+          singular
+          devnet
+          revision
+          stepper
+          ;
         openDatum = open-datum-exe;
         sinkTools = payByName.tools;
         sinkBlueprint = payByName.sink;
         nodejs = pkgs.nodejs-slim;
         payByNamePlay = ./demos/pay-by-name/play;
         payByNameScenario = ./killercoda/pay-by-name-steps;
-        # drive.sh plays the generated scenario with the scripts of the play
+        demo1Tutorial = ./demos/demo1;
+        payByNameTutorial = ./demos/pay-by-name;
+        # the Killercoda scenarios are generated from the step files with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;
       };

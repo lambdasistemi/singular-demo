@@ -17,6 +17,11 @@ export PATH="$PLAY_PATH:$PATH"
 # The vaults open with this throwaway passphrase; no command asks for it
 # (accepted on a private chain only).
 export SINGULAR_PASSPHRASE=demo
+# The compiled contracts the commands need: the set-up script writes their path into path.env
+# beside PLAY_PATH when they travel with the tutorial (the kit, a Homebrew install); otherwise
+# the development shell (flake.nix shellHook) provides $blueprint.
+# shellcheck disable=SC2154 # PLAY_BLUEPRINT is written by the set-up script in the kit, unset in the repository
+export blueprint="${blueprint:-${PLAY_BLUEPRINT:-}}"
 # The helpers every window has: koios_url, wait_for_slot, wallet_show.
 # They read the chain's settings line through PLAY_RUN.
 # shellcheck source=/dev/null

@@ -111,9 +111,9 @@ $t new-window -d -t demo -n chain -c "$run" "$shell"
 $t set-option -g mouse on
 echo "The windows alice, bob and chain are ready."
 PLAY_EOF
-bash /root/play/install-kit.sh v0.16.0-1 /root
+bash /root/play/install-kit.sh v0.16.0-2 /root
 # tmux holds the three windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-bash /root/play/prepare.sh /root/singular-demo-v0.16.0-1-x86_64-linux /root/singular-demo-run
+bash /root/play/prepare.sh /root/singular-demo-v0.16.0-2-x86_64-linux /root/singular-demo-run
 touch /tmp/finished

@@ -26,9 +26,9 @@ echo "file names inside the archive containing /nix: $n"
 check "no file name contains /nix" $((n != 0))
 
 # -a reads binary files as text (plain grep can skip a binary after its first odd byte)
-hits=$(grep -arl '/nix/store' "$K/bin" "$K/share" "$K/demo.sh" "$K/drive.sh" "$K/README.txt" "$K/VERSION" | wc -l)
+hits=$(grep -arl '/nix/store' "$K/bin" "$K/share" "$K/demo.sh" "$K/README.txt" "$K/VERSION" | wc -l)
 echo "files under bin/, share/ and the top files naming /nix/store: $hits"
-check "no store path in bin/, share/, demo.sh, drive.sh, README.txt, VERSION" $((hits != 0))
+check "no store path in bin/, share/, demo.sh, README.txt, VERSION" $((hits != 0))
 
 # control: the same search over libexec/ must find something, or the check above could not fail
 ctl=$(grep -arl '/nix/store' "$K/libexec" | wc -l)
@@ -66,10 +66,29 @@ check "sink-tools runs on the kit's node and its sink script hash is the expecte
 # control: the same command with the blueprint beside the bundle must give the same hash, or one of the two files is not the other
 beside=$(SINK_BLUEPRINT="$K/share/sink-tools/plutus.json" "$K/bin/sink-tools" sink-address --active-policy 1ea53ee2878802fce8f05958db13186e49a3c179f7c2f1f446834577 --name alice | grep '"scriptHash"' | cut -d'"' -f4)
 check "the blueprint beside the bundle and the one inside it give the same script hash" "$(status test "$beside" = "$got")"
-# the pay-by-name scenario is in the kit for drive.sh: its pages and its play scripts
-for f in share/pay-by-name/scenario/index.json share/pay-by-name/play/prepare.sh share/pay-by-name/play/windows.sh share/pay-by-name/play/windows.rc share/pay-by-name/play/helpers.sh share/pay-by-name/play/drive-rc.sh; do
+# the pay-by-name scenario is in the kit for the stepper: its pages and its play scripts
+for f in share/pay-by-name/scenario/index.json share/pay-by-name/play/prepare.sh share/pay-by-name/play/windows.sh share/pay-by-name/play/windows.rc share/pay-by-name/play/helpers.sh; do
   check "$f is in the kit" "$(status test -s "$K/$f")"
 done
+
+# tutorial-stepper and the tutorials: the kit plays with the stepper, drive.sh is gone
+for f in bin/tutorial-stepper share/tutorials/demo1/tutorial.toml share/tutorials/demo1/setup.sh share/tutorials/pay-by-name/tutorial.toml share/tutorials/pay-by-name/setup.sh; do
+  check "$f is in the kit" "$(status test -s "$K/$f")"
+done
+check "bin/tutorial-stepper is executable" "$(status test -x "$K/bin/tutorial-stepper")"
+if readelf -l "$K/bin/tutorial-stepper" 2>/dev/null | grep -qi 'interp'; then interp=1; else interp=0; fi
+check "bin/tutorial-stepper is statically linked" $interp
+got=$("$K/bin/tutorial-stepper" --version 2>&1)
+echo "bin/tutorial-stepper --version: $got"
+check "the kit's tutorial-stepper is 0.4.1" "$(
+  echo "$got" | grep -q 'tutorial-stepper 0.4.1'
+  echo $?
+)"
+for t in demo1 pay-by-name; do
+  "$K/bin/tutorial-stepper" check "$K/share/tutorials/$t" >/dev/null 2>&1
+  check "the carried $t tutorial checks" $?
+done
+check "drive.sh is gone from the kit" "$(status test ! -e "$K/drive.sh")"
 
 echo "files in the kit: $(find "$K" -type f | wc -l)"
 exit $fail
