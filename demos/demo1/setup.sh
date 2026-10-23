@@ -12,4 +12,12 @@ mkdir -p "$run"/alice/{receipts,bundles,witnesses} "$run"/bob/{receipts,bundles,
 # The settings files of Alice and Bob, each in the person's folder; the steps fill them.
 for who in alice bob; do [ -f "$run/$who/$who.json" ] || echo '{}' >"$run/$who/$who.json"; done
 cp "$here/play/helpers.sh" "$here/play/stepper.sh" "$run/"
+# The programs the windows need, resolved to directories now (the first page
+# loads them visibly through stepper.sh, so no window depends on inherited PATH).
+path_add=""
+for prog in singular open-datum devnet jq curl; do
+  dir=$(dirname "$(command -v "$prog")")
+  case ":$path_add:" in *":$dir:"*) ;; *) path_add="$path_add${path_add:+:}$dir" ;; esac
+done
+printf 'PLAY_PATH=%q\n' "$path_add" >"$run/path.env"
 echo "The folders of the stepper run are ready: $run"

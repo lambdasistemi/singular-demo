@@ -3,12 +3,17 @@
 # The tutorial's first page sources this visibly in each window:
 #   alice and bob windows:  . ../stepper.sh
 #   chain window:           . ./stepper.sh
-# It sets what every window's shell needs: the run folder, the passphrase,
-# the helpers, the window's settings file, and the person words.
-# The programs on PATH and $blueprint come from the nix shell that starts
-# `tutorial-stepper play`, so they are inherited, not set here.
+# It sets what every window's shell needs: the run folder, the programs on
+# PATH, the passphrase, the helpers, the window's settings file, and the
+# person words.
 PLAY_RUN=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 export PLAY_RUN
+# The programs every window needs, resolved to directories when the run was
+# set up (the set-up script writes path.env beside this file). Prepended so
+# the tutorial's programs win and the system's remain as fallback.
+# shellcheck source=/dev/null
+. "$PLAY_RUN/path.env"
+export PATH="$PLAY_PATH:$PATH"
 # The vaults open with this throwaway passphrase; no command asks for it
 # (accepted on a private chain only).
 export SINGULAR_PASSPHRASE=demo

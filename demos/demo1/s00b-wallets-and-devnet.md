@@ -12,7 +12,7 @@ kill "$devnet_pid" 2>/dev/null
 
 **A folder of your own.** The run folder holds one directory for Alice and one for Bob, each with the folders for their receipts, bundles and witnesses and an empty settings file of their own (`alice/alice.json`, `bob/bob.json`), and the shell setup every window starts with. The set-up script made them before the first page.
 
-**Load the shell setup in each window.** One block per window sources it: the run folder, the passphrase, the helpers (`koios_url`, `wait_for_slot`, `wallet_show`), the window's settings file, and the two words `alice` and `bob`, which pin the variable `SINGULAR_CONFIG` to Alice's file and Bob's file. Everything below relies only on what these three blocks load.
+**Load the shell setup in each window.** One block per window sources it: the run folder, the programs on `PATH`, the passphrase, the helpers (`koios_url`, `wait_for_slot`, `wallet_show`), the window's settings file, and the two words `alice` and `bob`, which pin the variable `SINGULAR_CONFIG` to Alice's file and Bob's file. Everything below relies only on what these three blocks load.
 
 ```bash { window=alice }
 . ../stepper.sh
