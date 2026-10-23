@@ -22,7 +22,7 @@ The kit's annotated script, run in one go: https://killercoda.com/paolino/course
 
 https://codespaces.new/lambdasistemi/singular-demo?quickstart=1
 
-**Play it in your own terminal, on Linux.** The same tutorial step by step, as Alice and as Bob in tmux windows on your own machine: download the kit and run `./drive.sh` (see [On your own machine](#on-your-own-machine)); `./drive.sh pay-by-name` plays the pay-by-name story the same way. No account and nothing to install; it needs a 64-bit Linux on x86_64.
+**Play it in your own terminal, on Linux.** The same tutorial step by step, as Alice and as Bob in tmux windows on your own machine: download the kit, put its `bin/` on `PATH` and run `tutorial-stepper play share/tutorials/demo1` (see [On your own machine](#on-your-own-machine)); `tutorial-stepper play share/tutorials/pay-by-name` plays the pay-by-name story the same way. No account and nothing to install; it needs a 64-bit Linux on x86_64.
 
 The documentation site, with the tutorial, the runs and the annotated script as it ran, is https://lambdasistemi.github.io/singular-demo/
 
@@ -61,7 +61,19 @@ cd singular-demo-$release-x86_64-linux
 - `WORK=/some/folder ./demo.sh` chooses where vaults, receipts and bundles are kept.
 - `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./demo.sh` shortens the registry's two windows, and the waits with them.
 
-**The tutorial step by step in your terminal.** `./drive.sh`, in the same folder, plays the Killercoda scenario on your machine: the page on the left and, beside it, the window of the person who acts (Alice's, Bob's or the chain's), in tmux. `./drive.sh pay-by-name` plays the pay-by-name scenario instead, in the windows of Carol, Alice, Dave, Bob and the chain, with the same keys; its files are kept in `~/singular-pay-by-name-run` and `bin/tmux -L singular-pay-by-name kill-server` ends its windows. Enter types the next command into that window and waits until it is over; `s` skips a command, `c` sends it Ctrl-C, `n` and `p` turn the page, `q` closes the page. The kit brings its own tmux, and a terminal about 160 columns wide fits both. Run again, it goes back to the same windows and page; `bin/tmux -L singular-demo kill-server` ends them. It takes about 15 minutes. `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./drive.sh` writes shorter windows into the create step, so the two waits last less.
+**The tutorials step by step in your terminal, with tutorial-stepper.** In the same folder, the page beside the window of the person who acts (Alice's, Bob's or the chain's), in tmux. `tutorial-stepper play share/tutorials/pay-by-name` plays the pay-by-name scenario instead, in the windows of Carol, Alice, Dave, Bob and the chain, with the same keys; its run is kept in `~/pay-by-name-run`. Enter runs the next command in that window and waits until it is over; `s` skips a command, `c` sends it Ctrl-C, `n` and `p` turn the page, `q` closes the page and keeps the windows. The kit brings tutorial-stepper and its own tmux, and a terminal about 160 columns wide fits both. Run again, it goes back to the same windows and page. It takes about 15 minutes.
+
+```bash
+export PATH="$PWD/bin:$PATH"
+tutorial-stepper play share/tutorials/demo1
+tutorial-stepper play share/tutorials/pay-by-name
+```
+
+`--path short` plays Demo 1 with the shortest windows (60 s and 30 s), so the two waits last less:
+
+```bash
+tutorial-stepper play --auto share/tutorials/demo1 --path short --run ./demo1-run --run-setup --transcript ./transcript.toml
+```
 
 The daily kit, built from `main` every day, always has it:
 
@@ -73,21 +85,22 @@ curl -fLO $base/SHA256SUMS
 sha256sum -c SHA256SUMS
 tar xzf singular-demo-$release-x86_64-linux.tar.gz
 cd singular-demo-$release-x86_64-linux
-./drive.sh
+export PATH="$PWD/bin:$PATH"
+tutorial-stepper play share/tutorials/demo1
 ```
 
 ## What the repository delivers, and how it is checked
 
 | What | Where it comes from | What checks it |
 |---|---|---|
-| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; `drive.sh` playing the whole tutorial, and again the pay-by-name story, in a clean Ubuntu container with no tmux, no node, no Nix and no network |
+| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; the stepper playing Demo 1's shortest path, and again the pay-by-name story, in a clean Ubuntu container with no tmux, no node, no Nix and no network |
 | The tutorial and the runs | `demos/demo1/s*.md`, played by `tutorial-stepper play --auto` against a fresh devnet | the receipts of all 16 steps; the transcript of the run becomes the page `run` |
 | The pay-by-name scenario | `demos/pay-by-name/s*.md`, played by `tutorial-stepper play --auto` against a fresh devnet; its sink validator and its tools (`demos/pay-by-name/build.nix`) are built by Nix and are in the kit | `aiken check` of the validator's tests, a Nix build of the tools, a stepper run judged by `check-run.sh`, and a scenario test that plays the story in a clean Ubuntu in real tmux windows and then the controls: the refusals of the sink, each with its label |
 | The Killercoda scenarios | generated into `killercoda/` by `bash tools/generate.sh .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
 | The Codespaces tutorial | `.devcontainer/` and `tutorial/`; it plays the same scenario | its own tests, in a browser, up to the whole demo through the buttons |
 | The documentation site | `mkdocs.yml`, `docs/`, built by `docs/build.sh` | the site is built from the logs of the same run |
 
-Killercoda, Codespaces and the kit's `drive.sh` run the same scripts of the play, in `demos/demo1/play/` (and `demos/pay-by-name/play/` for the pay-by-name story): install the kit, make the folders, set up the shell, start the windows.
+Killercoda and Codespaces run the same scripts of the play, in `demos/demo1/play/` (and `demos/pay-by-name/play/` for the pay-by-name story): install the kit, make the folders, set up the shell, start the windows.
 
 A new demo is a folder `demos/demoN/` beside `demo1`, with its steps, its generator and its tests, and a page in `docs/`.
 
@@ -103,7 +116,7 @@ When Singular publishes a release, `just bump vX.Y.Z` moves this repository to i
 
 The kit's release is the Singular release and the kit's revision, as in `v0.16.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
 
-A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and both tutorials with `tutorial-stepper play --auto` against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the six jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the pay-by-name scenario with its controls, the kit's `drive.sh` playing both scenarios and the Codespaces tutorial. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
+A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and both tutorials with `tutorial-stepper play --auto` against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the six jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the pay-by-name scenario with its controls, the kit's stepper play of both tutorials and the Codespaces tutorial. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 
 ## Binary caches
 

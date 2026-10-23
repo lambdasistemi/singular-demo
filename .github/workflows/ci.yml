@@ -335,17 +335,17 @@ jobs:
         with:
           name: kit
           path: dist
-      - name: The tutorial in a terminal from the kit (drive.sh, its own tmux, clean Ubuntu with no network)
+      - name: The tutorial in a terminal from the kit (the stepper, its own tmux, clean Ubuntu with no network)
         env:
           IMAGE: ${{ env.UBUNTU_IMAGE }}
           OUT: out
-        run: TARBALL=$(ls dist/*.tar.gz) kit/drive-run.sh
-      - name: The pay-by-name story in a terminal from the kit (drive.sh pay-by-name, its own tmux and node, clean Ubuntu with no network)
+        run: TARBALL=$(ls dist/*.tar.gz) kit/stepper-run.sh
+      - name: The pay-by-name story in a terminal from the kit (the stepper, its own tmux and node, clean Ubuntu with no network)
         env:
           IMAGE: ${{ env.UBUNTU_IMAGE }}
           OUT: out
           SCENARIO: pay-by-name
-        run: TARBALL=$(ls dist/*.tar.gz) kit/drive-run.sh
+        run: TARBALL=$(ls dist/*.tar.gz) kit/stepper-run.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

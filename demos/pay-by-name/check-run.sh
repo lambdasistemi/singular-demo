@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # What the story leaves in the folders of its five people, and on their screens, and what each must say. The scenario test
-# (Killercoda's windows) and the kit's terminal test (drive.sh) both judge their run with it.
+# (Killercoda's windows) and the kit's terminal test (stepper-run.sh) both judge their run with it.
 #   check-run.sh RUN_DIR [SCREENS_DIR]
 #     RUN_DIR      the folder of the play (carol, alice, dave, bob, publish, messages)
 #     SCREENS_DIR  when given, the screens of the windows as files window-NAME.log; what they show is checked too
