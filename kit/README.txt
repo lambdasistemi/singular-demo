@@ -3,11 +3,13 @@ Singular v0.16.0 demo kit, release v0.16.0-1 (Ubuntu 24.04, x86_64, no Nix neede
 
 What is in here
   bin/       the programs: singular, open-datum, devnet, cardano-node, the transaction tools
-             tx-inspect and tx-diff, plus jq, curl and tmux, and node and sink-tools (see below)
+             tx-inspect and tx-diff, plus jq, curl, tmux and tutorial-stepper, and node and
+             sink-tools (see below)
   libexec/   the real executables that bin/ starts (do not run these directly)
   lib/       the libraries they run on (the kit brings its own C library)
-  share/     the contracts (plutus.json), the devnet's genesis, the packaged data, the pages
-             and the window setup drive.sh plays, and share/sink-tools/ (see below)
+  share/     the contracts (plutus.json), the devnet's genesis, the packaged data, both
+             tutorials (share/tutorials/demo1 and share/tutorials/pay-by-name, played with
+             tutorial-stepper), and share/sink-tools/ (see below)
   VERSION    the release tag and commit this kit was built from
   demo.sh    the annotated Demo 1 journey, 16 steps, on a private devnet
   drive.sh   the same journey as a tutorial you play step by step, as Alice and as Bob, in tmux windows;
@@ -27,21 +29,20 @@ Use
                                           # so the two waits last less; the least allowed values are
                                           # 60000 and 30000, anything lower is refused
 
-The tutorial step by step, in this terminal: the page on the left and, beside it, the window
-of the person who acts (alice, bob, or the chain's; in pay-by-name carol, alice, dave, bob and the chain's). Enter types the next command into that window
-and waits until it is over; s skips a command, c sends it Ctrl-C, n and p turn the page, q closes
-the page. A terminal about 160 columns wide fits both. It takes about 15 minutes.
-  ./drive.sh                              # Demo 1
-  ./drive.sh pay-by-name                  # the pay-by-name story: Carol, Alice, Dave, Bob and the chain
-  WORK=/some/folder ./drive.sh            # where the run's files are kept (default: ~/singular-demo-run, and
-                                          # ~/singular-pay-by-name-run for pay-by-name); the folder of an
-                                          # earlier run is moved aside, never deleted
-  PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./drive.sh
-                                          # Demo 1 only: shorter windows, as for demo.sh (the tutorial writes
-                                          # 180000 and 60000), so the two waits last less
-  ./drive.sh                              # again: back to the same windows and page
-  bin/tmux -L singular-demo kill-server           # ends the windows of Demo 1
-  bin/tmux -L singular-pay-by-name kill-server    # ends the windows of pay-by-name
+The tutorials step by step, in this terminal, with tutorial-stepper: the page beside the
+window of the person who acts (alice, bob, or the chain's; in pay-by-name carol, alice,
+dave, bob and the chain's). Enter runs the next command in that window and waits until it
+is over; s skips a command, c sends it Ctrl-C, n and p turn the page, q closes the page
+and keeps the windows. A terminal about 160 columns wide fits both. It takes about
+15 minutes. The kit brings tutorial-stepper and tmux; put bin/ first on PATH.
+  export PATH="$PWD/bin:$PATH"
+  tutorial-stepper play share/tutorials/demo1     # Demo 1, kept in ~/demo1-run
+  tutorial-stepper play share/tutorials/pay-by-name  # the pay-by-name story: Carol, Alice,
+                                                  # Dave, Bob and the chain, kept in ~/pay-by-name-run
+  tutorial-stepper play --auto share/tutorials/demo1 --path short --run ./demo1-run \
+      --run-setup --transcript ./transcript.toml  # Demo 1 unattended, shortest windows
+                                                  # (60 s and 30 s), so the two waits last less
+  tutorial-stepper play share/tutorials/demo1     # again: back to the same windows and page
 
 The tools of the pay-by-name scenario: bin/sink-tools applies the sink validator to a name, checks a registry, pays a
 sink and moves money out of it. It is JavaScript in one file, share/sink-tools/sink-tools.cjs, with the compiled

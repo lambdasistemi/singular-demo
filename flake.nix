@@ -86,6 +86,8 @@
         nodejs = pkgs.nodejs-slim;
         payByNamePlay = ./demos/pay-by-name/play;
         payByNameScenario = ./killercoda/pay-by-name-steps;
+        demo1Tutorial = ./demos/demo1;
+        payByNameTutorial = ./demos/pay-by-name;
         # drive.sh plays the generated scenario with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;

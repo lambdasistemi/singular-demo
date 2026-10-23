@@ -20,6 +20,8 @@
   nodejs,
   payByNamePlay,
   payByNameScenario,
+  demo1Tutorial,
+  payByNameTutorial,
 }:
 let
   version = pkgs.lib.removeSuffix "\n" (builtins.readFile (source + "/version.txt"));
@@ -57,6 +59,8 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
       nodejs
       payByNamePlay
       payByNameScenario
+      demo1Tutorial
+      payByNameTutorial
       ;
     jq = pkgs.pkgsStatic.jq.bin;
     curl = pkgs.pkgsStatic.curl.bin;
@@ -174,7 +178,7 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl" "$OUT/bin/tmux"
     chmod 755 "$OUT"/bin/*
 
-    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" "kit $release" "nodejs $nodejsVersion" > "$OUT/VERSION"
+    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" "kit $release" "nodejs $nodejsVersion" "tutorial-stepper 0.4.1" > "$OUT/VERSION"
     cp "$readme" "$OUT/README.txt"
     cp "$demo" "$OUT/demo.sh"; chmod 755 "$OUT/demo.sh"
     # the tutorial step by step in a terminal: drive.sh, the scripts of the play it shares with Killercoda and
@@ -199,6 +203,11 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     cp "$sinkLauncher" "$OUT/bin/sink-tools"
     chmod 755 "$OUT/bin/sink-tools"
     chmod -R u+w "$OUT/share/sink-tools"
+    # both tutorials, verbatim: the stepper plays them with `tutorial-stepper play`
+    mkdir -p "$OUT/share/tutorials"
+    cp -r "$demo1Tutorial" "$OUT/share/tutorials/demo1"
+    cp -r "$payByNameTutorial" "$OUT/share/tutorials/pay-by-name"
+    chmod -R u+w "$OUT/share/tutorials"
 
     # pack: fixed time, sorted names, no owner, no gzip name/time field
     mkdir -p "$out"
