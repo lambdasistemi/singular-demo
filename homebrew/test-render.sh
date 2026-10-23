@@ -65,6 +65,10 @@ check "demo formula installs both tutorials" "$(
   grep -q "demo1" "$demo" && grep -q "pay-by-name" "$demo"
   echo $?
 )"
+check "demo formula creates the tutorials directory first" "$(
+  grep -q "mkpath" "$demo"
+  echo $?
+)"
 check "demo formula plays Demo 1 with tutorial-stepper play" "$(
   grep -q "tutorial-stepper play" "$demo"
   echo $?
