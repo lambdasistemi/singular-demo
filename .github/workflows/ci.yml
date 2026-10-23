@@ -395,11 +395,11 @@ jobs:
           path: pr-tools
       - name: Point a local copy of the tap at the pull request
         run: |
-          # The tarball carries demos/ under one top-level directory, as the release's tag
-          # archive does: Homebrew descends into a single top-level directory before installing.
-          rm -rf /tmp/pr-root && mkdir -p /tmp/pr-root/singular-demo-pr
-          cp -r demos/demo1 demos/pay-by-name /tmp/pr-root/singular-demo-pr/
-          tar -czf /tmp/pr-tutorials.tar.gz -C /tmp/pr-root singular-demo-pr
+          # The tarball carries demos/ beside one more top-level file, as the release's tag archive
+          # carries demos/ beside the rest of the repository: Homebrew descends through single-child
+          # directories, so a lone demos/ would install as demo1/ and pay-by-name/ instead.
+          echo "tutorials of the pull request, for the temporary local tap" > /tmp/pr-note.txt
+          tar -czf /tmp/pr-tutorials.tar.gz demos/demo1 demos/pay-by-name -C /tmp pr-note.txt
           # shellcheck disable=SC1091 # singular.env names the pinned Singular release's macOS bundle
           source homebrew/singular.env
           bash homebrew/render.sh --tag v0.0.0-local \
