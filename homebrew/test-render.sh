@@ -88,7 +88,7 @@ check "demo formula installs sink-tools" "$(
   echo $?
 )"
 check "demo formula carries the contracts beside the tutorials" "$(
-  grep -q "singular@0.16" "$demo" && grep -q "share/plutus.json" "$demo"
+  grep -q "singular@0.16" "$demo" && grep -q "share/plutus.json" "$demo" && grep -q "share/version.txt" "$demo"
   echo $?
 )"
 

@@ -23,10 +23,12 @@ class SingularDemo < Formula
   def install
     (pkgshare/"tutorials").mkpath
     pkgshare.install "demos/demo1" => "tutorials/demo1", "demos/pay-by-name" => "tutorials/pay-by-name"
-    # The compiled contracts the tutorials read as $blueprint: copied from the Singular they run on.
+    # The compiled contracts the tutorials read as $blueprint: copied from the Singular they run on,
+    # with the version file the commands look for beside the contracts file.
     # (A plain copy: installing across kegs with metadata preserved is refused on macOS.)
     pkgshare.mkpath
     FileUtils.cp Formula["lambdasistemi/tap/singular@0.16"].libexec/"share/plutus.json", pkgshare/"plutus.json"
+    FileUtils.cp Formula["lambdasistemi/tap/singular@0.16"].libexec/"share/version.txt", pkgshare/"version.txt"
     resource("pay-by-name-tools").stage do
       (pkgshare/"sink-tools").install "sink-tools.cjs", "plutus.json"
     end
