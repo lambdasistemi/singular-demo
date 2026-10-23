@@ -147,4 +147,20 @@ check "fallback checksums the local tools" "$(
   echo $?
 )"
 
+# A relative --local path still renders an absolute file:// url (a relative one does not fetch).
+rel_out=$(mktemp -d)
+trap 'rm -rf "$work" "$local_work" "$macbin" "$mac_out" "$rel_out"' EXIT
+(cd "$work" && bash "$here/render.sh" --tag "$TAG" \
+  --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
+  --local kit.tar.gz --tools-local tools.tar.gz --out "$rel_out" >/dev/null)
+check "relative render exits 0" $?
+check "relative kit path renders absolute" "$(
+  grep -qF "file://$work/kit.tar.gz" "$rel_out/singular-demo.rb"
+  echo $?
+)"
+check "relative tools path renders absolute" "$(
+  grep -qF "file://$work/tools.tar.gz" "$rel_out/singular-demo.rb"
+  echo $?
+)"
+
 exit $fail

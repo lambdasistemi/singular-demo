@@ -403,6 +403,14 @@ jobs:
             --local /tmp/pr-tutorials.tar.gz --tools-local pr-tools/pay-by-name-tools.tar.gz --out /tmp/Formula
           git clone --depth 1 https://github.com/lambdasistemi/homebrew-tap.git /tmp/tap
           cp /tmp/Formula/singular@0.16.rb /tmp/Formula/singular-demo.rb /tmp/tap/Formula/
+          # The tap is cloned, not copied: commit the rendered formulas locally (never pushed)
+          # so the clone the tap is made from holds them.
+          cd /tmp/tap
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "Formula/singular@0.16.rb" Formula/singular-demo.rb
+          git commit -qm "singular-demo from the pull request"
+          cd "$GITHUB_WORKSPACE"
           brew tap lambdasistemi/tap /tmp/tap
       - name: Install singular-demo from the local tap
         run: |

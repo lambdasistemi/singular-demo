@@ -69,6 +69,10 @@ if [ -n "$local_kit" ] || [ -n "$local_tools" ]; then
     echo "--local goes without --kit-sha/--tools-sha" >&2
     exit 2
   }
+  # A file:// url needs an absolute path (a relative one does not fetch).
+  # Resolved here, without readlink -f, which macOS lacks.
+  case "$local_kit" in /*) ;; *) local_kit=$PWD/$local_kit ;; esac
+  case "$local_tools" in /*) ;; *) local_tools=$PWD/$local_tools ;; esac
 else
   [ -n "$kit_sha" ] && [ -n "$tools_sha" ] || {
     echo "--kit-sha and --tools-sha go together" >&2
