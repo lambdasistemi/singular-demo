@@ -4,13 +4,13 @@ Anyone may fold, and here Alice does. The fold is a single command, because it i
 
 **Now Alice.**
 
-```bash
+```bash { window=alice }
 alice
 ```
 
 In the output, `settled` lists the requests now part of the registry and `root` is the registry's new fingerprint.
 
-```bash
+```bash { window=alice }
 open-datum fold \
   --vault alice.vault \
   > receipts/13-fold-bob.json
@@ -18,7 +18,7 @@ open-datum fold \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, settled: [.settled[]? | {key, edge}], root} | with_entries(select(.value != null))' receipts/13-fold-bob.json
 ```
 

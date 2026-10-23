@@ -6,7 +6,7 @@ On a private chain the passphrase comes from the environment variable `SINGULAR_
 
 Running this a second time? A vault from an earlier try is refused ("vault already exists"), and it belongs to the earlier chain's addresses. Start clean first: stop the old devnet and remove the demo folder. Skip this the first time.
 
-```bash skip
+```bash { window=chain mode=show }
 kill "$devnet_pid" 2>/dev/null; cd ~ && rm -rf ~/singular-demo-run
 ```
 
@@ -16,7 +16,7 @@ kill "$devnet_pid" 2>/dev/null; cd ~ && rm -rf ~/singular-demo-run
 - `bundles/`: transactions a command has built but not signed (written by `--bundle`)
 - `witnesses/`: the signatures Bob makes for a bundle (written by `wallet sign`)
 
-```bash
+```bash { window=alice }
 mkdir -p ~/singular-demo-run && cd ~/singular-demo-run
 mkdir -p receipts bundles witnesses
 export SINGULAR_PASSPHRASE=demo
@@ -24,7 +24,7 @@ export SINGULAR_PASSPHRASE=demo
 
 **Two settings files.** Alice and Bob would each keep their settings on their own machine. Here they share the folder, so the files are `alice.json` and `bob.json`, and the variable `SINGULAR_CONFIG` names the one a command reads. Two words set it, `alice` for Alice's file and `bob` for Bob's:
 
-```bash
+```bash { window=alice }
 alice() { export SINGULAR_CONFIG="$PWD/alice.json"; }
 bob() { export SINGULAR_CONFIG="$PWD/bob.json"; }
 ```
@@ -34,19 +34,19 @@ bob() { export SINGULAR_CONFIG="$PWD/bob.json"; }
 - `--vault alice.vault`: the file to create
 - `--network-magic 42`: the number of this private test chain (preprod is 1, mainnet 764824073)
 
-```bash
+```bash { window=alice }
 alice_addr=$(singular wallet create --vault alice.vault --network-magic 42)
 ```
 
 **Bob's vault**, the same way:
 
-```bash
+```bash { window=bob }
 bob_addr=$(singular wallet create --vault bob.vault --network-magic 42)
 ```
 
 **Their public addresses.** A public address is safe to share, and it is all the chain will ever be told about a wallet.
 
-```bash
+```bash { window=alice }
 echo "Alice: $alice_addr"; echo "Bob:   $bob_addr"
 ```
 
@@ -57,13 +57,13 @@ echo "Alice: $alice_addr"; echo "Bob:   $bob_addr"
 - `&`: runs it in the background
 - `devnet_pid=$!`: remembers its process number, so the last step can stop it
 
-```bash
+```bash { window=chain }
 devnet --fund-address "$alice_addr:6:2000000000" --fund-address "$bob_addr:6:2000000000" > devnet.out 2> devnet.err &
 devnet_pid=$!
 ```
 
 **Wait until the settings line has appeared**, then show it. `providerUrl` is where the chain's web API answers.
 
-```bash
+```bash { window=chain }
 until jq -e .providerUrl devnet.out >/dev/null 2>&1; do sleep 1; done; jq . devnet.out
 ```

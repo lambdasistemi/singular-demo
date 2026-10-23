@@ -4,39 +4,39 @@ The registry describes itself: which registry this is, which release of Singular
 
 The page is printed as JSON, and `tee` keeps a copy:
 
-```bash
+```bash { window=alice }
 singular registry describe | tee receipts/02-describe.json
 ```
 
 **Giving the registry to Bob.** Bob is on another machine. Alice gives him one thing, the registry's address. With it, a chain connection and the contracts, he needs nothing else. She would send it in a message; here the file `registry.address` stands for the message.
 
-```bash
+```bash { window=alice }
 jq -r .registry receipts/01-create.json > registry.address
 cat registry.address
 ```
 
 **Now Bob.**
 
-```bash
+```bash { window=bob }
 bob
 ```
 
 **Bob's settings** are his own: the same chain and contracts, a journal folder of his own, and no registry yet.
 
-```bash
+```bash { window=bob }
 jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "bob-journal"}' devnet.out > bob.json
 jq . bob.json
 ```
 
 **He writes the address into his file** as `registry`:
 
-```bash
+```bash { window=bob }
 jq --arg address "$(cat registry.address)" '.registry = $address' bob.json > bob.new && mv bob.new bob.json
 jq . bob.json
 ```
 
 **Bob reads the registry's page**, with the same command. It names the registry by the address he was given:
 
-```bash
+```bash { window=bob }
 singular registry describe | tee receipts/02-describe-bob.json
 ```

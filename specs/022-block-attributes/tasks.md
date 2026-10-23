@@ -1,0 +1,51 @@
+# Tasks: Block attributes for Demo 1
+
+**Input**: `specs/022-block-attributes/spec.md` (P1 story + acceptance), `plan.md`
+**Prerequisites**: none (first child of the epic; needs nothing from tutorial-stepper)
+
+## Format: `[ID] [P?] [Story] Description`
+
+## Phase 1: Spec (record first)
+
+- [ ] T001 [US1] Write `specs/022-block-attributes/{spec,plan,tasks}.md` from the `.specify` templates; commit on `feat/22-block-attributes` (no code yet)
+
+## Phase 2: Failing test first (TDD)
+
+- [ ] T002 [US1] Add the strict fence check to `demos/demo1/lint.sh` (every demo1 ` ```bash ` fence carries `window=` in braces; ` ```bash PERSON ` / ` ```bash skip ` word fences still accepted for pay-by-name); run it and watch it fail on the bare fences (RED evidence in the journal)
+
+## Phase 3: Annotate the step files
+
+- [ ] T003 [US1] Annotate all 94 fences in `demos/demo1/s*.md` per spec FR-001–FR-005 (windows, the 19/10 statuses on alone-ending builds/refusals, `mode=show` on the 12 skip blocks, `mode=observe` on s20+s21); change fence lines only
+
+## Phase 4: Consumers + docs config
+
+- [ ] T004 [US1] `demos/demo1/killercoda.js`: parse attributes, window replaces `actorOf`; delete `actorOf` and its regexes; markers/show/exec rendering unchanged
+- [ ] T005 [P] [US1] `demos/demo1/test.sh` + `demos/demo1/record.js`: extract commands + observations, exclude `mode=show`; same numbering as today
+- [ ] T006 [P] [US1] `demos/demo1/build.js`: parse braced fences; generated pages keep the attributed fences
+- [ ] T007 [P] [US1] `mkdocs.yml`: enable `pymdownx.superfences`
+
+## Phase 5: Green + verification
+
+- [ ] T008 [US1] GREEN: `bash tools/generate.sh /tmp/gen-diff && diff -r /tmp/gen-diff/killercoda killercoda` clean; repository lint passes; `tools/format.sh check` passes
+- [ ] T009 [US1] Docs: `mkdocs build --strict` passes and attributed blocks render as code blocks
+- [ ] T010 [US1] Runbook: `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000` runbook test passes (~5 min), with the ad-hoc per-block exit-status cross-check green
+- [ ] T011 [US1] Review the full diff, commit bisect-safe steps, journal `COMPLETE done head=<sha> checks=<ci job names>`, wait on channels
+
+## Phase 6: Parent follow-up — statuses complete and enforced
+
+- [ ] T012 [US1] Establish every block's real exit from the instrumented run log; keep `status=` only where the body's real exit is non-zero (prose describes commands, fences describe bodies)
+- [ ] T013 [US1] Guard in `demos/demo1/test.sh`: fail with file, block and both statuses on a real-vs-declared mismatch; RED standalone on a deliberately wrong `status=`, GREEN on the fix
+- [ ] T014 [US1] Re-run all four verifications, commit, `COMPLETE` with the new head
+
+## Phase 7: Parent follow-up — lint scope (NOTE-002)
+
+- [ ] T015 [US1] Scope the window-attribute lint rule to step source files (`s*.md`); generated Killercoda pages keep their bare fences
+- [ ] T016 [US1] Run both scenario tests locally the way CI runs them (docker, KIT_BASE=file:///kit); commit; push; `COMPLETE` only when every check of PR 27 is green
+
+## Dependencies & Execution Order
+
+- T001 before everything (record first); committed alone
+- T002 before T003 (test first, RED watched)
+- T003 before T004–T007 (annotation is the input the readers handle)
+- T004, T005, T006, T007 in parallel (disjoint files)
+- T008 after T003–T007; T009–T010 after T008; T011 last

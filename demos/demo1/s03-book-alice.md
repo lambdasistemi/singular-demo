@@ -14,13 +14,13 @@ Alice adds a key. She books `alice` with a first piece of data, the payload: her
 
 **Now Alice.**
 
-```bash
+```bash { window=alice }
 alice
 ```
 
 **The payload**: the data stored under the key, as plain JSON.
 
-```bash
+```bash { window=alice }
 echo '{"answer": 42}' > payload.json
 ```
 
@@ -29,7 +29,7 @@ echo '{"answer": 42}' > payload.json
 - `request` in the output is the pending request (transaction and output number)
 - `foldDeadline` is the slot by which it must be folded
 
-```bash
+```bash { window=alice }
 open-datum insert \
   --key alice --payload payload.json \
   --vault alice.vault \
@@ -38,6 +38,6 @@ open-datum insert \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/03-insert-alice.json
 ```

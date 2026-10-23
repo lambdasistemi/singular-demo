@@ -41,10 +41,10 @@ function parse(text) {
     }
   };
   for (const line of lines) {
-    const open = line.match(/^```(\S*)\s*(\S*)$/);
+    const open = line.match(/^```(\S+?)(?: \{[^}]*\})?\s*$/);
     if (code === null && open && open[1] !== '') {
       flush();
-      code = { kind: 'code', lang: open[1], mode: open[2], lines: [] };
+      code = { kind: 'code', fence: line, lines: [] };
     } else if (code !== null && line === '```') {
       parts.push(code);
       code = null;
@@ -89,7 +89,7 @@ for (const s of steps) {
   for (const p of s.parts) {
     if (p.kind === 'p' || p.kind === 'ul') md += `\n${p.raw.join('\n')}\n`;
     // The empty last line makes GitHub's copy button end the copied text with a line return.
-    else md += `\n\`\`\`bash\n${p.lines.join('\n')}\n\n\`\`\`\n`;
+    else md += `\n${p.fence}\n${p.lines.join('\n')}\n\n\`\`\`\n`;
   }
 }
 fs.writeFileSync(path.join(dir, 'DEMO.md'), md);

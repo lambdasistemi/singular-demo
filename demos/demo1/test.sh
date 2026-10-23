@@ -10,7 +10,10 @@ here=$(cd "$(dirname "$0")" && pwd)
 bash "$here/lint.sh" "$here"/s*.md || exit 1
 work=$(mktemp -d /tmp/rb-XXXXXX)
 # A marker line comes before each block, so record.js can pair every command with what it printed.
-for f in "$here"/s*.md; do awk -v f="$(basename "$f")" '/^```bash$/{on=1; n++; print "echo \"@@ BLOCK " f " " n "\""; next} /^```/{on=0} on' "$f"; done >"$work/blocks.sh"
+# Runnable blocks are commands and observations; mode=show blocks are shown only and leave no marker.
+# After each block the run fails when the block's real exit differs from the one its fence declares
+# (0 when the fence names none), naming the file, the block and both statuses.
+for f in "$here"/s*.md; do awk -v f="$(basename "$f")" '/^```bash( \{[^}]*\})?$/{if ($0 ~ /mode=show/) {on=0; next} on=1; n++; want=$0; if (sub(/.*status=/, "", want)) sub(/[^0-9].*/, "", want); else want=0; print "echo \"@@ BLOCK " f " " n "\""; next} /^```$/{if (on) print "block_rc=\044?; test \044block_rc -eq " want " || { echo \"FAIL  " f " block " n ": exit \044block_rc, want " want "\"; exit 1; }"; on=0; next} on' "$f"; done >"$work/blocks.sh"
 # PROCESS_TIME_MS and RETRACT_TIME_MS, when set, replace the windows the create step writes (a shorter run)
 bash "$here/play/short-windows.sh" "$work/blocks.sh" || exit 1
 # shellcheck disable=SC2016 # this writes the text of a script: its $ expansions happen when that script runs
