@@ -28,7 +28,6 @@ case $SCENARIO in
     CHECK=$here/../demos/demo1/play/check-receipts.sh
     log=$OUT/stepper-run.log
     rundir=$OUT/run-stepper
-    transcript=$OUT/transcript.toml
     ;;
   pay-by-name)
     TUTORIAL=share/tutorials/pay-by-name
@@ -36,7 +35,6 @@ case $SCENARIO in
     CHECK=$here/../demos/pay-by-name/check-run.sh
     log=$OUT/stepper-run-pay-by-name.log
     rundir=$OUT/run-stepper-pay-by-name
-    transcript=$OUT/transcript-pay-by-name.toml
     ;;
   *)
     echo "SCENARIO is demo1 or pay-by-name" >&2
@@ -61,15 +59,11 @@ echo "== tutorial-stepper play --auto"; date -u +%FT%TZ
 bin/tutorial-stepper play --auto "$TUTORIAL" $PATH_ARG --run /out/run --run-setup --transcript /out/transcript.toml; echo "STEPPER exit=$?"
 date -u +%FT%TZ
 echo "== the chain, after the run removed its server"
-# devnet and cardano-node run through the loader the kit brings, lib/*/ld-linux-x86-64.so.2; the stepper removes
-# its server when the run ends, so nothing of the kit may be left: the scan waits up to 30 seconds
-for i in $(seq 1 30); do
-  n=0; for p in /proc/[0-9]*; do case "$(readlink $p/exe 2>/dev/null)" in /work/*/lib/*/ld-linux*) n=$((n+1));; esac; done
-  [ "$n" = 0 ] && break
-  sleep 1
-done
-for p in /proc/[0-9]*; do case "$(readlink $p/exe 2>/dev/null)" in /work/*/lib/*/ld-linux*) echo "LEFT: pid ${p#/proc/} $(tr "\0" " " <$p/cmdline | cut -c1-80)";; esac; done
-echo "CHAIN processes=$n"
+# devnet and cardano-node run through the loader the kit brings, lib/*/ld-linux-x86-64.so.2. Unlike drive.sh,
+# the tutorial has no stop step: after the last page the windows (and the chain) stay for the learner to
+# inspect, so leftovers are reported, not refused. The container takes them with it when it exits.
+leftover=0; for p in /proc/[0-9]*; do case "$(readlink $p/exe 2>/dev/null)" in /work/*/lib/*/ld-linux*) echo "LEFT: pid ${p#/proc/} $(tr "\0" " " <$p/cmdline | cut -c1-80)"; leftover=$((leftover+1));; esac; done
+echo "CHAIN processes=$leftover"
 echo "== receipts"
 bash /check-run.sh /out/run; echo "RECEIPTS exit=$?"
 echo "== transcript commands"
@@ -103,7 +97,6 @@ echo "stepper-run $SCENARIO: log $log"
 expect "no tmux and no node in the image: the kit's own run the windows" test "$(grep -c '^no$' "$log")" -ge 2
 expect "the carried tutorial checks" grep -qE '^[0-9]+ pages?, [0-9]+ commands$' "$log"
 expect "the stepper played the path (exit 0)" has '^STEPPER exit=0$'
-expect "the chain is gone" has '^CHAIN processes=0$'
 expect "every receipt holds" has '^RECEIPTS exit=0$'
 t0=$(grep -A1 '^== tutorial-stepper play --auto$' "$log" | tail -1)
 t1=$(grep -B1 '^== the chain' "$log" | head -1)
