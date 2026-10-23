@@ -80,7 +80,10 @@ if readelf -l "$K/bin/tutorial-stepper" 2>/dev/null | grep -qi 'interp'; then in
 check "bin/tutorial-stepper is statically linked" $interp
 got=$("$K/bin/tutorial-stepper" --version 2>&1)
 echo "bin/tutorial-stepper --version: $got"
-check "the kit's tutorial-stepper is 0.4.1" "$(echo "$got" | grep -q 'tutorial-stepper 0.4.1'; echo $?)"
+check "the kit's tutorial-stepper is 0.4.1" "$(
+  echo "$got" | grep -q 'tutorial-stepper 0.4.1'
+  echo $?
+)"
 for t in demo1 pay-by-name; do
   "$K/bin/tutorial-stepper" check "$K/share/tutorials/$t" >/dev/null 2>&1
   check "the carried $t tutorial checks" $?

@@ -79,7 +79,12 @@
           cardanoNode
           txTools
           ;
-        inherit singular devnet revision stepper;
+        inherit
+          singular
+          devnet
+          revision
+          stepper
+          ;
         openDatum = open-datum-exe;
         sinkTools = payByName.tools;
         sinkBlueprint = payByName.sink;
