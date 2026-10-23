@@ -60,8 +60,13 @@ devnet --fund-address "$(cat alice/alice.address):6:2000000000" --fund-address "
 devnet_pid=$!
 ```
 
-**Wait until the settings line has appeared**, then show it. `providerUrl` is where the chain's web API answers.
+**Wait until the settings line has appeared**, then show it. `providerUrl` is where the chain's web API answers. If the devnet dies first, the wait stops at once and shows the devnet's messages instead of hanging.
 
 ```bash { window=chain }
-until jq -e .providerUrl devnet.out >/dev/null 2>&1; do sleep 1; done; jq . devnet.out
+devnet_gone=0
+until jq -e .providerUrl devnet.out >/dev/null 2>&1; do
+  kill -0 "$devnet_pid" 2>/dev/null || { devnet_gone=1; break; }
+  sleep 1
+done
+if [ "$devnet_gone" = 1 ]; then echo "the devnet died before its settings line appeared; its messages:"; cat devnet.err; false; else jq . devnet.out; fi
 ```
