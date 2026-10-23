@@ -1,7 +1,8 @@
 name: release
 
 # Pushing a tag vX.Y.Z-N runs the whole CI on the kit of the pinned Singular release and then publishes the
-# numbered release: the tarball, its checksum, the full log of the demo run and the run summary. The tag must
+# numbered release: the tarball, its checksum, the full log of the demo run, the run summary, the pay-by-name
+# tools for the Homebrew formula, and the two Homebrew formulas in lambdasistemi/homebrew-tap. The tag must
 # name the kit that was built: the pinned Singular release and the kit's revision (kit/revision), as in v0.14.0-1.
 # The release is created once and never overwritten.
 
@@ -38,9 +39,67 @@ jobs:
           path: release
       - name: The tag names the kit that was built
         run: nix develop .#dev --command bash kit/check-release.sh "$TAG"
+      - name: Pack the pay-by-name tools for the Homebrew formula
+        run: |
+          TOOLS=$(nix build .#pay-by-name-tools --print-out-paths --no-link)
+          SINK=$(nix build .#pay-by-name-sink --print-out-paths --no-link)
+          stage=$(mktemp -d)
+          cp "$TOOLS/sink-tools.cjs" "$stage/"
+          cp "$SINK" "$stage/plutus.json"
+          tar --sort=name --mtime="@1" -czf "release/pay-by-name-tools-$TAG.tar.gz" -C "$stage" sink-tools.cjs plutus.json
+          rm -rf "$stage"
+          ls -l release/
       - name: Create the release
         run: |
           nix develop .#dev --command gh release create "$TAG" --verify-tag --latest \
             --title "Demo 1 kit $TAG for Ubuntu 24.04 (x86_64)" \
             --notes-file release/release-notes.md \
             release/*.tar.gz release/SHA256SUMS release/demo-run.log release/run-summary.json
+
+  tap:
+    name: Publish the Homebrew formulas
+    needs: publish
+    runs-on: nixos
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The tap is written with a token minted from the organisation's CI app, scoped to
+      # homebrew-tap; the workflow's own token never pushes there.
+      - name: Mint a scoped tap token
+        id: tap-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+          owner: lambdasistemi
+          repositories: homebrew-tap
+      - name: Render the formulas and push them to the tap
+        env:
+          TAP_TOKEN: ${{ steps.tap-token.outputs.token }}
+        run: |
+          # shellcheck disable=SC1091 # singular.env names the pinned Singular release's macOS bundle
+          source homebrew/singular.env
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          curl -fsSL --retry 3 -o "$tmp/repo.tar.gz" \
+            "https://github.com/lambdasistemi/singular-demo/archive/refs/tags/$TAG.tar.gz"
+          curl -fsSL --retry 3 -o "$tmp/tools.tar.gz" \
+            "https://github.com/lambdasistemi/singular-demo/releases/download/$TAG/pay-by-name-tools-$TAG.tar.gz"
+          kit_sha=$(sha256sum "$tmp/repo.tar.gz" | cut -d' ' -f1)
+          tools_sha=$(sha256sum "$tmp/tools.tar.gz" | cut -d' ' -f1)
+          nix develop .#dev --command bash homebrew/render.sh --tag "$TAG" \
+            --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
+            --kit-sha "$kit_sha" --tools-sha "$tools_sha" --out "$tmp/Formula"
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/lambdasistemi/homebrew-tap.git" "$tmp/tap"
+          cp "$tmp/Formula/singular@0.16.rb" "$tmp/Formula/singular-demo.rb" "$tmp/tap/Formula/"
+          cd "$tmp/tap"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "Formula/singular@0.16.rb" Formula/singular-demo.rb
+          git diff --cached --quiet || git commit -m "singular-demo $TAG: singular@0.16 and singular-demo"
+          git push
