@@ -3,7 +3,9 @@ name: CI
 # Every pull request builds the Ubuntu kit of the pinned Singular release, checks the repository, proves the
 # kit in a clean Ubuntu, plays the tutorial and its three environments (the Killercoda scenarios, the kit's
 # stepper play in a terminal and the Codespaces tutorial) on that kit, and builds the documentation site from the
-# logs of those runs. publish.yml and release.yml call this workflow and publish what it produced.
+# logs of those runs. publish.yml and release.yml call this workflow and publish what it produced. One job
+# dry-runs the Homebrew formula publishing against the latest published release, so a tool missing from the
+# nixos runner (as curl was in issue 31) fails the pull request instead of the next release.
 #
 # Jobs that need Nix run on the self-hosted nixos runners, after the Build Gate has built everything once.
 # Six jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
@@ -80,6 +82,29 @@ jobs:
         run: nix flake check --no-eval-cache
       - name: The Homebrew formulas render from their templates
         run: bash homebrew/test-render.sh
+
+  tap-dry-run:
+    name: CI tap publishing
+    # The publishing runs only on a tag push, where curl once missed from the runner: this job runs the
+    # publishing test against the latest published release on every pull request, so a tool missing from
+    # the dev shell fails here instead of in the release.
+    needs: build-gate
+    runs-on: nixos
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: paolino
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Dry-run the formula publishing from the latest published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(nix develop .#dev --command gh release view --json tagName --jq .tagName)
+          nix develop .#dev --command bash homebrew/test-publish-tap.sh "$TAG"
 
   kit:
     name: CI kit
