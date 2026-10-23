@@ -4,9 +4,12 @@
 //
 // The scenario runs in tmux with five windows, made by the setup: 0 `carol`, 1 `alice`, 2 `dave`, 3 `bob` and 4 `chain`
 // (the private chain, a background job of its window). Each person works in a folder of their own, with their own vault and
-// their own settings file. In a step file a block opened with ```bash PERSON is a command the learner runs with a click, in the
-// window of that person; ```bash skip is shown only. Wherever the person changes, the page gives the word to click
-// (carol, alice, dave, bob or chain); the keys Ctrl-b 0 to 4 are only an extra, nothing needs a keyboard.
+// their own settings file. Every "bash" block of the step files carries its window as `{ window=... }`, as the
+// tutorial-stepper format specifies; it becomes a block the learner runs with a click, in the window of the person
+// who acts. Blocks marked `{ mode=show }` are shown only; `{ mode=observe }` blocks run like commands. The paragraph and
+// the five blocks that load the stepper's shell setup (`. ../stepper.sh`, `. ./stepper.sh`) are stepper-only and are skipped here:
+// Killercoda's windows already have their setup from windows.rc. Wherever the person changes, the page gives the word
+// to click (carol, alice, dave, bob or chain); the keys Ctrl-b 0 to 4 are only an extra, nothing needs a keyboard.
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -42,7 +45,7 @@ const goTo = (w, lead = '') =>
 function parse(text) {
   const lines = text.split('\n');
   const title = lines.shift().replace(/^#\s+/, '');
-  const parts = []; // { text } or { code, who } ; who is a window, or 'skip'
+  const parts = []; // { text } or { code, window, mode }
   let buf = [];
   let block = null;
   const flush = () => {
@@ -51,21 +54,36 @@ function parse(text) {
       buf = [];
     }
   };
-  for (const line of lines) {
-    const open = line.match(/^```bash (\w+)$/);
-    if (block === null && line.startsWith('```bash')) {
-      if (!open || (open[1] !== 'skip' && !WINDOWS.includes(open[1]))) {
+  for (const [n, line] of lines.entries()) {
+    const open = line.match(/^```bash \{([^}]*)\}$/);
+    if (block === null && open) {
+      flush();
+      const attrs = {};
+      for (const kv of open[1].trim().split(/\s+/)) {
+        const [k, v] = kv.split('=');
+        attrs[k] = v;
+      }
+      if (!attrs.window || !WINDOWS.includes(attrs.window)) {
         console.error(
-          `killercoda.js: a block must open with \`\`\`bash PERSON or \`\`\`bash skip: ${line}`,
+          `killercoda.js:${n + 2}: fence without window=carol|alice|dave|bob|chain: ${line}`,
         );
         process.exit(1);
       }
-      flush();
-      block = { who: open[1], lines: [] };
+      if (attrs.mode !== undefined && attrs.mode !== 'show' && attrs.mode !== 'observe') {
+        console.error(`killercoda.js:${n + 2}: bad mode ${attrs.mode}: ${line}`);
+        process.exit(1);
+      }
+      block = { window: attrs.window, mode: attrs.mode, lines: [] };
       continue;
     }
+    if (block === null && line.startsWith('```bash')) {
+      console.error(
+        `killercoda.js:${n + 2}: a block must open with \`\`\`bash { window=... }: ${line}`,
+      );
+      process.exit(1);
+    }
     if (block !== null && line === '```') {
-      parts.push({ code: block.lines.join('\n'), who: block.who });
+      parts.push({ code: block.lines.join('\n'), window: block.window, mode: block.mode });
       block = null;
       continue;
     }
@@ -101,17 +119,26 @@ function render(page) {
   let chunkStart = -1; // where the text chunk just before this block starts, -1 when a block came last
   for (const p of page.parts) {
     if (p.text !== undefined) {
+      // The stepper's shell-setup paragraph runs only on the stepper; Killercoda's windows already source windows.rc.
+      const text = p.text
+        .replace(/\*\*Load the shell setup in each window\.\*\*[^\n]*\n\n?/, '')
+        .replace(/\n{3,}/g, '\n\n');
       chunkStart = md.length;
-      md += `${p.text}\n`;
+      md += `${text}\n`;
       continue;
     }
-    if (p.who === 'skip') {
+    // The stepper's shell-setup loads run only on the stepper; Killercoda's windows already source windows.rc.
+    if (p.code.trim() === '. ../stepper.sh' || p.code.trim() === '. ./stepper.sh') {
+      chunkStart = -1;
+      continue;
+    }
+    if (p.mode === 'show') {
       md += `\`\`\`bash\n${p.code}\n\`\`\`\n`;
       chunkStart = -1;
       continue;
     }
-    if (p.who !== current) {
-      const line = `${goTo(p.who, `**Now ${NAME[p.who] ?? 'the chain'}.** `)}\n\n`;
+    if (p.window !== current) {
+      const line = `${goTo(p.window, `**Now ${NAME[p.window] ?? 'the chain'}.** `)}\n\n`;
       // the words come before the caption of the block (the last paragraph of the text above it), so the learner
       // is in the right window when reading what that person does
       if (chunkStart >= 0) {
@@ -121,7 +148,7 @@ function render(page) {
       } else {
         md += `\n${line}`;
       }
-      current = p.who;
+      current = p.window;
     }
     chunkStart = -1;
     md += `\`\`\`bash\n${p.code}\n\`\`\`{{exec}}\n`;

@@ -4,44 +4,44 @@ Nobody has to be asked to release the money in a sink. **Anyone** may build a tr
 
 **Alice moves 7 ada.** `sink-tools move` reads the registry for the output that holds the token of the name `alice`, and takes from its payload the address to pay. It builds the move: 7 ada to that address, the rest back to the sink. The transaction names that output as a reference input, so the sink can read it.
 
-```bash alice
+```bash { window=alice }
 active=$(jq -r .registry.activeScript describe.json)
 sink-tools move --active-policy "$active" --name alice --from "$alice_addr" --lovelace 7000000 --bundle move.bundle
 ```
 
 Her vault signs, then the bundle is sent:
 
-```bash alice
+```bash { window=alice }
 singular wallet sign --vault alice.vault --out witnesses-move move.bundle
 ```
 
-```bash alice
+```bash { window=alice }
 singular submit --witnesses witnesses-move --receipt move.submitted.json move.bundle > move.submit.out
 jq -c '{outcome, transactions: [.submissions[] | {identity, how, confirmations}]}' move.submitted.json
 ```
 
 The 7 ada are at her address, an output of that transaction:
 
-```bash alice
+```bash { window=alice }
 outputs_at "$alice_addr" "$(jq -r '.submissions[0].identity' move.submitted.json)"
 ```
 
 **Dave moves 5 ada**, the same way, for the name `dave`:
 
-```bash dave
+```bash { window=dave }
 active=$(jq -r .registry.activeScript describe.json)
 sink-tools move --active-policy "$active" --name dave --from "$dave_addr" --lovelace 5000000 --bundle move.bundle
 ```
 
-```bash dave
+```bash { window=dave }
 singular wallet sign --vault dave.vault --out witnesses-move move.bundle
 ```
 
-```bash dave
+```bash { window=dave }
 singular submit --witnesses witnesses-move --receipt move.submitted.json move.bundle > move.submit.out
 jq -c '{outcome, transactions: [.submissions[] | {identity, how, confirmations}]}' move.submitted.json
 ```
 
-```bash dave
+```bash { window=dave }
 outputs_at "$dave_addr" "$(jq -r '.submissions[0].identity' move.submitted.json)"
 ```

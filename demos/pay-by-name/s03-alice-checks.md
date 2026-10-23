@@ -4,13 +4,13 @@ Alice has read Carol's page. Before she puts a name in this registry, she checks
 
 **Her settings.** The registry is the one on Carol's page, named by its address.
 
-```bash alice
+```bash { window=alice }
 settings "$(jq -r .registry ../publish/registry.json)"
 ```
 
 **Describe it**, as Carol did:
 
-```bash alice
+```bash { window=alice }
 singular registry describe --blueprint "$blueprint" > describe.json
 ```
 
@@ -22,7 +22,7 @@ singular registry describe --blueprint "$blueprint" > describe.json
 
 The second and the third are checks no Singular program makes. It exits with 1 if any of them differs.
 
-```bash alice
+```bash { window=alice }
 sink-tools check-registry describe.json --published ../publish/registry.json
 ```
 
