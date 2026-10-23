@@ -1,0 +1,62 @@
+shell = "bash"
+setup = "setup.sh"
+pages = [
+  "s00a1-two-programs.md",
+  "s00a2-two-ways-to-sign.md",
+  "s00a-open-the-shell.md",
+  "s00b-wallets-and-devnet.md",
+  "s01-create.md",
+  "s02-describe.md",
+  "s03-book-alice.md",
+  "s04-fold-insert.md",
+  "s05-read-key.md",
+  "s06-update.md",
+  "s07-read-again.md",
+  "s08-book-removal.md",
+  "s09-fold-removal.md",
+  "s10-read-removed.md",
+  "s11-reject.md",
+  "s12-bob-books.md",
+  "s13-alice-folds.md",
+  "s14-reclaim.md",
+  "s15-book-dave.md",
+  "s16-fold-dave.md",
+  "s17-limits.md",
+  "s20-extra-wallets.md",
+  "s21-extra-transactions.md",
+  "s22-extra-new-terminal.md",
+  "s99-stop.md",
+]
+
+[[window]]
+name = "alice"
+folder = "alice"
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl"]
+
+[[window]]
+name = "bob"
+folder = "bob"
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl"]
+
+[[window]]
+name = "chain"
+folder = "."
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl"]
+
+[[setting]]
+name = "PROCESS_TIME_MS"
+default = "180000"
+values = ["180000", "60000"]
+
+[[setting]]
+name = "RETRACT_TIME_MS"
+default = "60000"
+values = ["60000", "30000"]
+
+[[path]]
+name = "short"
+values = { PROCESS_TIME_MS = "60000", RETRACT_TIME_MS = "30000" }
+
+[[path]]
+name = "tutorial"
+values = { PROCESS_TIME_MS = "180000", RETRACT_TIME_MS = "60000" }

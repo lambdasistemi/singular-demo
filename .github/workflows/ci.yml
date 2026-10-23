@@ -57,6 +57,7 @@ jobs:
           .#pay-by-name-sink
           .#pay-by-name-tools
           .#docs-env
+          .#tutorial-stepper
           .#devShells.x86_64-linux.default.inputDerivation
           .#devShells.x86_64-linux.dev.inputDerivation
 
@@ -124,17 +125,22 @@ jobs:
         with:
           name: paolino
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Every step of the tutorial, pasted into one shell, against a fresh devnet
-        run: nix develop --command bash demos/demo1/test.sh
-      - name: Keep the log of the run
+      - name: Every step of the tutorial, played with the stepper, against a fresh devnet
+        env:
+          STEPPER_PATH: ${{ github.event_name == 'pull_request' && 'short' || 'tutorial' }}
+        run: |
+          rm -rf /tmp/stepper-run /tmp/stepper-transcript.toml
+          nix develop --command tutorial-stepper play --auto demos/demo1 --path "$STEPPER_PATH" --run /tmp/stepper-run --run-setup --transcript /tmp/stepper-transcript.toml
+          nix develop --command bash demos/demo1/play/check-receipts.sh /tmp/stepper-run
+      - name: Keep the transcript of the run
         if: always()
         run: |
           mkdir -p runbook-out
-          cp /tmp/rb-*/log.txt runbook-out/runbook-test.log
+          cp /tmp/stepper-transcript.toml runbook-out/stepper-transcript.toml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: runbook-log
+          name: runbook-transcript
           path: runbook-out/
           if-no-files-found: warn
           retention-days: 14
@@ -381,10 +387,10 @@ jobs:
           path: release
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: runbook-log
+          name: runbook-transcript
           path: runbook-out
       - name: Build the site (mkdocs, --strict)
-        run: nix shell .#docs-env --command bash docs/build.sh runbook-out/runbook-test.log release/demo-run.log
+        run: nix shell .#docs-env --command bash docs/build.sh runbook-out/stepper-transcript.toml release/demo-run.log
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site/

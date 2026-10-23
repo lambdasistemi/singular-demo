@@ -106,19 +106,6 @@ function swap(str, from, to) {
   }
   return next;
 }
-function swapCode(page, from, to) {
-  let hit = false;
-  for (const p of page.parts) {
-    if (p.code?.includes(from)) {
-      p.code = p.code.replace(from, to);
-      hit = true;
-    }
-  }
-  if (!hit) {
-    console.error(`killercoda.js: code to replace not found: ${from.slice(0, 80)}`);
-    process.exit(1);
-  }
-}
 
 // ---- who acts
 
@@ -303,14 +290,6 @@ for (const f of stepPages) {
   const pg = read(f);
   markWords(pg, f);
 
-  if (/^s0[12]-/.test(f)) {
-    // the devnet's line and the address Alice gives Bob are in the folder above the person's folder
-    for (const p of pg.parts)
-      if (p.code !== undefined)
-        p.code = p.code
-          .replace(/\bdevnet\.out/g, '../devnet.out')
-          .replace(/\bregistry\.address/g, '../registry.address');
-  }
   if (/^s01-/.test(f)) {
     // the window names the settings file in the variable SINGULAR_CONFIG
     const w = pg.parts.findIndex((p) =>
@@ -324,38 +303,6 @@ for (const f of stepPages) {
       pg.parts[w].text,
       "Alice's file is `alice.json`. The devnet's settings line has two of the values; `jq` builds the file from it.",
       "Alice's file is `alice.json`, and her window names it in the variable `SINGULAR_CONFIG`. The devnet's settings line has two of the values; `jq` builds the file from it.",
-    );
-  }
-  if (/^s12-/.test(f)) {
-    // Bob's directory has no payload file: his booking uses the one Alice wrote
-    swapCode(pg, '--key bob --payload payload.json', '--key bob --payload ../alice/payload.json');
-    const c = pg.parts.findIndex((p) => p.text?.includes('**Build the bundle:**'));
-    if (c < 0) {
-      console.error('killercoda.js: s12 caption not found');
-      process.exit(1);
-    }
-    pg.parts[c].text = pg.parts[c].text.replace(
-      '**Build the bundle:**',
-      "**Build the bundle**, with Alice's payload file:",
-    );
-  }
-  if (/^s20-/.test(f)) {
-    // the addresses are in files: this window reads them into variables
-    const h = pg.parts.findIndex((p) => p.text?.includes('`wallet_show ADDRESS`'));
-    if (h < 0) {
-      console.error('killercoda.js: s20 wallet_show paragraph not found');
-      process.exit(1);
-    }
-    pg.parts.splice(
-      h,
-      0,
-      {
-        text: '**Read the addresses.** They were written to files when the wallets were made. Read them into variables, in this window:\n',
-      },
-      {
-        code: 'alice_addr=$(cat ../alice/alice.address); bob_addr=$(cat ../bob/bob.address)',
-        skip: false,
-      },
     );
   }
   pages.push({ title: pg.title, md: render(pg, { actors: !/^s20-/.test(f) }) });
