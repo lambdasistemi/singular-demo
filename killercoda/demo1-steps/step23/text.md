@@ -18,10 +18,13 @@ jq '.transactions[] | {effects, deadline}' bundles/fold-insert.bundle
 jq '.submissions[]? | {transaction: .identity, slot: .chainPoint.slot, block: .chainPoint.blockHash[0:12], confirmations}' receipts/04-fold-insert.submitted.json
 ```{{exec}}
 
-**Every transaction of the demo**, in the order of the receipts. The loop walks all receipts and prints the transactions each one landed.
+**Every transaction of the demo**, in the order of the receipts. The loop walks all receipts and prints the transactions each one landed (`tx-info.json` is the chain's answer about one of them, kept below, not a receipt, so the loop leaves it out; that also keeps this observation true when it runs again at the end of the path).
 
 ```bash
-for f in receipts/*.json; do jq -r --arg f "$f" '.submissions[]? | "\($f)  \(.identity)  slot \(.chainPoint.slot)"' "$f"; done
+for f in receipts/*.json; do
+  [ "$f" = receipts/tx-info.json ] && continue
+  jq -r --arg f "$f" '.submissions[]? | "\($f)  \(.identity)  slot \(.chainPoint.slot)"' "$f"
+done
 ```{{exec}}
 
 **What the chain says about one of them.** The devnet's web API answers the same query a public Koios does. Take the first transaction of the step 4 fold and ask the chain about it. The full answer is kept in `receipts/tx-info.json`.
