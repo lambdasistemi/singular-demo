@@ -35,6 +35,7 @@ As a maintainer of the demo, I read a step file and observe on each command bloc
 - **FR-007**: Every consumer of the step files MUST keep working with the attributes: the block extraction in `test.sh`, `record.js`, `build.js`, the block markers `checks.sh` reads, `lint.sh` (which also runs over `demos/pay-by-name/s*.md` and MUST keep accepting that story's ` ```bash PERSON ` / ` ```bash skip ` fences), the generator, and the documentation site.
 - **FR-008**: `mkdocs.yml` MUST enable `pymdownx.superfences`, so attributed blocks still render as code blocks. Generated pages (`record.js`, `build.js`) MUST keep the attributed fences instead of stripping them.
 - **FR-009**: No committed change outside `demos/demo1/s*.md`, `demos/demo1/killercoda.js`, `demos/demo1/test.sh`, `demos/demo1/record.js`, `demos/demo1/build.js`, `demos/demo1/lint.sh`, `mkdocs.yml` and `specs/022-block-attributes/`. `demos/pay-by-name/` is touched only if a shared program forces it, and stays working.
+- **FR-010**: The runbook test fails when a block's real exit differs from the one its fence declares (0 when the fence names none), naming the file, the block and both statuses, so the attributes cannot drift.
 
 ### Key Entities
 

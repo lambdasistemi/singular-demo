@@ -31,6 +31,12 @@
 - [ ] T010 [US1] Runbook: `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000` runbook test passes (~5 min), with the ad-hoc per-block exit-status cross-check green
 - [ ] T011 [US1] Review the full diff, commit bisect-safe steps, journal `COMPLETE done head=<sha> checks=<ci job names>`, wait on channels
 
+## Phase 6: Parent follow-up — statuses complete and enforced
+
+- [ ] T012 [US1] Establish every block's real exit from the instrumented run log; keep `status=` only where the body's real exit is non-zero (prose describes commands, fences describe bodies)
+- [ ] T013 [US1] Guard in `demos/demo1/test.sh`: fail with file, block and both statuses on a real-vs-declared mismatch; RED standalone on a deliberately wrong `status=`, GREEN on the fix
+- [ ] T014 [US1] Re-run all four verifications, commit, `COMPLETE` with the new head
+
 ## Dependencies & Execution Order
 
 - T001 before everything (record first); committed alone
