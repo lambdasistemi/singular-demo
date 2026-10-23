@@ -78,6 +78,8 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Flake checks (format, lint, generated files, the README's version)
         run: nix flake check --no-eval-cache
+      - name: The Homebrew formulas render from their templates
+        run: bash homebrew/test-render.sh
 
   kit:
     name: CI kit

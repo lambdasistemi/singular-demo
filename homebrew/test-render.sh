@@ -117,4 +117,34 @@ check "local render leaves the Singular bundle alone" "$(
   echo $?
 )"
 
+# The macOS fallback: with no sha256sum on PATH, --local checksums come from shasum -a 256.
+# The sandbox has bash and the text tools but no sha256sum; shasum is a double for macOS shasum.
+# dirname ships with macOS (and the sandbox's coreutils); it is linked like the rest.
+macbin=$(mktemp -d)
+for t in bash dirname sed grep cut mkdir cp mv wc; do
+  ln -s "$(command -v "$t")" "$macbin/$t"
+done
+cat >"$macbin/shasum" <<EOF
+#!/usr/bin/env bash
+# Test double for macOS shasum: drops its own flags, checksums the named file.
+file=
+for arg in "\$@"; do file=\$arg; done
+exec "$(command -v sha256sum)" "\$file"
+EOF
+chmod +x "$macbin/shasum"
+mac_out=$(mktemp -d)
+trap 'rm -rf "$work" "$local_work" "$macbin" "$mac_out"' EXIT
+PATH="$macbin" bash "$here/render.sh" --tag "$TAG" \
+  --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
+  --local "$work/kit.tar.gz" --tools-local "$work/tools.tar.gz" --out "$mac_out" >/dev/null
+check "render without sha256sum exits 0" $?
+check "fallback checksums the local tarball" "$(
+  grep -q "$kit_sha" "$mac_out/singular-demo.rb"
+  echo $?
+)"
+check "fallback checksums the local tools" "$(
+  grep -q "$tools_sha" "$mac_out/singular-demo.rb"
+  echo $?
+)"
+
 exit $fail

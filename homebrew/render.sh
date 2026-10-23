@@ -78,11 +78,18 @@ fi
 
 version=${tag#v}
 repo=https://github.com/lambdasistemi/singular-demo
+sha256file() { # FILE: its hex checksum, with sha256sum or, on macOS, shasum -a 256
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    shasum -a 256 "$1" | cut -d' ' -f1
+  fi
+}
 if [ -n "$local_kit" ]; then
   kit_url=file://$local_kit
-  kit_sha=$(sha256sum "$local_kit" | cut -d' ' -f1)
+  kit_sha=$(sha256file "$local_kit")
   tools_url=file://$local_tools
-  tools_sha=$(sha256sum "$local_tools" | cut -d' ' -f1)
+  tools_sha=$(sha256file "$local_tools")
 else
   kit_url=$repo/archive/refs/tags/$tag.tar.gz
   tools_url=$repo/releases/download/$tag/pay-by-name-tools-$tag.tar.gz
@@ -90,10 +97,11 @@ fi
 singular_url=https://github.com/lambdasistemi/singular/releases/download/v$singular_version/singular-$singular_version-aarch64-darwin.tar.gz
 
 mkdir -p "$out"
-sub() { # placeholder value file...: escape sed metacharacters in the value, replace in the file
+sub() { # placeholder value file...: escape sed metacharacters in the value, replace without sed -i
+  # (BSD sed needs a backup suffix for -i, so the rendering writes a temporary file instead)
   what=$1
   value=$(printf '%s' "$2" | sed -e 's/[&|\\]/\\&/g')
-  sed -i "s|$what|$value|g" "$3"
+  sed "s|$what|$value|g" "$3" >"$3.rendered" && mv "$3.rendered" "$3"
 }
 cp "$here/singular-at-0.16.rb.in" "$out/singular@0.16.rb"
 sub @SINGULAR_URL@ "$singular_url" "$out/singular@0.16.rb"
