@@ -88,7 +88,7 @@
         payByNameScenario = ./killercoda/pay-by-name-steps;
         demo1Tutorial = ./demos/demo1;
         payByNameTutorial = ./demos/pay-by-name;
-        # drive.sh plays the generated scenario with the scripts of the play
+        # the Killercoda scenarios are generated from the step files with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;
       };
