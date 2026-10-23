@@ -29,6 +29,11 @@ test-demo1:
     nix develop --quiet -c tutorial-stepper play --auto demos/demo1 --path short --run /tmp/demo1-run --run-setup --transcript /tmp/demo1-transcript.toml
     nix develop --quiet -c bash demos/demo1/play/check-receipts.sh /tmp/demo1-run
 
+# Play the pay-by-name story with the stepper (the story's only path).
+test-pay-by-name:
+    nix develop --quiet -c tutorial-stepper play --auto demos/pay-by-name --run /tmp/pay-by-name-run --run-setup --transcript /tmp/pay-by-name-transcript.toml
+    nix develop --quiet -c bash demos/pay-by-name/check-run.sh /tmp/pay-by-name-run
+
 # Build the documentation site from the transcript of a run:  just docs TRANSCRIPT DEMO_LOG
 docs transcript demo_log:
     nix shell .#docs-env --command bash docs/build.sh {{ transcript }} {{ demo_log }}
