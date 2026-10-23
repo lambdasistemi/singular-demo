@@ -1,0 +1,41 @@
+shell = "bash"
+setup = "setup.sh"
+pages = [
+  "s01-setup.md",
+  "s02-carol-creates.md",
+  "s03-alice-checks.md",
+  "s04-alice-registers.md",
+  "s05-bob-checks-and-asks.md",
+  "s06-alice-replies.md",
+  "s07-dave-checks.md",
+  "s08-dave-registers.md",
+  "s09-bob-pays.md",
+  "s10-move.md",
+  "s11-rotate.md",
+  "s12-limits.md",
+]
+
+[[window]]
+name = "carol"
+folder = "carol"
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl", "sink-tools"]
+
+[[window]]
+name = "alice"
+folder = "alice"
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl", "sink-tools"]
+
+[[window]]
+name = "dave"
+folder = "dave"
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl", "sink-tools"]
+
+[[window]]
+name = "bob"
+folder = "bob"
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl", "sink-tools"]
+
+[[window]]
+name = "chain"
+folder = "."
+needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl", "sink-tools"]

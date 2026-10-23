@@ -57,6 +57,12 @@
       # The pay-by-name scenario: its validator and the tools that apply it
       payByName = import ./demos/pay-by-name/build.nix { inherit pkgs; };
 
+      # sink-tools for the development shell: the pay-by-name tools run with the flake's Node.js,
+      # as the kit's bin/sink-tools runs them with the kit's Node.js.
+      sinkToolsBin = pkgs.writeShellScriptBin "sink-tools" ''
+        exec ${pkgs.nodejs-slim}/bin/node ${payByName.tools}/sink-tools.cjs "$@"
+      '';
+
       # The kit's revision, kit/revision: the only place it is written by hand. The release is Singular's and this, as in v0.16.0-1.
       revision = pkgs.lib.removeSuffix "\n" (builtins.readFile ./kit/revision);
 
@@ -200,6 +206,7 @@
             pkgs.curl
             txTools
             tutorialStepper
+            sinkToolsBin
             # The stepper's runtime needs: an interactive bash (readline) and tmux.
             # The shell's plain pkgs.bash has neither; CI has nothing beyond the flake.
             pkgs.bashInteractive
@@ -213,7 +220,7 @@
             export TMPDIR=/tmp/singular-demo-$(id -u)
             mkdir -p -m 700 "$TMPDIR"
             echo "Singular v0.16.0, Demo 1 shell"
-            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl, tutorial-stepper   on the PATH"
+            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl, tutorial-stepper, sink-tools   on the PATH"
             echo "  \$blueprint          = $blueprint"
             echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"
             echo "  \$TMPDIR             = $TMPDIR"
