@@ -45,7 +45,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 **Without Nix**, on Ubuntu 24.04 (x86_64): a kit with the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
 
 ```bash
-release=v0.16.0-1
+release=v0.16.0-2
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/SHA256SUMS
 sha256sum -c SHA256SUMS
@@ -88,7 +88,7 @@ tutorial-stepper play --auto share/tutorials/demo1 --path short --run ./demo1-ru
 The daily kit, built from `main` every day, always has it:
 
 ```bash
-release=v0.16.0-1
+release=v0.16.0-2
 base=https://github.com/lambdasistemi/singular-demo/releases/download/daily
 curl -fLO $base/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO $base/SHA256SUMS
