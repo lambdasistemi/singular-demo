@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cache-miss guard: refuse to go on if nix would compile anything beyond the
-# trivial local derivations (the kit, the shell, the verifier, the unpacking of
+# trivial local derivations (the kit, the shells and their input derivations, the verifier, the unpacking of
 # the two transaction tools; and the small derivations that change with every
 # Singular tag: copies of the tagged source, the package list, the devnet wrapper
 # script and the contract blueprints, which the project's cache does not always
@@ -17,7 +17,7 @@
 #   GUARD_ALLOW   extended regex for the derivation names that may be built
 #   NIX_ARGS      extra arguments for nix (for example --store DIR --option substituters URL)
 set -uo pipefail
-GUARD_ALLOW=${GUARD_ALLOW:-'^(singular-demo-kit-[0-9.]+-[0-9]+|singular-demo(-env)?|kit-verify|singular-contracts-v[0-9.]+|cardano-tx-tools-[0-9.]+|tx-(inspect|diff)-[0-9.]+-x86_64-linux-musl\.tar\.gz|tutorial-stepper-[0-9.]+-x86_64-linux|source|packages\.toml|devnet|(registry|open-datum)-plutus-blueprint-[0-9.]+|open-datum-deployment-blueprint|tmux-static-x86_64-unknown-linux-musl-[0-9a-z.]+|utf8proc-static-x86_64-unknown-linux-musl-[0-9.]+|pay-by-name-(sink|sink-variant)-blueprint|pay-by-name-tools-[0-9.]+(-npm-deps)?|sink-tools)\.drv$'}
+GUARD_ALLOW=${GUARD_ALLOW:-'^(singular-demo-kit-[0-9.]+-[0-9]+|singular-demo(-env)?|inputDerivation-singular-demo(-dev)?|kit-verify|singular-contracts-v[0-9.]+|cardano-tx-tools-[0-9.]+|tx-(inspect|diff)-[0-9.]+-x86_64-linux-musl\.tar\.gz|tutorial-stepper-[0-9.]+-x86_64-linux|source|packages\.toml|devnet|(registry|open-datum)-plutus-blueprint-[0-9.]+|open-datum-deployment-blueprint|tmux-static-x86_64-unknown-linux-musl-[0-9a-z.]+|utf8proc-static-x86_64-unknown-linux-musl-[0-9.]+|pay-by-name-(sink|sink-variant)-blueprint|pay-by-name-tools-[0-9.]+(-npm-deps)?|sink-tools)\.drv$'}
 [ $# -gt 0 ] || {
   echo "usage: guard.sh INSTALLABLE..." >&2
   exit 2
