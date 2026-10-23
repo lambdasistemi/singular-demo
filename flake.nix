@@ -30,7 +30,7 @@
     # compiler, patchelf) come from: the one the programs themselves are built on.
     nixpkgs.follows = "offchain/nixpkgs";
     # The tutorial stepper that plays demos/demo1 in CI, pinned to its release.
-    tutorial-stepper.url = "github:lambdasistemi/tutorial-stepper/v0.4.0";
+    tutorial-stepper.url = "github:lambdasistemi/tutorial-stepper/v0.4.1";
   };
 
   outputs =
