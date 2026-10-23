@@ -24,13 +24,14 @@ check:
 generate:
     bash tools/generate.sh .
 
-# Run every block of the tutorial against a fresh private devnet (about ten minutes).
+# Play Demo 1's shortest tested path with the stepper (about five minutes).
 test-demo1:
-    nix develop --quiet -c bash demos/demo1/test.sh
+    nix develop --quiet -c tutorial-stepper play --auto demos/demo1 --path short --run /tmp/demo1-run --run-setup --transcript /tmp/demo1-transcript.toml
+    nix develop --quiet -c bash demos/demo1/play/check-receipts.sh /tmp/demo1-run
 
-# Build the documentation site from the logs of a run:  just docs RUNBOOK_LOG DEMO_RUN_LOG
-docs runbook_log demo_log:
-    nix shell .#docs-env --command bash docs/build.sh {{ runbook_log }} {{ demo_log }}
+# Build the documentation site from the transcript of a run:  just docs TRANSCRIPT DEMO_LOG
+docs transcript demo_log:
+    nix shell .#docs-env --command bash docs/build.sh {{ transcript }} {{ demo_log }}
 
 # Build the Ubuntu kit and check its contents.
 kit:

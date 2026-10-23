@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shell setup for the stepper's windows (demos/demo1/play/stepper.sh).
 # The tutorial's first page sources this visibly in each window:
 #   alice and bob windows:  . ../stepper.sh
@@ -13,7 +14,7 @@ export PLAY_RUN
 export SINGULAR_PASSPHRASE=demo
 # The helpers every window has: koios_url, wait_for_slot, wallet_show.
 # They read the chain's settings line through PLAY_RUN.
-# shellcheck source=helpers.sh
+# shellcheck source=/dev/null
 . "$PLAY_RUN/helpers.sh"
 # The settings file of the window that sourced this file. The chain needs
 # none: it only starts the devnet and reads its settings line.
