@@ -6,8 +6,8 @@ class SingularDemo < Formula
   version "@VERSION@"
 
   depends_on "lambdasistemi/tap/singular@0.16"
-  depends_on "tx-inspect"
-  depends_on "tx-diff"
+  depends_on "lambdasistemi/tap/tx-inspect"
+  depends_on "lambdasistemi/tap/tx-diff"
   depends_on "jq"
   depends_on "tmux"
   depends_on "lambdasistemi/tap/tutorial-stepper"
@@ -35,15 +35,23 @@ class SingularDemo < Formula
       #   singular-demo                 Demo 1, as Alice and Bob (run kept in ~/demo1-run)
       #   singular-demo pay-by-name     the pay-by-name story, as Carol, Alice, Dave, Bob
       #                                 and the chain (run kept in ~/pay-by-name-run)
-      # Further arguments go to `tutorial-stepper play`, for example --run DIR.
+      # A leading --auto plays unattended (with --path, --run, --run-setup, --transcript);
+      # further arguments go to `tutorial-stepper play`, for example --run DIR.
       set -euo pipefail
       share="#{pkgshare}"
+      auto=""
+      if [ "${1:-}" = --auto ]; then
+        auto="--auto"
+        shift
+      fi
       name=demo1
       if [ "${1:-}" = pay-by-name ]; then
         name=pay-by-name
         shift
       fi
-      exec tutorial-stepper play "$share/tutorials/$name" "$@"
+      # $auto is --auto or empty, split on purpose
+      # shellcheck disable=SC2086
+      exec tutorial-stepper play $auto "$share/tutorials/$name" "$@"
     EOS
   end
 

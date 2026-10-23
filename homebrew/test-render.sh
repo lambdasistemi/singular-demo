@@ -40,13 +40,14 @@ check "versioned formula names the v0.16.0 macOS bundle" "$(grep -q "singular/re
 check "versioned formula carries that bundle's checksum" "$(grep -q "$SINGULAR_SHA" "$singular"; echo $?)"
 
 # The demo formula: its dependencies, its archive, its play command.
-for dep in 'depends_on "lambdasistemi/tap/singular@0.16"' 'depends_on "tx-inspect"' 'depends_on "tx-diff"' 'depends_on "jq"' 'depends_on "tmux"' 'depends_on "lambdasistemi/tap/tutorial-stepper"'; do
+for dep in 'depends_on "lambdasistemi/tap/singular@0.16"' 'depends_on "lambdasistemi/tap/tx-inspect"' 'depends_on "lambdasistemi/tap/tx-diff"' 'depends_on "jq"' 'depends_on "tmux"' 'depends_on "lambdasistemi/tap/tutorial-stepper"'; do
   check "singular-demo depends on $dep" "$(grep -qF "$dep" "$demo"; echo $?)"
 done
 check "demo formula fetches this repository's tag tarball" "$(grep -q "singular-demo/archive/refs/tags/$TAG.tar.gz" "$demo"; echo $?)"
 check "demo formula carries that tarball's checksum" "$(grep -q "$KIT_SHA" "$demo"; echo $?)"
 check "demo formula installs both tutorials" "$(grep -q "demo1" "$demo" && grep -q "pay-by-name" "$demo"; echo $?)"
 check "demo formula plays Demo 1 with tutorial-stepper play" "$(grep -q "tutorial-stepper play" "$demo"; echo $?)"
+check "demo wrapper hoists a leading --auto" "$(grep -qF 'play $auto' "$demo"; echo $?)"
 check "demo formula fetches the pay-by-name tools resource" "$(grep -q "pay-by-name-tools-$TAG.tar.gz" "$demo"; echo $?)"
 check "demo formula carries the tools checksum" "$(grep -q "$TOOLS_SHA" "$demo"; echo $?)"
 check "demo formula installs sink-tools" "$(grep -q "sink-tools" "$demo"; echo $?)"
