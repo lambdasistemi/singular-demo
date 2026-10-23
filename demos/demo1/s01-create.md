@@ -16,11 +16,11 @@ The windows are short on purpose, so the waits later last minutes: 180 seconds f
 
 **Now Alice.**
 
-```bash
+```bash { window=alice }
 alice
 ```
 
-```bash
+```bash { window=alice }
 jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "alice-journal"}' devnet.out > alice.json
 jq . alice.json
 ```
@@ -37,7 +37,7 @@ jq . alice.json
 - both windows are fixed for the registry's whole life
 - `seed` in the output is the coin that was spent; `registry` is the registry's address, its name; `fingerprint` is a short name for the same registry, the one wallets and explorers show
 
-```bash
+```bash { window=alice }
 process_ms=180000; retract_ms=60000
 open-datum create \
   --process-time "$process_ms" --retract-time "$retract_ms" \
@@ -47,13 +47,13 @@ open-datum create \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, seed, registry, fingerprint} | with_entries(select(.value != null))' receipts/01-create.json
 ```
 
 **From now on every command names the registry by its address.** The address is read from the create receipt and goes into Alice's file as `registry`, and every command below finds it there:
 
-```bash
+```bash { window=alice }
 jq --arg address "$(jq -r .registry receipts/01-create.json)" '.registry = $address' alice.json > alice.new && mv alice.new alice.json
 jq . alice.json
 ```

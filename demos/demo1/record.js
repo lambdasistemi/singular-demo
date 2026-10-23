@@ -64,15 +64,21 @@ for (const f of files) {
     inBlock = null,
     _buf = [];
   for (const line of lines) {
-    const open = line.match(/^```bash(?: (skip))?$/);
+    const open = line.match(/^```bash(?: \{([^}]*)\})?$/);
     if (inBlock === null && open) {
-      inBlock = { skip: !!open[1], code: [] };
-      if (!open[1]) n++;
+      const attrs = open[1] ?? '';
+      const mode = /(^|\s)mode=show(\s|$)/.test(attrs)
+        ? 'show'
+        : /(^|\s)mode=observe(\s|$)/.test(attrs)
+          ? 'observe'
+          : null;
+      inBlock = { mode, fence: line, code: [] };
+      if (mode !== 'show') n++;
       continue;
     }
     if (inBlock !== null && line === '```') {
-      md += `\n\`\`\`bash\n${inBlock.code.join('\n')}\n\`\`\`\n`;
-      if (!inBlock.skip) {
+      md += `\n${inBlock.fence}\n${inBlock.code.join('\n')}\n\`\`\`\n`;
+      if (inBlock.mode !== 'show') {
         blocks++;
         const r = results.get(`${f} ${n}`);
         if (r === undefined) {

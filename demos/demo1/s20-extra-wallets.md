@@ -8,18 +8,18 @@ A wallet holds outputs: coins at its address, each one named by the transaction 
 
 **Alice's wallet**, from her public address. No passphrase is needed to look. At the start she holds six outputs of 2000 ada.
 
-```bash
+```bash { window=alice mode=observe }
 wallet_show "$alice_addr"
 ```
 
 **Bob's wallet**, the same way:
 
-```bash
+```bash { window=alice mode=observe }
 wallet_show "$bob_addr"
 ```
 
 **The chain's own clock**, for reference. It is what the program uses to judge windows: the slot is the chain's unit of time.
 
-```bash
+```bash { window=alice mode=observe }
 curl -fsS "$(koios_url)/tip" | jq '.[0] | {abs_slot, block_no}'
 ```

@@ -4,13 +4,13 @@ Alice, as the key's controller, replaces the payload with `{"answer": 43}`. Only
 
 **The new payload**:
 
-```bash
+```bash { window=alice }
 echo '{"answer": 43}' > payload-new.json
 ```
 
 **The update.** It takes effect at once.
 
-```bash
+```bash { window=alice }
 open-datum update \
   --key alice --payload payload-new.json \
   --vault alice.vault \
@@ -19,13 +19,13 @@ open-datum update \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, payload} | with_entries(select(.value != null))' receipts/06-update.json
 ```
 
 **The payload changed, and the root did not.** The first two lines show the payload before and after: `{"answer":42}`, then `{"answer":43}`. The last two show the registry's root, which is the same on both lines. That is correct. The root is the registry's fingerprint of which keys exist and in what state, so it moves only when a fold settles an insertion or a removal. The payload is not part of it: it lives in the key's own output, which is what the update replaced.
 
-```bash
+```bash { window=alice }
 echo "payload before: $(jq -c .applicationOutput.payload receipts/05-inspect.json)"; echo "payload after:  $(jq -c .payload receipts/06-update.json)"
 echo "root before:    $(jq -r .root receipts/05-inspect.json)"; echo "root after:     $(jq -r .root receipts/06-update.json)"
 ```

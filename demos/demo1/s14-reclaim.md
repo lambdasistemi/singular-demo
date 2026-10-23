@@ -4,7 +4,7 @@ The other way out of a pending request is for its owner to take it back. That is
 
 **Alice books `carol`.** The receipt names the request, which she needs to take it back: `carol_request` keeps it, and `carol_opens` keeps the slot after which the retract window opens.
 
-```bash
+```bash { window=alice }
 open-datum insert \
   --key carol --payload payload.json \
   --vault alice.vault \
@@ -13,14 +13,14 @@ open-datum insert \
 
 **Keep the request, and the slot after which its retract window opens:**
 
-```bash
+```bash { window=alice }
 carol_request=$(jq -r .request receipts/14a-insert-carol.json); carol_opens=$(jq -r .foldDeadline.slot receipts/14a-insert-carol.json)
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/14a-insert-carol.json
 ```
 
 **Try to reclaim right away.** Refused (exit status 10, `client-refusal`): the retract window has not opened yet.
 
-```bash
+```bash { window=alice status=10 }
 singular registry reclaim \
   --request "$carol_request" \
   --vault alice.vault \
@@ -29,19 +29,19 @@ singular registry reclaim \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason} | with_entries(select(.value != null))' receipts/14b-reclaim-too-early.json
 ```
 
 **Wait for the chain's clock** to pass the end of the processing window. About three minutes.
 
-```bash
+```bash { window=alice }
 wait_for_slot "$carol_opens"
 ```
 
 **Reclaim**, with one command. Now the retract window is open: Alice takes her request back, and her deposit with it. Her vault signs and sends.
 
-```bash
+```bash { window=alice }
 singular registry reclaim \
   --request "$carol_request" \
   --vault alice.vault \
@@ -50,6 +50,6 @@ singular registry reclaim \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, request, returned} | with_entries(select(.value != null))' receipts/14c-reclaim.json
 ```

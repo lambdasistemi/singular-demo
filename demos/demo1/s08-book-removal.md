@@ -4,7 +4,7 @@ Removing a key is also two stages. Alice books the termination of `alice`. Like 
 
 In the output, `released` is the output the fold will release and `deposit` is what comes back to Alice.
 
-```bash
+```bash { window=alice }
 open-datum terminate \
   --key alice \
   --vault alice.vault \
@@ -13,6 +13,6 @@ open-datum terminate \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, request, released, deposit, foldDeadline} | with_entries(select(.value != null))' receipts/08-terminate.json
 ```

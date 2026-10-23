@@ -9,8 +9,8 @@
 // person who acts. A step file says where the person changes: a paragraph "**Now Bob.**" followed by the block `bob`
 // (in a single terminal that block chooses Bob's settings file; here it is the word that moves to his window). The
 // page then gives the word to click (alice, bob or chain); the keys Ctrl-b 0, 1 and 2 are only an extra, nothing needs
-// a keyboard. A block of another person than the one the page has named stops the generator. "bash skip" blocks are
-// shown only.
+// a keyboard. A block whose window is not the one the page has named stops the generator. Blocks marked
+// `{ mode=show }` are shown only; `{ mode=observe }` blocks run like commands.
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -35,7 +35,7 @@ const _RUN = '~/singular-demo-run';
 function parse(text) {
   const lines = text.split('\n');
   const title = lines.shift().replace(/^#\s+/, '');
-  const parts = []; // { text } or { code, skip }
+  const parts = []; // { text } or { code, window, mode }
   let buf = [];
   let block = null;
   const flush = () => {
@@ -44,15 +44,24 @@ function parse(text) {
       buf = [];
     }
   };
-  for (const line of lines) {
-    const open = line.match(/^```bash(?: (skip))?$/);
+  for (const [n, line] of lines.entries()) {
+    const open = line.match(/^```bash \{([^}]*)\}$/);
     if (block === null && open) {
       flush();
-      block = { skip: !!open[1], lines: [] };
+      const attrs = {};
+      for (const kv of open[1].trim().split(/\s+/)) {
+        const [k, v] = kv.split('=');
+        attrs[k] = v;
+      }
+      if (!attrs.window) {
+        console.error(`killercoda.js:${n + 2}: fence without window=...: ${line}`);
+        process.exit(1);
+      }
+      block = { window: attrs.window, mode: attrs.mode, lines: [] };
       continue;
     }
     if (block !== null && line === '```') {
-      parts.push({ code: block.lines.join('\n'), skip: block.skip });
+      parts.push({ code: block.lines.join('\n'), window: block.window, mode: block.mode });
       block = null;
       continue;
     }
@@ -122,13 +131,7 @@ const OWNER = { alice: "Alice's", bob: "Bob's", chain: "the chain's" };
 const goTo = (w, lead = '') =>
   `${lead}Go to ${OWNER[w]} window: click \`${w}\`, or press \`Ctrl-b ${WINDOW[w]}\`.\n\n\`\`\`bash\n${w}\n\`\`\`{{exec}}`;
 
-function actorOf(code) {
-  if (/open-datum inspect/.test(code)) return 'alice'; // reads are Alice's: she owns the receipts the next steps compare
-  if (/bob\.vault|\$bob_addr|bundles\//.test(code)) return 'bob';
-  if (/alice\.vault|\$alice_addr/.test(code)) return 'alice';
-  if (/^echo '\{"answer"/.test(code)) return 'next'; // payload files belong to whoever uses them next
-  return null; // neutral: runs where the learner already is (read-backs of the last receipt, waits)
-}
+// ---- who acts: the window written on each block
 
 // ---- pages
 
@@ -139,7 +142,13 @@ let current = 'alice';
 const PEOPLE = ['alice', 'bob'];
 function markWords(page, file) {
   page.parts.forEach((p, i) => {
-    if (p.code === undefined || p.skip || !PEOPLE.includes(p.code.trim())) return;
+    if (p.code === undefined || p.mode === 'show' || !PEOPLE.includes(p.code.trim())) return;
+    if (p.window !== p.code.trim()) {
+      console.error(
+        `killercoda.js: ${file}: the block ${p.code.trim()} names window ${p.window}, want ${p.code.trim()}`,
+      );
+      process.exit(1);
+    }
     const before = page.parts[i - 1];
     const caption = `**Now ${NAME[p.code.trim()]}.**`;
     if (!before || before.text === undefined || !before.text.trimEnd().endsWith(caption)) {
@@ -154,24 +163,14 @@ function markWords(page, file) {
 }
 
 function render(page, { actors }) {
-  // decide the window of every exec block, with a look ahead for the blocks that belong to the next one
-  const codes = page.parts.filter((p) => p.code !== undefined && !p.skip && !p.word);
-  codes.forEach((p, _i) => {
-    p.actor = actorOf(p.code);
-  });
-  codes.forEach((p, i) => {
-    if (p.actor === 'next') {
-      const nxt = codes.slice(i + 1).find((q) => q.actor && q.actor !== 'next');
-      p.actor = nxt ? nxt.actor : null;
-    }
-  });
+  // every exec block runs in the window its fence names
   let md = '';
   for (const p of page.parts) {
     if (p.text !== undefined) {
       md += `${p.text}\n`;
       continue;
     }
-    if (p.skip) {
+    if (p.mode === 'show') {
       md += `\`\`\`bash\n${p.code}\n\`\`\`\n`;
       continue;
     }
@@ -181,9 +180,9 @@ function render(page, { actors }) {
       current = p.word;
       continue;
     }
-    if (actors && p.actor && p.actor !== current) {
+    if (actors && p.window !== current) {
       console.error(
-        `killercoda.js: a block of ${NAME[p.actor]} comes while the page has named ${NAME[current]}; put "**Now ${NAME[p.actor]}.**" and the block ${p.actor} above it:\n${p.code}`,
+        `killercoda.js: a block of ${NAME[p.window]} comes while the page has named ${NAME[current]}; put "**Now ${NAME[p.window]}.**" and the block ${p.window} above it:\n${p.code}`,
       );
       process.exit(1);
     }

@@ -2,7 +2,7 @@
 
 The reclaimed request is settled: its deposit is back with Alice. She books one more key, `dave`.
 
-```bash
+```bash { window=alice }
 open-datum insert \
   --key dave --payload payload.json \
   --vault alice.vault \
@@ -11,6 +11,6 @@ open-datum insert \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/15-insert-dave.json
 ```

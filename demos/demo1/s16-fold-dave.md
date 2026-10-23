@@ -4,13 +4,13 @@ Bob folds `dave`, external signing as before: build (exit status 19), sign, send
 
 **Now Bob.**
 
-```bash
+```bash { window=bob }
 bob
 ```
 
 **Build the bundle**, as in steps 4 and 9: nothing is sent yet.
 
-```bash
+```bash { window=bob }
 open-datum fold \
   --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
   > receipts/16a-fold-dave.json
@@ -19,13 +19,13 @@ jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .e
 
 **Bob signs:**
 
-```bash
+```bash { window=bob }
 singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-dave.bundle
 ```
 
 **Send it** and wait until it has landed:
 
-```bash
+```bash { window=bob }
 singular submit \
   --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
   bundles/fold-dave.bundle
@@ -33,13 +33,13 @@ singular submit \
 
 **Now Alice.**
 
-```bash
+```bash { window=alice }
 alice
 ```
 
 **Read `dave` back**, the independent check. It should be active.
 
-```bash
+```bash { window=alice }
 open-datum inspect \
   --key dave \
   > receipts/16b-inspect-dave.json

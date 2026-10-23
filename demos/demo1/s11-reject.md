@@ -4,7 +4,7 @@ What if nobody folds a request? Alice books the key `late` and nobody touches it
 
 **Alice books `late`.** Nobody will fold it, so the request stays pending.
 
-```bash
+```bash { window=alice }
 open-datum insert \
   --key late --payload payload.json \
   --vault alice.vault \
@@ -13,19 +13,19 @@ open-datum insert \
 
 **Read what it returned:**
 
-```bash
+```bash { window=alice }
 jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/11a-insert-late.json
 ```
 
 **Now Bob.**
 
-```bash
+```bash { window=bob }
 bob
 ```
 
 **Bob asks to reject it now**, naming only his address, no key. It is too early, so the program refuses: exit status 10, outcome `client-refusal`, nothing built. The refusal says when the retract window closes: `retractEndsSlot` is the slot where the window closes and `tipSlot` is where the chain is now.
 
-```bash
+```bash { window=bob }
 singular registry reject \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11b-reject-too-early.json
@@ -34,13 +34,13 @@ jq '{outcome, reason, pending: [.pendingRequests[]? | {request, retractEndsSlot}
 
 **Wait until the tip passes the end of the retract window**, named in the refusal. `wait_for_slot N` asks the chain for its latest slot every 2 seconds until it is past `N`, by the chain's clock, like the program does. About four minutes.
 
-```bash
+```bash { window=bob }
 wait_for_slot "$(jq -r '.pendingRequests[0].retractEndsSlot' receipts/11b-reject-too-early.json)"
 ```
 
 **Both windows are over.** Bob asks again, the external way. This time the program builds the transaction: it returns the request's locked value to its owner, Alice. Exit status 19, nothing sent yet.
 
-```bash
+```bash { window=bob }
 singular registry reject \
   --wallet-address "$bob_addr" --bundle bundles/reject.bundle \
   > receipts/11d-reject.json
@@ -49,13 +49,13 @@ jq '{outcome, reason, rejected: [.expected.rejected[]? | {key, request}]} | with
 
 **Bob signs:**
 
-```bash
+```bash { window=bob }
 singular wallet sign --vault bob.vault --out witnesses/reject bundles/reject.bundle
 ```
 
 **Send it** and wait until it has landed:
 
-```bash
+```bash { window=bob }
 singular submit \
   --witnesses witnesses/reject --receipt receipts/11d-reject.submitted.json \
   bundles/reject.bundle

@@ -4,7 +4,7 @@ The registry takes requests again. This time Bob adds a key, with his own wallet
 
 **Build the bundle:**
 
-```bash
+```bash { window=bob }
 open-datum insert \
   --key bob --payload payload.json \
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
@@ -14,13 +14,13 @@ jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDe
 
 **Bob signs:**
 
-```bash
+```bash { window=bob }
 singular wallet sign --vault bob.vault --out witnesses/insert-bob bundles/insert-bob.bundle
 ```
 
 **Send it** and wait until it has landed:
 
-```bash
+```bash { window=bob }
 singular submit \
   --witnesses witnesses/insert-bob --receipt receipts/12-insert-bob.submitted.json \
   bundles/insert-bob.bundle

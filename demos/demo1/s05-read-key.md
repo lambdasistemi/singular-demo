@@ -2,13 +2,13 @@
 
 **Now Alice.**
 
-```bash
+```bash { window=alice }
 alice
 ```
 
 Reading is free and needs no key and no wallet: anyone can check. `inspect` asks the chain for the key's state and prints what it found. The key is now active, with its payload (`{"answer": 42}`), its controller and the deposit that stays locked with it. `root` is a fingerprint of the whole registry.
 
-```bash
+```bash { window=alice }
 open-datum inspect \
   --key alice \
   > receipts/05-inspect.json
