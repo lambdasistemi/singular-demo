@@ -200,9 +200,10 @@
             pkgs.curl
             txTools
             tutorialStepper
-            # The stepper types into bash and waits on its prompt hook, which
-            # needs readline (bind): the shell's plain pkgs.bash has none.
+            # The stepper's runtime needs: an interactive bash (readline) and tmux.
+            # The shell's plain pkgs.bash has neither; CI has nothing beyond the flake.
             pkgs.bashInteractive
+            pkgs.tmux
           ];
           shellHook = ''
             # Where the programs find what they need.
