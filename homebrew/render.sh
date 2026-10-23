@@ -18,15 +18,42 @@ local_tools=""
 out=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --tag) tag=${2:?}; shift 2 ;;
-    --singular-version) singular_version=${2:?}; shift 2 ;;
-    --singular-sha) singular_sha=${2:?}; shift 2 ;;
-    --kit-sha) kit_sha=${2:?}; shift 2 ;;
-    --tools-sha) tools_sha=${2:?}; shift 2 ;;
-    --local) local_kit=${2:?}; shift 2 ;;
-    --tools-local) local_tools=${2:?}; shift 2 ;;
-    --out) out=${2:?}; shift 2 ;;
-    *) echo "unknown argument $1" >&2; exit 2 ;;
+    --tag)
+      tag=${2:?}
+      shift 2
+      ;;
+    --singular-version)
+      singular_version=${2:?}
+      shift 2
+      ;;
+    --singular-sha)
+      singular_sha=${2:?}
+      shift 2
+      ;;
+    --kit-sha)
+      kit_sha=${2:?}
+      shift 2
+      ;;
+    --tools-sha)
+      tools_sha=${2:?}
+      shift 2
+      ;;
+    --local)
+      local_kit=${2:?}
+      shift 2
+      ;;
+    --tools-local)
+      local_tools=${2:?}
+      shift 2
+      ;;
+    --out)
+      out=${2:?}
+      shift 2
+      ;;
+    *)
+      echo "unknown argument $1" >&2
+      exit 2
+      ;;
   esac
 done
 [ -n "$tag" ] && [ -n "$singular_version" ] && [ -n "$singular_sha" ] && [ -n "$out" ] || {
@@ -34,10 +61,19 @@ done
   exit 2
 }
 if [ -n "$local_kit" ] || [ -n "$local_tools" ]; then
-  [ -n "$local_kit" ] && [ -n "$local_tools" ] || { echo "--local and --tools-local go together" >&2; exit 2; }
-  [ -z "$kit_sha" ] && [ -z "$tools_sha" ] || { echo "--local goes without --kit-sha/--tools-sha" >&2; exit 2; }
+  [ -n "$local_kit" ] && [ -n "$local_tools" ] || {
+    echo "--local and --tools-local go together" >&2
+    exit 2
+  }
+  [ -z "$kit_sha" ] && [ -z "$tools_sha" ] || {
+    echo "--local goes without --kit-sha/--tools-sha" >&2
+    exit 2
+  }
 else
-  [ -n "$kit_sha" ] && [ -n "$tools_sha" ] || { echo "--kit-sha and --tools-sha go together" >&2; exit 2; }
+  [ -n "$kit_sha" ] && [ -n "$tools_sha" ] || {
+    echo "--kit-sha and --tools-sha go together" >&2
+    exit 2
+  }
 fi
 
 version=${tag#v}
