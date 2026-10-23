@@ -8,9 +8,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 runbook_log=${1:?usage: docs/build.sh TRANSCRIPT DEMO_RUN_LOG}
 demo_log=${2:?usage: docs/build.sh TRANSCRIPT DEMO_RUN_LOG}
-node demos/demo1/build.js
-cp demos/demo1/DEMO.md docs/demo1/tutorial.md
-cp demos/demo1/demo.html docs/demo1/interactive.html
+# build.js writes beside the step files by default; keep the tutorial directory
+# free of generated pages (check rejects an unlisted page) with an output dir.
+rendered=$(mktemp -d)
+trap 'rm -rf "$rendered"' EXIT
+node demos/demo1/build.js "$rendered"
+cp "$rendered/DEMO.md" docs/demo1/tutorial.md
+cp "$rendered/demo.html" docs/demo1/interactive.html
 python3 demos/demo1/render-run.py "$runbook_log" docs/demo1/run.md
 # shellcheck disable=SC2016 # the backticks in the text are Markdown, not command substitution
 {

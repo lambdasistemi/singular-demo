@@ -1,10 +1,14 @@
 // Builds DEMO.md and demo.html from the step files in this folder.
-// A step file is: "# title", prose, and fenced blocks. A block fenced "bash" is run by test.sh;
-// "bash skip" is shown but not run (opening a shell, the kit alternative).
+// A step file is: "# title", prose, and fenced blocks. A command block is an
+// attributed fence with no mode; mode=show is shown but not run, mode=observe
+// is an observation. The tutorial-stepper plays the commands; usage:
+//   node demos/demo1/build.js [OUTDIR]   (default: this folder)
 const fs = require('node:fs');
 const path = require('node:path');
 
 const dir = __dirname;
+const outDir = process.argv[2] || dir;
+fs.mkdirSync(outDir, { recursive: true });
 const VERSION = require('./version.js');
 const RELEASE = require('./release.js');
 const files = fs
@@ -92,7 +96,7 @@ for (const s of steps) {
     else md += `\n${p.fence}\n${p.lines.join('\n')}\n\n\`\`\`\n`;
   }
 }
-fs.writeFileSync(path.join(dir, 'DEMO.md'), md);
+fs.writeFileSync(path.join(outDir, 'DEMO.md'), md);
 
 // demo.html: one self-contained page with a Copy button per block.
 let html = '';
@@ -142,5 +146,5 @@ const page = template
   .join(VERSION)
   .replace('<!--NAV-->', nav)
   .replace('<!--STEPS-->', html);
-fs.writeFileSync(path.join(dir, 'demo.html'), page);
+fs.writeFileSync(path.join(outDir, 'demo.html'), page);
 console.log(`built DEMO.md and demo.html from ${steps.length} step files`);
