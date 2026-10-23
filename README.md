@@ -4,7 +4,7 @@ Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a regis
 
 ## Demo 1: Alice and Bob keep a registry
 
-A key is booked, folded into the registry, read back, changed and removed. A request nobody folds is rejected, and another is taken back by its owner. There are four ways to meet it.
+A key is booked, folded into the registry, read back, changed and removed. A request nobody folds is rejected, and another is taken back by its owner. There are five ways to meet it.
 
 **Read a run.** Every command of the tutorial with what it printed in a real run, made by this repository's continuous integration:
 
