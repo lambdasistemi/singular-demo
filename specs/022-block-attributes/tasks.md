@@ -37,6 +37,11 @@
 - [ ] T013 [US1] Guard in `demos/demo1/test.sh`: fail with file, block and both statuses on a real-vs-declared mismatch; RED standalone on a deliberately wrong `status=`, GREEN on the fix
 - [ ] T014 [US1] Re-run all four verifications, commit, `COMPLETE` with the new head
 
+## Phase 7: Parent follow-up — lint scope (NOTE-002)
+
+- [ ] T015 [US1] Scope the window-attribute lint rule to step source files (`s*.md`); generated Killercoda pages keep their bare fences
+- [ ] T016 [US1] Run both scenario tests locally the way CI runs them (docker, KIT_BASE=file:///kit); commit; push; `COMPLETE` only when every check of PR 27 is green
+
 ## Dependencies & Execution Order
 
 - T001 before everything (record first); committed alone

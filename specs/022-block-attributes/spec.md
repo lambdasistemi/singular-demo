@@ -36,6 +36,7 @@ As a maintainer of the demo, I read a step file and observe on each command bloc
 - **FR-008**: `mkdocs.yml` MUST enable `pymdownx.superfences`, so attributed blocks still render as code blocks. Generated pages (`record.js`, `build.js`) MUST keep the attributed fences instead of stripping them.
 - **FR-009**: No committed change outside `demos/demo1/s*.md`, `demos/demo1/killercoda.js`, `demos/demo1/test.sh`, `demos/demo1/record.js`, `demos/demo1/build.js`, `demos/demo1/lint.sh`, `mkdocs.yml` and `specs/022-block-attributes/`. `demos/pay-by-name/` is touched only if a shared program forces it, and stays working.
 - **FR-010**: The runbook test fails when a block's real exit differs from the one its fence declares (0 when the fence names none), naming the file, the block and both statuses, so the attributes cannot drift.
+- **FR-011**: The window-attribute lint rule applies to step source files (`s*.md`) only. Generated Killercoda pages keep Killercoda's bare fences plus `{{exec}}` and stay byte-identical; every other lint check still runs on them.
 
 ### Key Entities
 

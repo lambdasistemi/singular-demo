@@ -2,12 +2,14 @@
 # A command that asks for a passphrase must be the last command of its block. A terminal that types a whole block
 # at once (Killercoda does) hands the lines after the command to the prompt as the passphrase.
 #   bash runbook/lint.sh FILE.md...
-# Every command block also names its window on the fence. The tutorial-stepper form is
+# Every command block of a step source file also names its window on the fence. The tutorial-stepper form is
 #   ```bash { window=alice status=19 mode=observe }
 # window is required; status only when the block ends non-zero; mode only show or observe.
 # The pay-by-name story still uses the word form ```bash PERSON / ```bash skip, accepted here.
+# Generated Killercoda pages keep Killercoda's own bare fences, so this rule runs on step files (s*.md) only.
 fail=0
 for f in "$@"; do
+  case "$(basename "$f")" in s*.md) ;; *) continue ;; esac
   out=$(awk -v f="$f" '
     /^```bash \{.*\}$/ {
       attrs=$0; sub(/^```bash \{/, "", attrs); sub(/\}$/, "", attrs); gsub(/^ +| +$/, "", attrs)
