@@ -29,6 +29,8 @@
     # The package set the kit's helper tools (static jq and curl, the musl C
     # compiler, patchelf) come from: the one the programs themselves are built on.
     nixpkgs.follows = "offchain/nixpkgs";
+    # The tutorial stepper that plays demos/demo1 in CI, pinned to its release.
+    tutorial-stepper.url = "github:lambdasistemi/tutorial-stepper/v0.4.0";
   };
 
   outputs =
@@ -39,6 +41,7 @@
       open-datum,
       open-datum-onchain,
       nixpkgs,
+      tutorial-stepper,
     }:
     let
       system = "x86_64-linux";
@@ -47,6 +50,7 @@
       devnet = offchain.packages.${system}.devnet;
       open-datum-exe = open-datum.packages.${system}.open-datum;
       cardanoNode = offchain.inputs.cardano-node.packages.${system}.cardano-node;
+      tutorialStepper = tutorial-stepper.packages.${system}.tutorial-stepper;
 
       txTools = import ./kit/tx-tools.nix { inherit pkgs; };
 
@@ -150,6 +154,7 @@
     {
       packages.${system} = {
         inherit kit kit-verify docs-env;
+        tutorial-stepper = tutorialStepper;
         pay-by-name-sink = payByName.sink;
         pay-by-name-tools = payByName.tools;
       };
@@ -194,6 +199,7 @@
             pkgs.jq
             pkgs.curl
             txTools
+            tutorialStepper
           ];
           shellHook = ''
             # Where the programs find what they need.
@@ -203,7 +209,7 @@
             export TMPDIR=/tmp/singular-demo-$(id -u)
             mkdir -p -m 700 "$TMPDIR"
             echo "Singular v0.16.0, Demo 1 shell"
-            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl   on the PATH"
+            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl, tutorial-stepper   on the PATH"
             echo "  \$blueprint          = $blueprint"
             echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"
             echo "  \$TMPDIR             = $TMPDIR"
@@ -220,6 +226,7 @@
             pkgs.jq
             pkgs.gh
             docs-env
+            tutorialStepper
           ];
         };
       };
