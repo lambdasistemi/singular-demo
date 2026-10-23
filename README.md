@@ -54,6 +54,16 @@ cd singular-demo-$release-x86_64-linux
 ./demo.sh
 ```
 
+**On a Mac**, with Homebrew: a formula with the same programs and both tutorials, played the same way with tutorial-stepper's terminal face.
+
+```bash
+brew install lambdasistemi/tap/singular-demo
+singular-demo                  # Demo 1, as Alice and Bob
+singular-demo pay-by-name      # the pay-by-name story: Carol, Alice, Dave, Bob and the chain
+```
+
+The runs are kept in `~/demo1-run` and `~/pay-by-name-run`. Further arguments go to `tutorial-stepper play`, for example `--run DIR`; a leading `--auto` with `--path short --run-setup --transcript FILE` plays unattended.
+
 `./demo.sh` runs the 16 steps on a private devnet and takes about 8 minutes, two of them real waits on the chain.
 
 - `STEP_PAUSE=yes ./demo.sh` waits for Enter between steps.
@@ -116,7 +126,7 @@ When Singular publishes a release, `just bump vX.Y.Z` moves this repository to i
 
 The kit's release is the Singular release and the kit's revision, as in `v0.16.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
 
-A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and both tutorials with `tutorial-stepper play --auto` against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the six jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the pay-by-name scenario with its controls, the kit's stepper play of both tutorials and the Codespaces tutorial. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
+A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and both tutorials with `tutorial-stepper play --auto` against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the six jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the pay-by-name scenario with its controls, the kit's stepper play of both tutorials and the Codespaces tutorial. One more job runs on a GitHub-hosted macOS runner: it installs `singular-demo` from a temporary local tap built from the pull request and plays Demo 1's shortest path unattended. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 
 ## Binary caches
 

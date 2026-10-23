@@ -14,3 +14,4 @@ Alice and Bob keep a registry of keys on a private Cardano test chain. A key is 
 - **Codespaces**: https://codespaces.new/lambdasistemi/singular-demo?quickstart=1
 - **On your own Ubuntu**: download the kit from the [latest release](https://github.com/lambdasistemi/singular-demo/releases/latest), check it against `SHA256SUMS`, unpack it and run `./demo.sh`.
 - **In your own terminal, on Linux x86_64**: download the kit from the [daily release](https://github.com/lambdasistemi/singular-demo/releases/tag/daily), check it against `SHA256SUMS`, unpack it, put its `bin/` on `PATH` and run `tutorial-stepper play share/tutorials/demo1`: the tutorial step by step, the page beside the tmux windows of Alice, Bob and the chain, each command run with Enter.
+- **On a Mac, with Homebrew**: `brew install lambdasistemi/tap/singular-demo`, then `singular-demo`: Demo 1 step by step with tutorial-stepper, the page beside the tmux windows of Alice, Bob and the chain.

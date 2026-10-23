@@ -9,7 +9,9 @@ name: CI
 # Six jobs need a real Ubuntu with Docker or the browser's system libraries, which the nixos runners do not
 # have, and run on a GitHub-hosted runner: the clean-Ubuntu proof of the kit, the Killercoda scenarios (they
 # run on an Ubuntu machine), the kit's stepper play (in a clean Ubuntu container), the pay-by-name scenario and its
-# controls (in a clean Ubuntu container) and the Codespaces tutorial (it runs in an Ubuntu container).
+# controls (in a clean Ubuntu container) and the Codespaces tutorial (it runs in an Ubuntu container). One more
+# job runs on a GitHub-hosted macOS runner: it installs the Homebrew formula from a temporary local tap and
+# plays Demo 1's shortest path, which cannot be proved on Linux.
 
 on:
   pull_request:
@@ -105,6 +107,23 @@ jobs:
           cat dist/SHA256SUMS
       - name: Verify the tarball contents
         run: nix run .#kit-verify
+      - name: Pack the pay-by-name tools for the Homebrew formula
+        run: |
+          TOOLS=$(nix build .#pay-by-name-tools --print-out-paths --no-link)
+          SINK=$(nix build .#pay-by-name-sink --print-out-paths --no-link)
+          mkdir -p pr-tools
+          stage=$(mktemp -d)
+          cp "$TOOLS/sink-tools.cjs" "$stage/"
+          cp "$SINK" "$stage/plutus.json"
+          tar --sort=name --mtime="@1" -czf pr-tools/pay-by-name-tools.tar.gz -C "$stage" sink-tools.cjs plutus.json
+          rm -rf "$stage"
+          tar tzf pr-tools/pay-by-name-tools.tar.gz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pay-by-name-tools
+          path: pr-tools/
+          if-no-files-found: error
+          retention-days: 3
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kit
@@ -353,6 +372,59 @@ jobs:
           path: |
             out/
             !out/**/*.vault
+          if-no-files-found: warn
+          retention-days: 14
+
+  homebrew:
+    name: CI Homebrew
+    # macOS cannot be proved on the nixos runners: this job installs singular-demo from a temporary local
+    # tap built from the pull request and plays Demo 1's shortest path unattended. Nothing is pushed to
+    # lambdasistemi/homebrew-tap; the release workflow owns the real tap.
+    needs: kit
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pay-by-name-tools
+          path: pr-tools
+      - name: Point a local copy of the tap at the pull request
+        run: |
+          tar -czf /tmp/pr-tutorials.tar.gz demos/demo1 demos/pay-by-name
+          # shellcheck disable=SC1091 # singular.env names the pinned Singular release's macOS bundle
+          source homebrew/singular.env
+          bash homebrew/render.sh --tag v0.0.0-local \
+            --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
+            --local /tmp/pr-tutorials.tar.gz --tools-local pr-tools/pay-by-name-tools.tar.gz --out /tmp/Formula
+          git clone --depth 1 https://github.com/lambdasistemi/homebrew-tap.git /tmp/tap
+          cp /tmp/Formula/singular@0.16.rb /tmp/Formula/singular-demo.rb /tmp/tap/Formula/
+          brew tap lambdasistemi/tap /tmp/tap
+      - name: Install singular-demo from the local tap
+        run: |
+          brew install lambdasistemi/tap/singular-demo
+          brew test lambdasistemi/tap/singular-demo
+      - name: Play Demo 1's shortest path unattended
+        env:
+          TMPDIR: /tmp
+        run: |
+          brew_bin="$(brew --prefix)/bin"
+          export PATH="$brew_bin:$PATH"
+          singular-demo --auto --path short --run /tmp/singular-demo-run --run-setup \
+            --transcript /tmp/singular-demo-transcript.toml
+          bash demos/demo1/play/check-receipts.sh /tmp/singular-demo-run
+      - name: Keep the transcript of the run
+        if: always()
+        run: |
+          mkdir -p homebrew-out
+          cp /tmp/singular-demo-transcript.toml homebrew-out/ 2>/dev/null || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: homebrew-evidence
+          path: homebrew-out/
           if-no-files-found: warn
           retention-days: 14
 

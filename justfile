@@ -34,6 +34,10 @@ test-pay-by-name:
     nix develop --quiet -c tutorial-stepper play --auto demos/pay-by-name --run /tmp/pay-by-name-run --run-setup --transcript /tmp/pay-by-name-transcript.toml
     nix develop --quiet -c bash demos/pay-by-name/check-run.sh /tmp/pay-by-name-run
 
+# Check that the Homebrew formulas render from their templates.
+render-check:
+    bash homebrew/test-render.sh
+
 # Build the documentation site from the transcript of a run:  just docs TRANSCRIPT DEMO_LOG
 docs transcript demo_log:
     nix shell .#docs-env --command bash docs/build.sh {{ transcript }} {{ demo_log }}
