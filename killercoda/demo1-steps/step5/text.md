@@ -30,7 +30,7 @@ jq . alice.json
 - `seed` in the output is the coin that was spent; `registry` is the registry's address, its name; `fingerprint` is a short name for the same registry, the one wallets and explorers show
 
 ```bash
-process_ms=180000; retract_ms=60000
+process_ms=${PROCESS_TIME_MS:-180000}; retract_ms=${RETRACT_TIME_MS:-60000}
 open-datum create \
   --process-time "$process_ms" --retract-time "$retract_ms" \
   --vault alice.vault \

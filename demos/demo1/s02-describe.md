@@ -11,8 +11,8 @@ singular registry describe | tee receipts/02-describe.json
 **Giving the registry to Bob.** Bob is on another machine. Alice gives him one thing, the registry's address. With it, a chain connection and the contracts, he needs nothing else. She would send it in a message; here the file `registry.address` stands for the message.
 
 ```bash { window=alice }
-jq -r .registry receipts/01-create.json > registry.address
-cat registry.address
+jq -r .registry receipts/01-create.json > ../registry.address
+cat ../registry.address
 ```
 
 **Now Bob.**
@@ -24,14 +24,14 @@ bob
 **Bob's settings** are his own: the same chain and contracts, a journal folder of his own, and no registry yet.
 
 ```bash { window=bob }
-jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "bob-journal"}' devnet.out > bob.json
+jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "bob-journal"}' ../devnet.out > bob.json
 jq . bob.json
 ```
 
 **He writes the address into his file** as `registry`:
 
 ```bash { window=bob }
-jq --arg address "$(cat registry.address)" '.registry = $address' bob.json > bob.new && mv bob.new bob.json
+jq --arg address "$(cat ../registry.address)" '.registry = $address' bob.json > bob.new && mv bob.new bob.json
 jq . bob.json
 ```
 

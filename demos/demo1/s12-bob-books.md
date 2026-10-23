@@ -2,11 +2,11 @@
 
 The registry takes requests again. This time Bob adds a key, with his own wallet and the external flow from the start: his command names his address and a bundle file instead of a vault, and the bundle holds the booking. Build (exit status 19, nothing sent), sign, send.
 
-**Build the bundle:**
+**Build the bundle**, with Alice's payload file:
 
 ```bash { window=bob }
 open-datum insert \
-  --key bob --payload payload.json \
+  --key bob --payload ../alice/payload.json \
   --wallet-address "$bob_addr" --bundle bundles/insert-bob.bundle \
   > receipts/12-insert-bob.json
 jq '{outcome, reason, request: .expected.request, foldDeadline: .expected.foldDeadline} | with_entries(select(.value != null))' receipts/12-insert-bob.json
