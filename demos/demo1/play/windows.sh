@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Starts the three windows of the play in one tmux session: 0 alice, 1 bob, 2 chain, each with the shell setup of windows.rc
-# and, for Alice and Bob, the name of the person (PLAY_PERSON), which windows.rc turns into the person's settings file.
+# Starts the four windows of the play in one tmux session: 0 alice, 1 bob, 2 chain, 3 carol, each with the shell setup of windows.rc
+# and, for Carol, Alice and Bob, the name of the person (PLAY_PERSON), which windows.rc turns into the person's settings file.
 #   windows.sh RUN_DIR
 #   PLAY_TMUX   the tmux command with its options (default: tmux); an environment with its own tmux server sets it
 set -euo pipefail
@@ -10,6 +10,7 @@ shell="exec bash --rcfile $run/windows.rc -i"
 $t new-session -d -s demo -n alice -c "$run/alice" "exec env PLAY_PERSON=alice bash --rcfile $run/windows.rc -i"
 $t new-window -d -t demo -n bob -c "$run/bob" "exec env PLAY_PERSON=bob bash --rcfile $run/windows.rc -i"
 $t new-window -d -t demo -n chain -c "$run" "$shell"
+$t new-window -d -t demo -n carol -c "$run/carol" "exec env PLAY_PERSON=carol bash --rcfile $run/windows.rc -i"
 # the mouse switches windows and scrolls
 $t set-option -g mouse on
-echo "The windows alice, bob and chain are ready."
+echo "The windows carol, alice, bob and chain are ready."

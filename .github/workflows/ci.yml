@@ -52,7 +52,7 @@ jobs:
           name: paolino
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Nothing may be compiled
-        run: kit/guard.sh .#kit .#kit-verify .#pay-by-name-sink .#pay-by-name-tools .#docs-env .#devShells.x86_64-linux.default .#devShells.x86_64-linux.dev
+        run: kit/guard.sh .#kit .#kit-verify .#pay-by-name-sink .#pay-by-name-tools .#docs-env .#devShells.x86_64-linux.default .#devShells.x86_64-linux.pay-by-name .#devShells.x86_64-linux.dev
       - name: Build everything the jobs below use
         run: >-
           nix build --quiet --no-link
@@ -63,6 +63,7 @@ jobs:
           .#docs-env
           .#tutorial-stepper
           .#devShells.x86_64-linux.default.inputDerivation
+          .#devShells.x86_64-linux.pay-by-name.inputDerivation
           .#devShells.x86_64-linux.dev.inputDerivation
 
   checks:
@@ -207,9 +208,9 @@ jobs:
       - name: Every step of the pay-by-name story, played with the stepper, against a fresh devnet
         run: |
           rm -rf /tmp/pay-by-name-run /tmp/pay-by-name-transcript.toml
-          nix develop --command tutorial-stepper check demos/pay-by-name
-          nix develop --command tutorial-stepper play --auto demos/pay-by-name --run /tmp/pay-by-name-run --run-setup --transcript /tmp/pay-by-name-transcript.toml
-          nix develop --command bash demos/pay-by-name/check-run.sh /tmp/pay-by-name-run
+          nix develop .#pay-by-name --command tutorial-stepper check demos/pay-by-name
+          nix develop .#pay-by-name --command tutorial-stepper play --auto demos/pay-by-name --run /tmp/pay-by-name-run --run-setup --transcript /tmp/pay-by-name-transcript.toml
+          nix develop .#pay-by-name --command bash demos/pay-by-name/check-run.sh /tmp/pay-by-name-run
       - name: Keep the transcript of the run
         if: always()
         run: |
@@ -431,13 +432,13 @@ jobs:
             --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
             --local /tmp/pr-tutorials.tar.gz --tools-local pr-tools/pay-by-name-tools.tar.gz --out /tmp/Formula
           git clone --depth 1 https://github.com/lambdasistemi/homebrew-tap.git /tmp/tap
-          cp /tmp/Formula/singular@0.16.rb /tmp/Formula/singular-demo.rb /tmp/tap/Formula/
+          cp "/tmp/Formula/singular@${SINGULAR_VERSION%.*}.rb" /tmp/Formula/singular-demo.rb /tmp/tap/Formula/
           # The tap is cloned, not copied: commit the rendered formulas locally (never pushed)
           # so the clone the tap is made from holds them.
           cd /tmp/tap
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add "Formula/singular@0.16.rb" Formula/singular-demo.rb
+          git add "Formula/singular@${SINGULAR_VERSION%.*}.rb" Formula/singular-demo.rb
           git commit -qm "singular-demo from the pull request"
           cd "$GITHUB_WORKSPACE"
           brew tap lambdasistemi/tap /tmp/tap
@@ -536,7 +537,9 @@ jobs:
           name: runbook-transcript
           path: runbook-out
       - name: Build the site (mkdocs, --strict)
-        run: nix shell .#docs-env --command bash docs/build.sh runbook-out/stepper-transcript.toml release/demo-run.log
+        run: |
+          docs_env=$(nix build --no-link --print-out-paths .#docs-env)
+          nix shell .#docs-env --command env PATH="$docs_env/bin" bash docs/build.sh runbook-out/stepper-transcript.toml release/demo-run.log
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site/

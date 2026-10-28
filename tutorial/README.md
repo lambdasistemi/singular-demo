@@ -1,6 +1,6 @@
 # Codespaces tutorial prototype
 
-A single-user tutorial with instructions beside an xterm.js terminal. The inline **▷** control inserts a command into the active persistent Bash terminal. The walkthrough has Alice, Bob and chain windows in an isolated tmux session. Variables, background processes and the working directory survive lesson changes and browser reconnects within each window. Commands are disabled while the shell is running a command or waiting for input. You can type, paste and use Ctrl+C directly in the terminal.
+A single-user tutorial with instructions beside an xterm.js terminal. The inline **▷** control inserts a command into the active persistent Bash terminal. The walkthrough has Carol, Alice, Bob and chain windows in an isolated tmux session. Variables, background processes and the working directory survive lesson changes and browser reconnects within each window. Commands are disabled while the shell is running a command or waiting for input. You can type, paste and use Ctrl+C directly in the terminal.
 
 ## Try it
 
@@ -18,7 +18,7 @@ No container rebuild; this starts a fresh shell/chain session and preserves your
 1. Sign in to GitHub and create a Codespace on the branch you want (`main` is the published one).
 2. Wait for the development container and dependencies to finish installing.
 3. The welcome file opens as a rendered Markdown page with your exact **Open your tutorial** link. The tutorial port is also configured to open automatically. The **Ports** panel → **8765** → **Open in Browser** remains a fallback.
-4. The kit is already installed. Click the preparation command in the introduction to create the Alice, Bob and chain windows, then use the right arrow to begin. A previous demo folder is preserved under a dated `singular-demo-saved-*` folder.
+4. The kit is already installed. Click the preparation command in the introduction to create the Carol, Alice, Bob and chain windows, then use the right arrow to begin. A previous demo folder is preserved under a dated `singular-demo-saved-*` folder.
 5. Click the play icon beside each command, in order. The private-chain wallets open with a throwaway passphrase the windows already carry. The copy icon is alongside it; the terminal's square stop icon sends Ctrl+C.
 6. Finish the walkthrough and stop the chain, then stop your Codespace from https://github.com/codespaces. Closing the tutorial tab alone does not stop compute usage.
 
@@ -42,7 +42,7 @@ The first build installs Python and Node dependencies. Subsequent starts launch 
 
 `welcome.md` introduces the demo; `finish.md` appends Codespaces shutdown guidance. The server loads the other lessons directly from `../killercoda/demo1-steps/index.json` (the scenario generated in this repository; `TUTORIAL_SCENARIO` names another) and its Markdown files. Only fenced blocks marked `{{exec}}` receive a Run button. Unmarked commands remain copyable reference material, preserving the upstream scenario's choices.
 
-The scenario is generated from the tutorial's step files by `node demos/demo1/killercoda.js .` and is the one Killercoda plays; nothing is copied by hand. The kit is installed and the three windows are started by the scripts of the play in `demos/demo1/play/`, the same ones the Killercoda machine runs, for the Singular version pinned in `flake.nix`.
+The scenario is generated from the tutorial's step files by `node demos/demo1/killercoda.js .` and is the one Killercoda plays; nothing is copied by hand. The kit is installed and the four windows are started by the scripts of the play in `demos/demo1/play/`, the same ones the Killercoda machine runs, for the Singular version pinned in `flake.nix`.
 
 ## Local use and checks
 
@@ -62,7 +62,7 @@ tutorial/.venv/bin/python tutorial/stop.py
 bash tutorial/start.sh
 ```
 
-The tests check command execution, multiline shell state, hidden input, rejection of clicks during prompts (typed input in the terminal), reconnects, Ctrl+C, origin checks and single-tab ownership. Browser checks also cover inline icon placement, accessible labels, mobile overflow and reconnects. `test-demo.cjs` executes every runnable lesson through its browser controls using the real release kit, fails if any command asks for a passphrase, and checks the resulting receipts. It preserves the real processing/retract windows (about seven minutes of waiting) and includes the optional wallet and transaction inspections. CI saves screenshots and the terminal transcript. These checks do not provision a Codespace or test GitHub's creation/auto-opening UI.
+The tests check command execution, multiline shell state, hidden input, rejection of clicks during prompts (typed input in the terminal), reconnects, Ctrl+C, origin checks and single-tab ownership. Browser checks also cover inline icon placement, accessible labels, mobile overflow and reconnects. `test-demo.cjs` executes every runnable lesson through its browser controls using the real release kit, fails if any command asks for a passphrase, and checks the resulting receipts. It preserves the real processing and reclaim windows and includes the optional wallet and transaction inspections. CI saves screenshots and the terminal transcript. These checks do not provision a Codespace or test GitHub's creation/auto-opening UI.
 
 To run the browser checks locally after installing dependencies:
 

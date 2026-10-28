@@ -55,6 +55,23 @@ wallet_show() {
   curl -fsS -X POST "$(koios_url)/address_utxos" -H 'content-type: application/json' -d "{\"_addresses\":[\"$1\"]}" |
     jq '{outputs: length, total_ada: ([.[] | (.value|tonumber)] | add / 1000000), utxos: [.[] | {tx: .tx_hash[0:12], ix: .tx_index, ada: ((.value|tonumber)/1000000), tokens: [.asset_list[]? | .asset_name[0:8]]}]}'
 }
+
+# Registration deadlines are POSIX milliseconds. The generated chain and host
+# share that clock; a four-second margin matches the packaged devnet journey.
+wait_until_ms() {
+  while [ "$(($(date +%s) * 1000))" -lt "$(($1 + 4000))" ]; do sleep 1; done
+}
+
+# Select the holding output from a fold transaction reported by the provider.
+# This supplies a reference for a write; it is not a registry membership query.
+holding_in() {
+  local token=$1 transaction=$2
+  curl -fsS -X POST "$(koios_url)/tx_info" -H 'content-type: application/json' \
+    -d "{\"_tx_hashes\":[\"$transaction\"],\"_assets\":true}" |
+    jq -er --arg p "${token%%.*}" --arg n "${token#*.}" --arg tx "$transaction" '
+      [.[0].outputs[] | select(any(.asset_list[]?; .policy_id == $p and .asset_name != $n))]
+      | if length == 1 then .[0] | $tx + "#" + (.tx_index | tostring) else error("expected one holding from this fold") end'
+}
 PLAY_EOF
 cat > /root/play/prepare.sh <<'PLAY_EOF'
 #!/usr/bin/env bash
@@ -64,6 +81,9 @@ cat > /root/play/prepare.sh <<'PLAY_EOF'
 set -euo pipefail
 kit=$(cd "${1:?usage: prepare.sh KIT_DIR RUN_DIR}" && pwd)
 run=${2:?usage: prepare.sh KIT_DIR RUN_DIR}
+if [ -d "$kit/pay-by-name-runtime" ]; then
+  exec bash "$kit/share/pay-by-name/play/prepare.sh" "$kit" "$run"
+fi
 here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$run"/{carol,alice,dave,bob,publish,messages}
 run=$(cd "$run" && pwd)
@@ -124,9 +144,9 @@ $t new-window -d -t demo -n chain -c "$run" "$shell"
 $t set-option -g mouse on
 echo "The windows carol, alice, dave, bob and chain are ready."
 PLAY_EOF
-bash /root/play/install-kit.sh v0.16.0-2 /root
+bash /root/play/install-kit.sh v0.17.0-1 /root
 # tmux holds the five windows (the kit brings its own node, which runs its tools)
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-bash /root/play/prepare.sh /root/singular-demo-v0.16.0-2-x86_64-linux /root/singular-demo-run
+bash /root/play/prepare.sh /root/singular-demo-v0.17.0-1-x86_64-linux /root/singular-demo-run
 touch /tmp/finished

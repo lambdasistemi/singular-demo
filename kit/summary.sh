@@ -11,8 +11,10 @@ case "${1:?json|notes}" in
   json)
     tarball=$(ls "$DIST"/*.tar.gz)
     sha=$(cut -d' ' -f1 "$DIST/SHA256SUMS")
-    version=$(tar xzf "$tarball" --wildcards '*/VERSION' -O)
-    steps=$(grep -c '^━━ Step [0-9]* of 16 ' "$LOG")
+    folder=$(basename "$tarball" .tar.gz)
+    version=$(tar xzf "$tarball" "$folder/VERSION" -O)
+    steps=$(sed -n 's/^Lifecycle steps passed: \([0-9]*\)\/16$/\1/p' "$LOG" | tail -1)
+    steps=${steps:-0}
     passed=false
     grep -q '^All 16 steps passed\.' "$LOG" && passed=true
     jq -n \

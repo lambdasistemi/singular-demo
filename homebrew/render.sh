@@ -98,6 +98,9 @@ else
   kit_url=$repo/archive/refs/tags/$tag.tar.gz
   tools_url=$repo/releases/download/$tag/pay-by-name-tools-$tag.tar.gz
 fi
+series=${singular_version%.*}
+formula="$out/singular@$series.rb"
+class="SingularAT${series//./}"
 singular_url=https://github.com/lambdasistemi/singular/releases/download/v$singular_version/singular-$singular_version-aarch64-darwin.tar.gz
 
 mkdir -p "$out"
@@ -107,19 +110,21 @@ sub() { # placeholder value file...: escape sed metacharacters in the value, rep
   value=$(printf '%s' "$2" | sed -e 's/[&|\\]/\\&/g')
   sed "s|$what|$value|g" "$3" >"$3.rendered" && mv "$3.rendered" "$3"
 }
-cp "$here/singular-at-0.16.rb.in" "$out/singular@0.16.rb"
-sub @SINGULAR_URL@ "$singular_url" "$out/singular@0.16.rb"
-sub @SINGULAR_SHA@ "$singular_sha" "$out/singular@0.16.rb"
-sub @SINGULAR_VERSION@ "$singular_version" "$out/singular@0.16.rb"
+cp "$here/singular.rb.in" "$formula"
+sub @SINGULAR_CLASS@ "$class" "$formula"
+sub @SINGULAR_URL@ "$singular_url" "$formula"
+sub @SINGULAR_SHA@ "$singular_sha" "$formula"
+sub @SINGULAR_VERSION@ "$singular_version" "$formula"
 cp "$here/singular-demo.rb.in" "$out/singular-demo.rb"
 sub @KIT_URL@ "$kit_url" "$out/singular-demo.rb"
 sub @KIT_SHA@ "$kit_sha" "$out/singular-demo.rb"
 sub @TOOLS_URL@ "$tools_url" "$out/singular-demo.rb"
 sub @TOOLS_SHA@ "$tools_sha" "$out/singular-demo.rb"
 sub @VERSION@ "$version" "$out/singular-demo.rb"
-leftovers=$(grep -h -o '@[A-Z_]*@' "$out/singular@0.16.rb" "$out/singular-demo.rb" | wc -l || true)
+sub @SINGULAR_SERIES@ "$series" "$out/singular-demo.rb"
+leftovers=$(grep -h -o '@[A-Z_]*@' "$formula" "$out/singular-demo.rb" | wc -l || true)
 [ "$leftovers" -eq 0 ] || {
   echo "unrendered placeholders remain:" >&2
-  grep -n '@[A-Z_]*@' "$out/singular@0.16.rb" "$out/singular-demo.rb" >&2
+  grep -n '@[A-Z_]*@' "$formula" "$out/singular-demo.rb" >&2
   exit 1
 }

@@ -63,21 +63,21 @@ mkdir -p "$formulas"
 bash "$here/render.sh" --tag "$tag" \
   --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
   --kit-sha "$kit_sha" --tools-sha "$tools_sha" --out "$formulas"
-echo "rendered $formulas/singular@0.16.rb"
+echo "rendered $formulas/singular@${SINGULAR_VERSION%.*}.rb"
 echo "rendered $formulas/singular-demo.rb"
 if [ "$dry_run" -eq 1 ]; then
   echo "dry run: pushed nothing"
   exit 0
 fi
 git clone "https://x-access-token:${TAP_TOKEN}@github.com/lambdasistemi/homebrew-tap.git" "$tmp/tap"
-cp "$formulas/singular@0.16.rb" "$formulas/singular-demo.rb" "$tmp/tap/Formula/"
+cp "$formulas/singular@${SINGULAR_VERSION%.*}.rb" "$formulas/singular-demo.rb" "$tmp/tap/Formula/"
 cd "$tmp/tap" || exit 1
 git config user.name "github-actions"
 git config user.email "actions@github.com"
-git add "Formula/singular@0.16.rb" Formula/singular-demo.rb
+git add "Formula/singular@${SINGULAR_VERSION%.*}.rb" Formula/singular-demo.rb
 if git diff --cached --quiet; then
   echo "formulas unchanged: committed nothing"
 else
-  git commit -m "singular-demo $tag: singular@0.16 and singular-demo"
+  git commit -m "singular-demo $tag: singular@${SINGULAR_VERSION%.*} and singular-demo"
 fi
 git push

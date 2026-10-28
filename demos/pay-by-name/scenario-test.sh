@@ -53,6 +53,7 @@ echo "ok    intro/foreground.sh said Ready; windows 0:carol 1:alice 2:dave 3:bob
 WINDOWS="carol alice dave bob chain"
 for w in $WINDOWS; do tmux resize-window -t "demo:$w" -x 200 -y 50; done
 kit=$(find "$HOME" -maxdepth 1 -type d -name 'singular-demo-*-linux' | head -1)
+if [ -d "$kit/pay-by-name-runtime" ]; then kit="$kit/pay-by-name-runtime"; fi
 run=$HOME/singular-demo-run
 
 # ---- the blocks, one file each; the pages of the steps first, then the finish page

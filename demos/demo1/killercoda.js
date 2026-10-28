@@ -2,13 +2,13 @@
 //   node demos/demo1/killercoda.js ROOT   writes ROOT/killercoda/demo1-steps and ROOT/killercoda/demo1-script
 // (the structure.json files that list the scenarios are written by demos/structure.js)
 //
-// The scenario runs in tmux with three windows, made by the setup: 0 `alice`, 1 `bob` and 2 `chain` (the private
-// chain, a background job of its window), each person in a directory of their own with their own vault, receipts,
+// The scenario runs in tmux with four windows: 0 `alice`, 1 `bob`, 2 `chain` and 3 `carol`.
+// The private chain is a background job of its window; each person has their own directory, vault, receipts,
 // journal and settings file (alice.json and bob.json: the window sets the variable SINGULAR_CONFIG to its person's
 // file). Every "bash" block of the step files becomes a block the learner runs with a click, in the window of the
 // person who acts. A step file says where the person changes: a paragraph "**Now Bob.**" followed by the block `bob`
 // (in a single terminal that block chooses Bob's settings file; here it is the word that moves to his window). The
-// page then gives the word to click (alice, bob or chain); the keys Ctrl-b 0, 1 and 2 are only an extra, nothing needs
+// page then gives the word to click (carol, alice, bob or chain); the keys Ctrl-b 0, 1, 2 and 3 are only an extra, nothing needs
 // a keyboard. A block whose window is not the one the page has named stops the generator. Blocks marked
 // `{ mode=show }` are shown only; `{ mode=observe }` blocks run like commands.
 const fs = require('node:fs');
@@ -57,11 +57,16 @@ function parse(text) {
         console.error(`killercoda.js:${n + 2}: fence without window=...: ${line}`);
         process.exit(1);
       }
-      block = { window: attrs.window, mode: attrs.mode, lines: [] };
+      block = { window: attrs.window, mode: attrs.mode, status: attrs.status, lines: [] };
       continue;
     }
     if (block !== null && line === '```') {
-      parts.push({ code: block.lines.join('\n'), window: block.window, mode: block.mode });
+      parts.push({
+        code: block.lines.join('\n'),
+        window: block.window,
+        mode: block.mode,
+        status: block.status,
+      });
       block = null;
       continue;
     }
@@ -97,24 +102,14 @@ const stepFiles = fs
   .sort();
 const pick = (re) => stepFiles.filter((f) => re.test(f));
 
-// A replacement must find its text, so a change in a step file cannot slip past this generator unnoticed.
-function swap(str, from, to) {
-  const next = str.replace(from, to);
-  if (next === str) {
-    console.error(`killercoda.js: text to replace not found: ${String(from).slice(0, 80)}`);
-    process.exit(1);
-  }
-  return next;
-}
-
 // ---- who acts
 
 // Each window has a word that goes to it (a function in windows.rc, so a click is enough) and a number for Ctrl-b.
-// The scenario test finds the words as click-to-run blocks of one line: alice, bob or chain. The chain runs as a
+// The scenario test finds the words as click-to-run blocks of one line: carol, alice, bob or chain. The chain runs as a
 // background job of its window, so that window keeps its prompt and the words work there too.
-const WINDOW = { alice: 0, bob: 1, chain: 2 };
-const NAME = { alice: 'Alice', bob: 'Bob' };
-const OWNER = { alice: "Alice's", bob: "Bob's", chain: "the chain's" };
+const WINDOW = { alice: 0, bob: 1, chain: 2, carol: 3 };
+const NAME = { alice: 'Alice', bob: 'Bob', carol: 'Carol', chain: 'Chain' };
+const OWNER = { alice: "Alice's", bob: "Bob's", chain: "the chain's", carol: "Carol's" };
 const goTo = (w, lead = '') =>
   `${lead}Go to ${OWNER[w]} window: click \`${w}\`, or press \`Ctrl-b ${WINDOW[w]}\`.\n\n\`\`\`bash\n${w}\n\`\`\`{{exec}}`;
 
@@ -126,7 +121,7 @@ const pages = []; // { title, md }
 let current = 'alice';
 
 // A block that is only a person's word, preceded by the paragraph "**Now Bob.**", names the person from there on.
-const PEOPLE = ['alice', 'bob'];
+const PEOPLE = ['alice', 'bob', 'carol', 'chain'];
 function markWords(page, file) {
   page.parts.forEach((p, i) => {
     if (p.code === undefined || p.mode === 'show' || !PEOPLE.includes(p.code.trim())) return;
@@ -167,27 +162,33 @@ function render(page, { actors }) {
       current = p.word;
       continue;
     }
+    if (!actors && p.window !== current) {
+      md += `\n${goTo(p.window)}\n\n`;
+      current = p.window;
+    }
     if (actors && p.window !== current) {
       console.error(
         `killercoda.js: a block of ${NAME[p.window]} comes while the page has named ${NAME[current]}; put "**Now ${NAME[p.window]}.**" and the block ${p.window} above it:\n${p.code}`,
       );
       process.exit(1);
     }
-    md += `\`\`\`bash\n${p.code}\n\`\`\`{{exec}}\n`;
+    const status = p.status ? `# Expected exit status: ${p.status}\n` : '';
+    md += `\`\`\`bash\n${status}${p.code}\n\`\`\`{{exec}}\n`;
   }
   return `${md.replace(/\n{3,}/g, '\n\n').trim()}\n`;
 }
 
 // -- tmux, with the commands used here (written for this scenario)
 pages.push({
-  title: 'tmux, in three words',
-  md: `This scenario runs in **tmux**, a program that keeps several terminals in one. The setup has made three windows, each with its own shell:
+  title: 'tmux, in four words',
+  md: `This scenario runs in **tmux**, a program that keeps several terminals in one. The setup has made four windows, each with its own shell:
 
 - \`0\` \`alice\`: Alice's window, in her own directory with her own vault and receipts
 - \`1\` \`bob\`: Bob's window, in his own directory
 - \`2\` \`chain\`: the private chain
+- \`3\` \`carol\`: Carol creates the registry with her own wallet
 
-Two people, two directories: each keeps the files of what they do, exactly as two people on two machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`.
+Three people, three directories: each keeps the files of what they do, exactly as three people on three machines would. A bar at the bottom of the terminal lists the windows with their numbers and marks the one you are in with a \`*\`.
 
 Go inside:
 
@@ -195,7 +196,7 @@ Go inside:
 tmux attach -t demo
 \`\`\`{{exec}}
 
-From here on every command you click runs in the window you are in. To change window, type the window's name: \`alice\`, \`bob\` or \`chain\`. Wherever the story passes from one person to the other, the page gives you the word to click.
+From here on every command you click runs in the window you are in. To change window, type the window's name: \`carol\`, \`alice\`, \`bob\` or \`chain\`. Wherever the story passes from one person to the other, the page gives you the word to click.
 
 **Try it.** Go to Bob's window; the \`*\` in the bar moves to \`bob\`:
 
@@ -224,65 +225,12 @@ for (const f of pick(/^s00a[12]-/)) {
   });
 }
 
-// -- setup: the two wallets and the chain, one window each
-pages.push({
-  title: 'Setup: two wallets and a private chain',
-  md: `A wallet here is a vault: an encrypted key file, opened by a passphrase. The key never leaves the vault. Nothing here touches a public network.
-
-In these windows the passphrase comes from the environment variable \`SINGULAR_PASSPHRASE\`, so no command asks for it. Both vaults here use \`demo\`, a throwaway word. The program accepts the variable on a private chain only.
-
-**Alice's vault.** You are in her window, in her directory. \`singular wallet create\` makes the vault file and prints her address. The \`$(...)\` keeps the printed address in \`alice_addr\`, and \`tee\` also keeps it in the file \`alice.address\`.
-
-- \`--vault alice.vault\`: the file to create
-- \`--network-magic 42\`: the number of this private test chain (preprod is 1, mainnet 764824073)
-
-\`\`\`bash
-alice_addr=$(singular wallet create --vault alice.vault --network-magic 42 | tee alice.address)
-\`\`\`{{exec}}
-
-The address is public: it is all the chain will ever be told about her.
-
-${goTo('bob', '**Now Bob.** ')}
-
-**Bob's vault**, the same way:
-
-\`\`\`bash
-bob_addr=$(singular wallet create --vault bob.vault --network-magic 42 | tee bob.address)
-\`\`\`{{exec}}
-
-**The private chain.** \`devnet\` runs a real Cardano node with a Koios-style web API in front of it. It only ever sees the two addresses, never the keys. It runs in its own window, as a background job: the window keeps its prompt.
-
-${goTo('chain')}
-
-Then run it:
-
-- \`--fund-address ADDRESS:6:2000000000\`: gives the address 6 coins of 2000 ada each (2000000000 lovelace)
-- \`$(cat alice/alice.address)\`: the address, read from the file Alice's window wrote (Bob's the same way)
-- \`> devnet.out\`: its one line of settings goes to this file
-- \`2> devnet.log\`: its messages go to this file
-- \`&\`: runs it in the background, so that the window gets its prompt back and the chain keeps running
-
-\`\`\`bash
-devnet --fund-address "$(cat alice/alice.address):6:2000000000" --fund-address "$(cat bob/bob.address):6:2000000000" > devnet.out 2> devnet.log &
-\`\`\`{{exec}}
-
-The chain keeps running: leave it.
-
-${goTo('alice')}
-
-**Wait until the settings line has appeared**, then show it. \`providerUrl\` is where the chain's web API answers.
-
-\`\`\`bash
-until jq -e .providerUrl ../devnet.out >/dev/null 2>&1; do sleep 1; done; jq . ../devnet.out
-\`\`\`{{exec}}
-
-**The chain's log.** The chain's messages went to \`devnet.log\`. Show the last lines:
-
-\`\`\`bash
-tail -n 20 ../devnet.log
-\`\`\`{{exec}}
-`,
-});
+// The setup is the same source page in every tutorial face.
+{
+  const pg = read('s00b-wallets-and-devnet.md');
+  markWords(pg, 's00b-wallets-and-devnet.md');
+  pages.push({ title: pg.title, md: render(pg, { actors: false }) });
+}
 
 // -- the steps
 const stepPages = [...pick(/^s(0[1-9]|1[0-7])-/), ...pick(/^s2[01]-/)];
@@ -290,21 +238,6 @@ for (const f of stepPages) {
   const pg = read(f);
   markWords(pg, f);
 
-  if (/^s01-/.test(f)) {
-    // the window names the settings file in the variable SINGULAR_CONFIG
-    const w = pg.parts.findIndex((p) =>
-      p.text?.includes('**For this tutorial, a JSON file for each person**'),
-    );
-    if (w < 0) {
-      console.error('killercoda.js: s01 settings paragraph not found');
-      process.exit(1);
-    }
-    pg.parts[w].text = swap(
-      pg.parts[w].text,
-      "Alice's file is `alice.json`. The devnet's settings line has two of the values; `jq` builds the file from it.",
-      "Alice's file is `alice.json`, and her window names it in the variable `SINGULAR_CONFIG`. The devnet's settings line has two of the values; `jq` builds the file from it.",
-    );
-  }
   pages.push({ title: pg.title, md: render(pg, { actors: !/^s20-/.test(f) }) });
 }
 
@@ -323,7 +256,7 @@ w(
     {
       title: 'Singular Demo 1, step by step on a private chain',
       description:
-        'Play Singular Demo 1 yourself on a private Cardano test chain, as Alice and as Bob in two tmux windows: book keys, fold them, change and remove them, reject a stuck request and take one back. Ubuntu, nothing to install.',
+        'Play Singular Demo 1 yourself on a private Cardano test chain, as Alice and as Bob in three actor windows: book keys, fold them, change and remove them, clean up an expired registration and take one back. Ubuntu, nothing to install.',
       details: {
         intro: {
           text: 'intro/text.md',
@@ -346,11 +279,11 @@ w(
   'intro/text.md',
   `Singular keeps a registry of keys on Cardano. Here you play its Demo 1 yourself on a **private test chain**: nothing touches a public network, and nothing is installed on this machine. The project is at https://github.com/lambdasistemi/singular and its documentation at https://lambdasistemi.github.io/singular/ ; its own page for this journey is https://lambdasistemi.github.io/singular/docs/demo1-devnet/
 
-You play two people, **Alice** and **Bob**, each in a tmux window of their own, and a third window holds the chain. You switch windows by clicking a word: \`alice\`, \`bob\` or \`chain\`. You will, step by step:
+You play **Carol**, **Alice** and **Bob**, each in their own directory and tmux window, with a fourth window for the chain. You switch windows by clicking a word: \`carol\`, \`alice\`, \`bob\` or \`chain\`. You will, step by step:
 
-- create two wallets and a registry,
-- book a key, fold it into the registry, read it back, change it and remove it,
-- let a request go stale and reject it, and take another one back before its window closes.
+- create three wallets and a registry,
+- book a key, fold it into the registry, change its payload and permanently terminate it,
+- let a request go stale and clean it up, and take another one back before its window closes.
 
 Every command is shown in full with what it does. Click a command to run it, read what comes back, and go on. Two steps wait a few minutes for the chain's own clock, and the page says when.
 
@@ -362,7 +295,14 @@ A kit with the programs, and tmux, are being installed in the background. When t
 
 // The scripts of the play are the files in play/: the Codespaces tutorial runs the same ones. The setup of the
 // machine writes them out as they are and runs them.
-const PLAYFILES = ['install-kit.sh', 'prepare.sh', 'helpers.sh', 'windows.rc', 'windows.sh'];
+const PLAYFILES = [
+  'install-kit.sh',
+  'prepare.sh',
+  'helpers.sh',
+  'stepper.sh',
+  'windows.rc',
+  'windows.sh',
+];
 const embed = (files) =>
   files
     .map((f) => {
@@ -382,7 +322,7 @@ set -x
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/play
 ${embed(PLAYFILES)}bash /root/play/install-kit.sh ${RELEASE} /root
-# tmux holds the three windows
+# tmux holds the four windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
 bash /root/play/prepare.sh /root/${KIT} /root/singular-demo-run
@@ -401,7 +341,7 @@ echo "Ready."
 
 w(
   'finish/text.md',
-  `That was the whole of Demo 1: a key booked, folded, changed and removed; a stuck request rejected after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Alice and Bob each in a window of their own.
+  `That was the whole of Demo 1: a key booked, folded, changed and removed; an expired registration cleaned up after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Carol, Alice and Bob each in their own window.
 
 **Stop the chain.**
 
@@ -451,7 +391,7 @@ ws(
 );
 ws(
   'intro/text.md',
-  `This machine is a plain Ubuntu. A kit with the Singular programs, a private Cardano test chain and an annotated script of Demo 1 is being downloaded and unpacked in the background; nothing is installed on the system.
+  `This machine is a plain Ubuntu. A kit with the Singular programs, a private Cardano test chain and an annotated script of Demo 1 is being downloaded and unpacked in the background; the programs stay in their unpacked folder. Playback uses an unprivileged demo account.
 
 When the terminal says \`Ready\`, go to the next step.
 `,
@@ -461,7 +401,10 @@ ws(
   `#!/bin/bash
 set -x
 mkdir -p /root/play
-${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${RELEASE} /root
+apt-get update -qq && apt-get install -y -qq passwd util-linux
+id singular-demo >/dev/null 2>&1 || useradd --create-home --shell /bin/bash singular-demo
+${embed(['install-kit.sh'])}bash /root/play/install-kit.sh ${RELEASE} /home/singular-demo
+chown -R singular-demo:singular-demo /home/singular-demo/${KIT}
 touch /tmp/finished
 `,
 );
@@ -474,12 +417,12 @@ echo "Ready."
 );
 ws(
   'step1/text.md',
-  `Run the annotated script. It starts a private test chain, creates two wallets, and plays all 16 steps of Demo 1, explaining each one as it goes. It takes about 5 minutes, two of them real waits on the chain (the registry's windows are set to 60 and 30 seconds here).
+  `Run the annotated script. It starts a private test chain, creates three wallets, and plays all 16 steps of Demo 1, explaining each one as it goes. It takes about 5 minutes, two of them real waits on the chain (the registry's windows are set to 60 and 30 seconds here).
 
 The script runs in the background and writes everything to a log, and the terminal follows the log. So pressing Ctrl+C, or copying text with it, only stops the following: the demo carries on.
 
 \`\`\`bash
-cd ~/${KIT} && (PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 setsid nohup ./demo.sh > demo.log 2>&1 &) ; sleep 1; tail -n +1 -f demo.log
+cd /home/singular-demo/${KIT} && (runuser -u singular-demo -- env PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 setsid nohup ./demo.sh > demo.log 2>&1 &) ; sleep 1; tail -n +1 -f demo.log
 \`\`\`{{exec}}
 
 To copy text from the terminal, select it and use Ctrl+Shift+C, or right-click.
@@ -487,7 +430,7 @@ To copy text from the terminal, select it and use Ctrl+Shift+C, or right-click.
 If you stopped following, pick the log up again from the start:
 
 \`\`\`bash
-tail -n +1 -f ~/${KIT}/demo.log
+tail -n +1 -f /home/singular-demo/${KIT}/demo.log
 \`\`\`{{exec}}
 
 The script asks nothing; the wallets use throwaway passphrases. When the log ends with the last step, the run is over and the chain it started has been stopped.
@@ -495,9 +438,9 @@ The script asks nothing; the wallets use throwaway passphrases. When the log end
 );
 ws(
   'finish/text.md',
-  `That was all 16 steps: a key booked, folded, changed and removed; a stuck request rejected; a request taken back. Everything ran on a private test chain.
+  `That was all 16 steps: a key booked, folded, changed and removed; an expired registration cleaned up; a request taken back. Everything ran on a private test chain.
 
-The receipts are in \`~/${KIT}/singular-demo-run/receipts\`.
+The receipts are in \`/home/singular-demo/${KIT}/singular-demo-run\`.
 `,
 );
 console.log(`script scenario written to ${script}`);

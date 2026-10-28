@@ -1,4 +1,4 @@
-Singular v0.16.0 demo kit, release v0.16.0-2 (Ubuntu 24.04, x86_64, no Nix needed)
+Singular v0.17.0 demo kit, release v0.17.0-1 (Ubuntu 24.04, x86_64, no Nix needed)
 ==================================================================
 
 What is in here
@@ -12,16 +12,13 @@ What is in here
              tutorial-stepper), and share/sink-tools/ (see below)
   VERSION    the release tag and commit this kit was built from
   demo.sh    the annotated Demo 1 journey, 16 steps, on a private devnet
-  drive.sh   the same journey as a tutorial you play step by step, as Alice and as Bob, in tmux windows;
-             ./drive.sh pay-by-name plays the pay-by-name story, in the windows of five people
+  pay-by-name-runtime/  the separately pinned v0.16.0 runtime used only by pay-by-name
 
 Use
-  tar xzf singular-demo-v0.16.0-2-x86_64-linux.tar.gz
-  cd singular-demo-v0.16.0-2-x86_64-linux
+  tar xzf singular-demo-v0.17.0-1-x86_64-linux.tar.gz
+  cd singular-demo-v0.17.0-1-x86_64-linux
   ./demo.sh                  # runs everything; takes about 8 minutes (two real waits on the chain)
 
-  DEVNET_MODE=other-terminal ./demo.sh    # you start the devnet in a second terminal
-  STEP_PAUSE=yes ./demo.sh                # press Enter between steps
   WORK=/some/folder ./demo.sh             # where vaults, receipts and bundles are kept
                                           # (default: ./singular-demo-run)
   PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./demo.sh
@@ -30,7 +27,7 @@ Use
                                           # 60000 and 30000, anything lower is refused
 
 The tutorials step by step, in this terminal, with tutorial-stepper: the page beside the
-window of the person who acts (alice, bob, or the chain's; in pay-by-name carol, alice,
+window of the person who acts (carol, alice, bob, or the chain's; in pay-by-name carol, alice,
 dave, bob and the chain's). Enter runs the next command in that window and waits until it
 is over; s skips a command, c sends it Ctrl-C, n and p turn the page, q closes the page
 and keeps the windows. A terminal about 160 columns wide fits both. It takes about
@@ -57,7 +54,7 @@ The programs also work on their own: put bin/ first on PATH
 
 The transaction tools (cardano-tx-tools 0.2.3.0) read a transaction in the TextEnvelope shape
 (a file holding type, description and cborHex). Every transaction in a bundle carries one:
-  jq '.transactions[0].envelope' singular-demo-run/bundles/fold-dave.bundle > tx.envelope
+  jq '.transactions[0].envelope' singular-demo-run/bob/bundles/fold-dave.bundle > tx.envelope
   tx-inspect tx.envelope                # a tree: inputs, outputs, fee, validity interval, ...
   tx-diff a.envelope b.envelope         # what differs between two transactions
 
@@ -66,3 +63,6 @@ Needs: a 64-bit Linux with kernel 3.10 or newer, bash, and the usual base tools
 FUSE, no user namespaces. Nothing is installed outside the folder you unpacked.
 
 Everything here is a private test chain. Nothing touches a public network.
+
+Demo 1 uses v0.17.0. Pay-by-name stays on v0.16.0 until the new release can read a key (Singular issue 744).
+Termination is permanent and donates the protected deposit to the treasury. The receipts do not independently read current registry state.

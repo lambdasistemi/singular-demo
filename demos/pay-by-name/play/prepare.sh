@@ -5,6 +5,9 @@
 set -euo pipefail
 kit=$(cd "${1:?usage: prepare.sh KIT_DIR RUN_DIR}" && pwd)
 run=${2:?usage: prepare.sh KIT_DIR RUN_DIR}
+if [ -d "$kit/pay-by-name-runtime" ]; then
+  exec bash "$kit/share/pay-by-name/play/prepare.sh" "$kit" "$run"
+fi
 here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$run"/{carol,alice,dave,bob,publish,messages}
 run=$(cd "$run" && pwd)

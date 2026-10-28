@@ -2,7 +2,7 @@
 # Smoke test of the nix shell. Run it inside the shell:  nix develop --command kit/smoke.sh
 # The programs resolve and start, the blueprint is the expected file, the genesis directory is there.
 set -euo pipefail
-blueprint_sha256=89ecfeb0642a45dc57188a3f811e7e0fcaa6007b4abac0997e5491f9b53960c8
+blueprint_sha256=6ad16a3194cff51f0600edfe0eb95917ed0679693e1e4b6f332ad1072c07d3d1
 for p in singular open-datum devnet tx-inspect tx-diff jq; do
   printf '%-12s %s\n' "$p" "$(command -v "$p" || {
     echo "not on the PATH: $p" >&2

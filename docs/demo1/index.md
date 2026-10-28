@@ -1,6 +1,6 @@
 # Demo 1
 
-Alice and Bob keep a registry of keys on a private Cardano test chain. A key is booked, folded into the registry, read back, changed and removed. A request nobody folds is rejected, and another is taken back by its owner. The page [Where this design stops](tutorial.md) says what the demo does not show.
+Carol creates a registry on a private Cardano chain. Alice registers a key, changes its payload and permanently terminates it; Bob folds the registration and termination. An expired registration is cleaned up, and another is reclaimed by its requester. Demo 1 uses v0.17.0. Its receipts describe submitted transactions, not an independent read of current state. The page [Where this design stops](tutorial.md) says what the demo does not show.
 
 ## Read a run
 

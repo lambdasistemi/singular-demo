@@ -26,7 +26,7 @@ echo "file names inside the archive containing /nix: $n"
 check "no file name contains /nix" $((n != 0))
 
 # -a reads binary files as text (plain grep can skip a binary after its first odd byte)
-hits=$(grep -arl '/nix/store' "$K/bin" "$K/share" "$K/demo.sh" "$K/README.txt" "$K/VERSION" | wc -l)
+hits=$(grep -arl '/nix/store' "$K/bin" "$K/share" "$K/demo.sh" "$K/README.txt" "$K/VERSION" "$K/pay-by-name-runtime/bin" "$K/pay-by-name-runtime/share" "$K/pay-by-name-runtime/demo.sh" "$K/pay-by-name-runtime/README.txt" "$K/pay-by-name-runtime/VERSION" | wc -l)
 echo "files under bin/, share/ and the top files naming /nix/store: $hits"
 check "no store path in bin/, share/, demo.sh, README.txt, VERSION" $((hits != 0))
 
@@ -41,7 +41,7 @@ echo "library files with a store path as dead text (the C library's compiled-in 
 
 rp=0
 m=0
-for f in "$K"/libexec/* "$K"/lib/*/*.so*; do
+for f in "$K"/libexec/* "$K"/lib/*/*.so* "$K"/pay-by-name-runtime/libexec/* "$K"/pay-by-name-runtime/lib/*/*.so*; do
   case "$(basename "$f")" in ld-linux*) continue ;; esac
   m=$((m + 1))
   rp=$((rp + $(readelf -d "$f" 2>/dev/null | grep -ci 'rpath\|runpath')))

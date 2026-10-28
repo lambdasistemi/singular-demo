@@ -45,6 +45,9 @@ grep -q "singular-demo-$release-x86_64-linux" kit/README.txt || {
   fail=1
 }
 
+step "documentation presentation (this site has no narration reader)"
+python3 tools/check_presentation.py --no-speech --front README.md README.md docs/index.md docs/demo1/index.md || fail=1
+
 step "the Killercoda scenarios are the generated ones"
 generated=$(mktemp -d)
 trap 'rm -rf "$generated"' EXIT

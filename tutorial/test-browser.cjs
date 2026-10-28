@@ -69,7 +69,7 @@ const { chromium } = require('playwright');
     const controlBox = await run.boundingBox();
     assert(controlBox.x >= preBox.x + preBox.width, 'Controls must sit beside code');
     await run.click();
-    await outputContains('Alice, Bob and chain windows are ready.');
+    await outputContains('Carol, Alice, Bob and chain windows are ready.');
     await ready();
     const type = async (command) => {
       await page.locator('.xterm-helper-textarea').fill(command);
@@ -98,7 +98,7 @@ const { chromium } = require('playwright');
     await ready();
     assert(!(await terminalText()).includes('testing-secret'));
     await page.locator('#next').click();
-    assert.equal(await page.locator('#lesson-title').textContent(), 'tmux, in three words');
+    assert.equal(await page.locator('#lesson-title').textContent(), 'tmux, in four words');
     await page.locator('#previous').click();
     await page.reload();
     await ready();

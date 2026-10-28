@@ -70,7 +70,7 @@ case "$mode" in
 if [ $rc = 0 ]; then
   echo "== transaction tools on the demo'"'"'s own bundles"
   export PATH=$PWD/bin:$PATH
-  first=$(ls -tr /out/singular-demo-run/bundles/*.bundle | sed -n 1p); second=$(ls -tr /out/singular-demo-run/bundles/*.bundle | sed -n 2p)
+  first=$(ls -tr /out/singular-demo-run/bob/bundles/*.bundle | sed -n 1p); second=$(ls -tr /out/singular-demo-run/bob/bundles/*.bundle | sed -n 2p)
   echo "first bundle: $first"; echo "second bundle: $second"
   jq ".transactions[0].envelope" "$first" > /out/first.envelope
   jq ".transactions[0].envelope" "$second" > /out/second.envelope
@@ -114,10 +114,9 @@ failed() { [ -n "${rc:-}" ] && [ "$rc" != 0 ]; }
 echo "container-run $mode: demo.sh exit status ${rc:-none}; log $log"
 case "$mode" in
   good | short)
-    steps=$(grep -c '^━━ Step [0-9]* of 16 ' "$log")
     expect "demo.sh exit status 0" [ "${rc:-}" = 0 ]
-    expect "16 steps shown (counted $steps)" [ "$steps" = 16 ]
     expect "'All 16 steps passed.' printed" has '^All 16 steps passed\.'
+    expect "all lifecycle pages recorded" has '^Lifecycle steps passed: 16/16$'
     expect "/nix absent in the container" has '^no: test -e /nix fails'
     expect "no kit process left running" has '^kit processes still running: 0$'
     expect "tx-inspect exit 0" has '^TXTOOLS inspect-exit=0$'
@@ -143,7 +142,7 @@ case "$mode" in
     ;;
   control-node)
     expect "demo.sh failed (status ${rc:-none})" failed
-    expect "devnet failure named" has 'the devnet exited before it was ready'
+    expect "devnet failure named" has 'Timed out waiting for cardano-node socket'
     ;;
 esac
 [ "$ok" = 1 ]

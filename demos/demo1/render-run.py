@@ -18,9 +18,9 @@ from pathlib import Path
 def version() -> str:
     """The Singular release pinned in flake.nix (the only place it is written)."""
     flake = Path(__file__).resolve().parent.parent.parent / "flake.nix"
-    match = re.search(r"github:lambdasistemi/singular/(v\d+\.\d+\.\d+)\"", flake.read_text())
+    match = re.search(r'singularRelease = "(v\d+\.\d+\.\d+)"', flake.read_text())
     if not match:
-        raise SystemExit("render-run.py: no Singular tag found in flake.nix")
+        raise SystemExit("render-run.py: no Singular release found in flake.nix")
     return match.group(1)
 
 
@@ -88,9 +88,9 @@ def main() -> None:
 
     md = (
         "# Demo 1, a run\n\n"
-        "The tutorial's steps as they ran, with the result under each command. A real run of the release "
-        f"{ver} on a private chain, made by this repository's continuous integration: every command is the one "
-        "in the tutorial, and every result is what it printed.\n"
+        "The tutorial's steps as they ran on a private chain, with the result under each command. "
+        f"The target release is {ver}, kit {rel}. Commands and results come from the supplied transcript. "
+        "Local filesystem paths are shown as <local>; transaction IDs, tokens and addresses are unchanged.\n"
     )
     current = ""
     blocks = with_result = 0
@@ -114,6 +114,11 @@ def main() -> None:
             line.split("\r")[0] if "\r" not in line else [p for p in line.split("\r") if p][-1]
             for line in output.split("\n")
         ).strip("\n")
+        clean = re.sub(
+            r"/(?:nix/store|code|tmp|home|build|scratch|out)/[^\s\"'<>]+",
+            "<local>",
+            clean,
+        )
         if clean:
             with_result += 1
             md += f"\nResult:\n\n```text\n{clean}\n```\n"

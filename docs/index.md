@@ -10,8 +10,10 @@ Every demo can be met in five ways:
 - **Play it in your own terminal, on Linux.** The kit brings the programs, the chain, tmux and tutorial-stepper; `tutorial-stepper play share/tutorials/demo1` plays the same lessons beside the windows of Alice, Bob and the chain.
 - **Play it on a Mac, with Homebrew.** `brew tap lambdasistemi/tap`, `brew trust lambdasistemi/tap` (so Homebrew loads the tap's other formulas `singular-demo` depends on), `brew install lambdasistemi/tap/singular-demo`, then `singular-demo` for Demo 1 or `singular-demo pay-by-name` for the pay-by-name story, played with tutorial-stepper's terminal face.
 
+Demo 1 uses v0.17.0; pay-by-name still runs on v0.16.0 on its private test chain and moves when the new release can read a key ([issue 744](https://github.com/lambdasistemi/singular/issues/744)).
+
 ## The demos
 
 | Demo | What it shows |
 |---|---|
-| [Demo 1](demo1/index.md) | Alice and Bob keep a registry: book a key, fold it in, change it, remove it, reject a stuck request and take one back. |
+| [Demo 1](demo1/index.md) | Carol creates a registry; Alice registers a key, updates its payload and permanently terminates it, with Bob folding the registration and termination. Reclaim an unprocessed registration and clean up an expired one. |

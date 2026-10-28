@@ -1,5 +1,11 @@
 **Read the addresses.** They were written to files when the wallets were made. Read them into variables, in this window:
 
+Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
+
+```bash
+alice
+```{{exec}}
+
 ```bash
 alice_addr=$(cat ../alice/alice.address); bob_addr=$(cat ../bob/bob.address)
 ```{{exec}}

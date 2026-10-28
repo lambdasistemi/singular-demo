@@ -4,6 +4,8 @@
 # time, sorted names, no gzip name/time field).
 {
   pkgs,
+  payByNameKit,
+  singularRelease,
   singular,
   openDatum,
   devnet,
@@ -24,7 +26,7 @@
   payByNameTutorial,
 }:
 let
-  version = pkgs.lib.removeSuffix "\n" (builtins.readFile (source + "/version.txt"));
+  version = pkgs.lib.removePrefix "v" singularRelease;
   # The release of the kit: the Singular release and the kit's revision, as in v0.14.0-1 (the revision is kit/revision).
   release = "v${version}-${revision}";
   kitName = "singular-demo-${release}-x86_64-linux";
@@ -65,7 +67,14 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     jq = pkgs.pkgsStatic.jq.bin;
     curl = pkgs.pkgsStatic.curl.bin;
     tmux = pkgs.pkgsStatic.tmux;
-    inherit version release kitName;
+    inherit
+      version
+      release
+      kitName
+      payByNameKit
+      ;
+    payByNameSetup = ./pay-by-name-setup.sh;
+    payByNamePrepare = ./pay-by-name-prepare.sh;
     nodejsVersion = pkgs.lib.getVersion nodejs;
     commit = source.rev;
     nodeVersion = pkgs.lib.getVersion cardanoNode;
@@ -178,13 +187,13 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     LC_ALL=C sed -i 's|/nix/store/|/nonexist//|g' "$OUT/bin/jq" "$OUT/bin/curl" "$OUT/bin/tmux" "$OUT/bin/tutorial-stepper"
     chmod 755 "$OUT"/bin/*
 
-    printf '%s\n' "singular v$version" "commit $commit" "cardano-node $nodeVersion" "kit $release" "nodejs $nodejsVersion" "tutorial-stepper 0.4.1" > "$OUT/VERSION"
+    printf '%s\n' "singular v$(cat "$source/version.txt")" "commit $commit" "cardano-node $nodeVersion" "kit $release" "nodejs $nodejsVersion" "tutorial-stepper 0.4.1" > "$OUT/VERSION"
     cp "$readme" "$OUT/README.txt"
     cp "$demo" "$OUT/demo.sh"; chmod 755 "$OUT/demo.sh"
     # the tutorial step by step in a terminal: the carried tutorials, played with tutorial-stepper;
     # the scripts of the play stay for Killercoda and Codespaces
     mkdir -p "$OUT/share/play" "$OUT/share/scenario"
-    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,short-windows.sh} "$OUT/share/play/"
+    cp "$play"/{prepare.sh,windows.sh,windows.rc,helpers.sh,stepper.sh,short-windows.sh,check-receipts.sh} "$OUT/share/play/"
     cp "$scenario/index.json" "$OUT/share/scenario/"
     cp -r "$scenario"/step* "$scenario/finish" "$OUT/share/scenario/"
     # the same for the pay-by-name scenario: its pages, and its own play scripts with the two of Demo 1's that do not depend on its people
@@ -207,6 +216,14 @@ pkgs.runCommand "singular-demo-kit-${version}-${revision}"
     cp -r "$demo1Tutorial" "$OUT/share/tutorials/demo1"
     cp -r "$payByNameTutorial" "$OUT/share/tutorials/pay-by-name"
     chmod -R u+w "$OUT/share/tutorials"
+
+    # Pay-by-name carries the complete retained release in its own namespace.
+    mkdir -p "$OUT/pay-by-name-runtime"
+    tar xzf "$payByNameKit"/*.tar.gz --strip-components=1 -C "$OUT/pay-by-name-runtime"
+    cp "$payByNameSetup" "$OUT/share/tutorials/pay-by-name/setup.sh"
+    cp "$payByNamePrepare" "$OUT/share/pay-by-name/play/prepare.sh"
+    chmod 755 "$OUT/share/tutorials/pay-by-name/setup.sh" "$OUT/share/pay-by-name/play/prepare.sh"
+    chmod -R u+w "$OUT/pay-by-name-runtime"
 
     # pack: fixed time, sorted names, no owner, no gzip name/time field
     mkdir -p "$out"

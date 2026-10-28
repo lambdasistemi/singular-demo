@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 mkdir -p /root/play
+apt-get update -qq && apt-get install -y -qq passwd util-linux
+id singular-demo >/dev/null 2>&1 || useradd --create-home --shell /bin/bash singular-demo
 cat > /root/play/install-kit.sh <<'PLAY_EOF'
 #!/usr/bin/env bash
 # Downloads the Ubuntu kit of a release, checks it against the release's SHA256SUMS and unpacks it.
@@ -32,5 +34,6 @@ tar xzf "$tmp/$name.tar.gz" -C "$dir"
 touch "$dir/$name/.verified"
 echo "The kit is installed: $dir/$name"
 PLAY_EOF
-bash /root/play/install-kit.sh v0.16.0-2 /root
+bash /root/play/install-kit.sh v0.17.0-1 /home/singular-demo
+chown -R singular-demo:singular-demo /home/singular-demo/singular-demo-v0.17.0-1-x86_64-linux
 touch /tmp/finished

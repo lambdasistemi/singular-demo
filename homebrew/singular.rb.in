@@ -1,9 +1,11 @@
-class SingularAT016 < Formula
+class @SINGULAR_CLASS@ < Formula
   desc "Registry of unique keys on Cardano: singular, open-datum and a private development node"
   homepage "https://lambdasistemi.github.io/singular/"
   url "@SINGULAR_URL@"
   sha256 "@SINGULAR_SHA@"
   version "@SINGULAR_VERSION@"
+
+  keg_only :versioned_formula
 
   conflicts_with "singular", because: "both install the same commands"
 

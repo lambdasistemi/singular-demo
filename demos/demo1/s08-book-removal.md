@@ -1,18 +1,18 @@
-# Step 8: book the removal of the key (Alice)
+# Step 8: Alice books permanent termination
 
-Removing a key is also two stages. Alice books the termination of `alice`. Like an insertion, it waits as a pending request.
+Termination spends Alice's holding and donates its protected deposit to the treasury. It creates a pending termination carrying the key's active token and approval. This is permanent, has no reclaim window and cannot be undone. A later fold burns those tokens; the key can never be registered again.
 
-In the output, `released` is the output the fold will release and `deposit` is what comes back to Alice.
+**Now Alice.**
 
 ```bash { window=alice }
-open-datum terminate \
-  --key alice \
-  --vault alice.vault \
-  > receipts/08-terminate.json
+alice
 ```
 
-**Read what it returned:**
+```bash { window=alice }
+open-datum terminate --holding "$(cat holding.ref)" --vault alice.vault > receipts/08-terminate.json
+```
 
 ```bash { window=alice }
-jq '{outcome, reason, request, released, deposit, foldDeadline} | with_entries(select(.value != null))' receipts/08-terminate.json
+jq '{outcome, pending, treasuryDonation, submissions}' receipts/08-terminate.json
+jq -er .pending receipts/08-terminate.json > ../termination.pending
 ```

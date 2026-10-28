@@ -107,47 +107,19 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
     }
     const demo = path.join(home, 'singular-demo-run');
-    const receiptPath = (name) => {
-      const matches = ['alice', 'bob']
-        .map((who) => path.join(demo, who, 'receipts', name))
-        .filter((file) => fs.existsSync(file));
-      assert(matches.length > 0, `Missing receipt ${name}`);
-      return matches[0];
-    };
-    const read = (name) => JSON.parse(fs.readFileSync(receiptPath(name), 'utf8'));
-    for (const name of [
-      '01-create',
-      '03-insert-alice',
-      '06-update',
-      '08-terminate',
-      '13-fold-bob',
-      '14c-reclaim',
-      '15-insert-dave',
-    ]) {
-      assert.equal(read(`${name}.json`).outcome, 'success', name);
-    }
-    for (const name of ['04-fold-insert', '09-fold-terminate', '11d-reject', '12-insert-bob']) {
-      assert.equal(read(`${name}.json`).outcome, 'waiting-for-signatures', name);
-    }
-    for (const name of ['11b-reject-too-early', '14b-reclaim-too-early'])
-      assert.equal(read(`${name}.json`).outcome, 'client-refusal', name);
-    for (const name of ['04-fold-insert', '09-fold-terminate', '11d-reject', '12-insert-bob'])
-      assert(read(`${name}.submitted.json`).submissions.length > 0, name);
-    assert.equal(read('05-inspect.json').leaf, 'active');
-    assert.equal(read('10-inspect.json').leaf, 'terminal');
-    assert.equal(read('16b-inspect-dave.json').leaf, 'active');
-    assert(read('02-describe.json').rules.processTime > 0);
-    assert(read('02-describe-bob.json').rules.processTime > 0);
-    // the registry is named by its address alone: Alice's file has the one create printed, Bob's has the one Alice gave him
-    const registry = read('01-create.json').registry;
-    assert.match(registry, /^singular_devnet1[0-9a-z]+$/);
-    assert.equal(fs.readFileSync(path.join(demo, 'registry.address'), 'utf8').trim(), registry);
-    for (const who of ['alice', 'bob']) {
-      const settings = JSON.parse(fs.readFileSync(path.join(demo, who, `${who}.json`), 'utf8'));
-      assert.equal(settings.registry, registry, `${who}.json`);
-      assert(!('state-token' in settings), `${who}.json has a state token`);
-    }
-    assert(read('tx-info.json').length > 0);
+    const kit = path.join(
+      home,
+      'singular-demo-' + require('../demos/demo1/release.js') + '-x86_64-linux',
+    );
+    const receipts = spawnSync(
+      'bash',
+      [path.join(__dirname, '../demos/demo1/play/check-receipts.sh'), demo],
+      {
+        env: { ...env, PATH: path.join(kit, 'bin') + ':' + process.env.PATH },
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(receipts.status, 0, receipts.stdout + receipts.stderr);
     assert(!/jq: error|command not found|curl: \(/.test(transcript));
     assert.deepEqual(errors, []);
     console.log(

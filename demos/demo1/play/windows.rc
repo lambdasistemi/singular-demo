@@ -2,6 +2,7 @@
 # person, the helpers, and one word for each window. prepare.sh copies this file and helpers.sh next to play.env.
 [ -f ~/.bashrc ] && . ~/.bashrc
 . "$(dirname "${BASH_SOURCE[0]}")/play.env"
+PLAY_TMUX_WINDOWS=yes
 # an environment that needs more in its windows (the Codespaces tutorial's prompt tracking) names its file here
 [ -z "${PLAY_RC_HOOK:-}" ] || . "$PLAY_RC_HOOK"
 export PATH="$PLAY_KIT/bin:$PATH"
@@ -16,3 +17,5 @@ export SINGULAR_PASSPHRASE=demo
 alice() { tmux select-window -t alice; }
 bob() { tmux select-window -t bob; }
 chain() { tmux select-window -t chain; }
+
+carol() { tmux select-window -t carol; }

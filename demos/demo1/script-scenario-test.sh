@@ -27,7 +27,7 @@ bash -c "$cmd" || {
   echo "FAIL  the step's command failed"
   exit 1
 }
-kit=$(find "$HOME" -maxdepth 1 -type d -name 'singular-demo-*-linux' | head -1)
+kit=$(find /home/singular-demo -maxdepth 1 -type d -name 'singular-demo-*-linux' | head -1)
 for _ in $(seq 1 360); do
   grep -q '^All 16 steps passed' "$kit/demo.log" 2>/dev/null && break
   grep -q 'The run did not finish' "$kit/demo.log" 2>/dev/null && break
