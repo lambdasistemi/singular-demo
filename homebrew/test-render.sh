@@ -17,10 +17,10 @@ check() { # description, test result (0 = holds)
   fi
 }
 
-# Pinned test values (not releases): the shape is what is tested, not the data.
-TAG=v0.16.0-1
-SINGULAR_VERSION=0.16.0
-SINGULAR_SHA=920fe4b606077446baba294e84e84294733c87cab9682576d10b7df3e63735b7
+# shellcheck disable=SC1091 # use the same released bundle metadata as the renderer callers
+source "$here/singular.env"
+TAG=v$SINGULAR_VERSION-1
+series=${SINGULAR_VERSION%.*}
 KIT_SHA=0000000000000000000000000000000000000000000000000000000000000000
 
 status() { "$@" >/dev/null 2>&1 && echo 0 || echo 1; }
@@ -30,13 +30,13 @@ bash "$here/render.sh" --tag "$TAG" \
   --kit-sha "$KIT_SHA" --out "$work" >/dev/null
 check "render.sh exits 0" $?
 
-singular="$work/singular@0.16.rb"
+singular="$work/singular@$series.rb"
 demo="$work/singular-demo.rb"
-check "singular@0.16.rb is rendered" "$(status test -s "$singular")"
+check "singular@$series.rb is rendered" "$(status test -s "$singular")"
 check "singular-demo.rb is rendered" "$(status test -s "$demo")"
 
 # The versioned Singular formula: the macOS bundle of the pinned release.
-check "versioned formula names the v0.16.0 macOS bundle" "$(
+check "versioned formula names the pinned macOS bundle" "$(
   grep -q "singular/releases/download/v$SINGULAR_VERSION/singular-$SINGULAR_VERSION-aarch64-darwin.tar.gz" "$singular"
   echo $?
 )"
@@ -46,7 +46,7 @@ check "versioned formula carries that bundle's checksum" "$(
 )"
 
 # The demo formula: its dependencies, its archive, its play command.
-for dep in 'depends_on "lambdasistemi/tap/singular@0.16"' 'depends_on "lambdasistemi/tap/tx-inspect"' 'depends_on "lambdasistemi/tap/tx-diff"' 'depends_on "jq"' 'depends_on "tmux"' 'depends_on "lambdasistemi/tap/tutorial-stepper"'; do
+for dep in "depends_on \"lambdasistemi/tap/singular@$series\"" 'depends_on "lambdasistemi/tap/tx-inspect"' 'depends_on "lambdasistemi/tap/tx-diff"' 'depends_on "jq"' 'depends_on "tmux"' 'depends_on "lambdasistemi/tap/tutorial-stepper"'; do
   check "singular-demo depends on $dep" "$(
     grep -qF "$dep" "$demo"
     echo $?
@@ -75,7 +75,7 @@ check "demo formula plays Demo 1 with tutorial-stepper play" "$(
 auto_pat="play \$auto"
 check "demo wrapper hoists a leading --auto" "$(status grep -qF "$auto_pat" "$demo")"
 check "demo formula carries the contracts beside the tutorials" "$(
-  grep -q "singular@0.16" "$demo" && grep -q "share/plutus.json" "$demo" && grep -q "share/version.txt" "$demo"
+  grep -q "singular@$series" "$demo" && grep -q "share/plutus.json" "$demo" && grep -q "share/version.txt" "$demo"
   echo $?
 )"
 
@@ -98,7 +98,7 @@ check "local render checks the local tarball" "$(
   echo $?
 )"
 check "local render leaves the Singular bundle alone" "$(
-  grep -q "$SINGULAR_SHA" "$local_work/singular@0.16.rb"
+  grep -q "$SINGULAR_SHA" "$local_work/singular@$series.rb"
   echo $?
 )"
 

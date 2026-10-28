@@ -1113,24 +1113,6 @@
         "type": "github"
       }
     },
-    "flake-utils_13": {
-      "inputs": {
-        "systems": "systems_13"
-      },
-      "locked": {
-        "lastModified": 1791914995,
-        "narHash": "sha256-Zf/xfQEAasnwnmEfHqW/4hjDE/s44yn2hD4RuVIZRjA=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "b7a79d3fea1e214f6d668d521cecec0c01e26544",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
     "flake-utils_2": {
       "inputs": {
         "systems": "systems_2"
@@ -1207,6 +1189,24 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_7": {
+      "inputs": {
+        "systems": "systems_7"
+      },
+      "locked": {
+        "lastModified": 1791914995,
+        "narHash": "sha256-Zf/xfQEAasnwnmEfHqW/4hjDE/s44yn2hD4RuVIZRjA=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "b7a79d3fea1e214f6d668d521cecec0c01e26544",
         "type": "github"
       },
       "original": {
@@ -4382,18 +4382,18 @@
       },
       "locked": {
         "dir": "offchain",
-        "lastModified": 1793178923,
-        "narHash": "sha256-vV5/4mW4O4NwAsr8rAyTZUhH3pvqlBmsAJQIHUqTVfA=",
+        "lastModified": 1793197476,
+        "narHash": "sha256-OLGZ5tUBR97WqXIJBBa+AQVJKGqLQHX0mJW7+FVbdPY=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
+        "rev": "deb4b5c996af40371a97f2d7561aa045ccb3d78e",
         "type": "github"
       },
       "original": {
         "dir": "offchain",
         "owner": "lambdasistemi",
+        "ref": "v0.17.0",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
         "type": "github"
       }
     },
@@ -4515,18 +4515,18 @@
       },
       "locked": {
         "dir": "applications/open-datum/offchain",
-        "lastModified": 1793178923,
-        "narHash": "sha256-vV5/4mW4O4NwAsr8rAyTZUhH3pvqlBmsAJQIHUqTVfA=",
+        "lastModified": 1793197476,
+        "narHash": "sha256-OLGZ5tUBR97WqXIJBBa+AQVJKGqLQHX0mJW7+FVbdPY=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
+        "rev": "deb4b5c996af40371a97f2d7561aa045ccb3d78e",
         "type": "github"
       },
       "original": {
         "dir": "applications/open-datum/offchain",
         "owner": "lambdasistemi",
+        "ref": "v0.17.0",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
         "type": "github"
       }
     },
@@ -4546,18 +4546,18 @@
       },
       "locked": {
         "dir": "applications/open-datum/onchain",
-        "lastModified": 1793178923,
-        "narHash": "sha256-vV5/4mW4O4NwAsr8rAyTZUhH3pvqlBmsAJQIHUqTVfA=",
+        "lastModified": 1793197476,
+        "narHash": "sha256-OLGZ5tUBR97WqXIJBBa+AQVJKGqLQHX0mJW7+FVbdPY=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
+        "rev": "deb4b5c996af40371a97f2d7561aa045ccb3d78e",
         "type": "github"
       },
       "original": {
         "dir": "applications/open-datum/onchain",
         "owner": "lambdasistemi",
+        "ref": "v0.17.0",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
         "type": "github"
       }
     },
@@ -4802,17 +4802,17 @@
     "source": {
       "flake": false,
       "locked": {
-        "lastModified": 1793178923,
-        "narHash": "sha256-vV5/4mW4O4NwAsr8rAyTZUhH3pvqlBmsAJQIHUqTVfA=",
+        "lastModified": 1793197476,
+        "narHash": "sha256-OLGZ5tUBR97WqXIJBBa+AQVJKGqLQHX0mJW7+FVbdPY=",
         "owner": "lambdasistemi",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
+        "rev": "deb4b5c996af40371a97f2d7561aa045ccb3d78e",
         "type": "github"
       },
       "original": {
         "owner": "lambdasistemi",
+        "ref": "v0.17.0",
         "repo": "singular",
-        "rev": "a84b253730003c9b0a8961b80e2e5449ba480a62",
         "type": "github"
       }
     },
@@ -4927,21 +4927,6 @@
         "type": "github"
       }
     },
-    "systems_13": {
-      "locked": {
-        "lastModified": 1681028828,
-        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
-        "owner": "nix-systems",
-        "repo": "default",
-        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default",
-        "type": "github"
-      }
-    },
     "systems_2": {
       "locked": {
         "lastModified": 1681028828,
@@ -5017,10 +5002,25 @@
         "type": "github"
       }
     },
+    "systems_7": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
     "tutorial-stepper": {
       "inputs": {
         "crane": "crane",
-        "flake-utils": "flake-utils_13",
+        "flake-utils": "flake-utils_7",
         "nixpkgs": "nixpkgs",
         "rust-overlay": "rust-overlay"
       },
