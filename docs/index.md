@@ -1,6 +1,6 @@
 # Singular demos
 
-Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, played on a private test chain. Nothing here touches a public network and nothing needs installing beyond what each way below brings.
+Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, with tutorials played on private test chains and a separate [recorded journey on Cardano preprod](demo1/preprod.md). Each tutorial brings what it needs.
 
 Every demo can be met in five ways:
 

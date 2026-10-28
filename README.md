@@ -2,7 +2,7 @@ Not for mainnet. Do not deploy Singular or open datum on mainnet until on-chain 
 
 # Singular demos
 
-Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, played on a private test chain. Nothing here touches a public network. The Singular release used is v0.17.0.
+Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, with tutorials played on private test chains. A separate recorded journey runs on Cardano preprod. The Singular release used is v0.17.0.
 
 ## Demo 1: Carol, Alice and Bob's registry story
 
@@ -22,7 +22,9 @@ flowchart TD
 A terminated key cannot be registered again. The diagram shows the key's lifecycle; Carol creates the registry before Alice starts.
 
 
-There are five ways to meet it.
+[The recorded preprod journey](docs/demo1/preprod.md) follows one registry through registration, a direct payload update and permanent termination. It includes the state token, transaction links and the cast.
+
+There are five ways to meet the private-chain tutorial.
 
 **Read a run.** Every command of the tutorial with what it printed in a real run, made by this repository's continuous integration:
 
