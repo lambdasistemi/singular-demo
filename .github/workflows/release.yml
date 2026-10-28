@@ -1,8 +1,7 @@
 name: release
 
 # Pushing a tag vX.Y.Z-N runs the whole CI on the kit of the pinned Singular release and then publishes the
-# numbered release: the tarball, its checksum, the full log of the demo run, the run summary, the pay-by-name
-# tools for the Homebrew formula, and the two Homebrew formulas in lambdasistemi/homebrew-tap. The tag must
+# numbered release: the tarball, its checksum, the full log of the demo run, the run summary, and the two Homebrew formulas in lambdasistemi/homebrew-tap. The tag must
 # name the kit that was built: the pinned Singular release and the kit's revision (kit/revision), as in v0.14.0-1.
 # The release is created once and never overwritten. The formulas are published by the publish-tap workflow;
 # to re-publish them for an existing tag, dispatch that workflow on main:
@@ -39,17 +38,8 @@ jobs:
         with:
           name: release
           path: release
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: pay-by-name-tools
-          path: pr-tools
       - name: The tag names the kit that was built
         run: nix develop .#dev --command bash kit/check-release.sh "$TAG"
-      - name: Name the pay-by-name tools for the Homebrew formula
-        run: |
-          cp pr-tools/pay-by-name-tools.tar.gz "release/pay-by-name-tools-$TAG.tar.gz"
-          tar tzf "release/pay-by-name-tools-$TAG.tar.gz"
-          ls -l release/
       - name: Create the release
         run: |
           nix develop .#dev --command gh release create "$TAG" --verify-tag --latest \

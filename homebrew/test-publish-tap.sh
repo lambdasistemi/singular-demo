@@ -3,10 +3,12 @@
 #   homebrew/test-publish-tap.sh TAG
 # Executes homebrew/publish-tap.sh against the published release TAG: the dry run
 # renders both formulas and pushes nothing (no tap token needed); a tag whose release
-# or tools tarball is missing fails; publishing without a tap token fails.
+# archive is missing fails; publishing without a tap token fails.
 # Exit 0 only if every check holds.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck disable=SC1091 # the renderer reads this same version file
+source "$here/singular.env"
 
 fail=0
 check() { # description, test result (0 = holds)
@@ -25,15 +27,14 @@ trap 'rm -rf "$work"' EXIT
 
 out=$(env -u TAP_TOKEN bash "$here/publish-tap.sh" --dry-run --tag "$tag" --out "$work" 2>"$work/stderr.log")
 check "dry run without a tap token exits 0" $?
-check "dry run names both formulas" "$(echo "$out" | grep -q "singular@0.16.rb" && echo "$out" | grep -q "singular-demo.rb" && echo 0 || echo 1)"
-check "dry run renders singular@0.16.rb" "$([ -s "$work/singular@0.16.rb" ] && echo 0 || echo 1)"
+check "dry run names both formulas" "$(echo "$out" | grep -q "singular@${SINGULAR_VERSION%.*}.rb" && echo "$out" | grep -q "singular-demo.rb" && echo 0 || echo 1)"
+check "dry run renders singular@${SINGULAR_VERSION%.*}.rb" "$([ -s "$work/singular@${SINGULAR_VERSION%.*}.rb" ] && echo 0 || echo 1)"
 check "dry run renders singular-demo.rb" "$([ -s "$work/singular-demo.rb" ] && echo 0 || echo 1)"
 check "demo formula fetches the tag tarball" "$(grep -qF "singular-demo/archive/refs/tags/$tag.tar.gz" "$work/singular-demo.rb" 2>/dev/null && echo 0 || echo 1)"
-check "demo formula fetches the tag tools" "$(grep -qF "pay-by-name-tools-$tag.tar.gz" "$work/singular-demo.rb" 2>/dev/null && echo 0 || echo 1)"
-check "no unrendered placeholder remains" "$(grep -q '@[A-Z_]*@' "$work/singular@0.16.rb" "$work/singular-demo.rb" 2>/dev/null && echo 1 || echo 0)"
+check "no unrendered placeholder remains" "$(grep -q '@[A-Z_]*@' "$work/singular@${SINGULAR_VERSION%.*}.rb" "$work/singular-demo.rb" 2>/dev/null && echo 1 || echo 0)"
 check "dry run pushes nothing" "$(grep -qi "push" "$work/stderr.log" 2>/dev/null && echo 1 || echo 0)"
 
-# A tag whose release or tools tarball is missing fails instead of rendering.
+# A tag whose archive is missing fails instead of rendering.
 if bash "$here/publish-tap.sh" --dry-run --tag v0.0.0-nonexistent-0 --out "$work/missing" >/dev/null 2>&1; then
   check "missing tag fails" 1
 else

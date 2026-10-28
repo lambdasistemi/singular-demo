@@ -16,7 +16,7 @@ new=${1:?usage: tools/bump.sh vX.Y.Z}
 }
 old=$(node -p "require('./demos/demo1/version.js')")
 old_release=$(node -p "require('./demos/demo1/release.js')")
-if [ "$old" = "$new" ]; then
+if [ "$old" = "$new" ] && [ "$(jq -r '.nodes.source.original.ref // ""' flake.lock)" = "$new" ]; then
   echo "already at $new"
   exit 0
 fi
@@ -32,6 +32,8 @@ for f in flake.nix README.md kit/demo.sh kit/README.txt demos/demo1/play/install
   sed -i -e "s/$old_release_pattern/$new-1/g" -e "s/$pattern/$new/g" "$f"
 done
 printf '1\n' >kit/revision
+# A preparation commit may name the target release while its source still uses a commit pin.
+sed -i -E "s|(github:lambdasistemi/singular/)[0-9a-f]{40}|\1$new|g" flake.nix
 
 # homebrew/singular.env names the pinned Singular release's macOS bundle for the versioned Homebrew formula:
 # the bare version and the bundle's checksum from the new release's SHA256SUMS.

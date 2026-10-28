@@ -31,17 +31,22 @@ pages = [
 [[window]]
 name = "alice"
 folder = "alice"
-needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl"]
+needs = ["singular", "open-datum", "devnet", "jq", "curl"]
 
 [[window]]
 name = "bob"
 folder = "bob"
-needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl"]
+needs = ["singular", "open-datum", "devnet", "jq", "curl"]
 
 [[window]]
 name = "chain"
 folder = "."
-needs = ["singular >= 0.16.0", "open-datum >= 0.16.0", "devnet", "jq", "curl"]
+needs = ["singular", "open-datum", "devnet", "jq", "curl"]
+
+[[window]]
+name = "carol"
+folder = "carol"
+needs = ["singular", "open-datum", "devnet", "jq", "curl"]
 
 [[setting]]
 name = "PROCESS_TIME_MS"

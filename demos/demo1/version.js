@@ -4,6 +4,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const flake = fs.readFileSync(path.join(__dirname, '..', '..', 'flake.nix'), 'utf8');
-const m = flake.match(/github:lambdasistemi\/singular\/(v\d+\.\d+\.\d+)"/);
-if (!m) throw new Error('version.js: no Singular tag found in flake.nix');
+const m = flake.match(/singularRelease = "(v\d+\.\d+\.\d+)"/);
+if (!m) throw new Error('version.js: no Singular release found in flake.nix');
 module.exports = m[1];

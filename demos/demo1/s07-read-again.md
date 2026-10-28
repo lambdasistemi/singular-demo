@@ -1,10 +1,13 @@
-# Step 7: read the key back again
+# Step 7: read the update receipt
 
-The same read as step 5. The payload is now `{"answer": 43}`; the controller and the deposit are unchanged.
+The receipt identifies the new holding and the confirmed transaction. Reading a saved receipt does not query current registry state. Keep the new holding reference: the previous output has been spent.
+
+**Now Alice.**
 
 ```bash { window=alice }
-open-datum inspect \
-  --key alice \
-  > receipts/07-inspect.json
-jq '{state: .leaf, payload: .applicationOutput.payload, deposit: .applicationOutput.deposit, root}' receipts/07-inspect.json
+alice
+```
+
+```bash { window=alice }
+jq '{outcome, holding, submissions: [.submissions[] | {step, tx, case, observed}]}' receipts/06-update.json
 ```

@@ -8,10 +8,11 @@
 set -euo pipefail
 run=$(pwd)
 here=$(cd "$(dirname "$0")" && pwd)
-mkdir -p "$run"/alice/{receipts,bundles,witnesses} "$run"/bob/{receipts,bundles,witnesses}
-# The settings files of Alice and Bob, each in the person's folder; the steps fill them.
-for who in alice bob; do [ -f "$run/$who/$who.json" ] || echo '{}' >"$run/$who/$who.json"; done
+mkdir -p "$run"/alice/{receipts,bundles,witnesses} "$run"/bob/{receipts,bundles,witnesses} "$run"/carol/{receipts,bundles,witnesses}
+# The settings files of Carol, Alice and Bob, each in the person's folder; the steps fill them.
+for who in alice bob carol; do [ -f "$run/$who/$who.json" ] || echo '{}' >"$run/$who/$who.json"; done
 cp "$here/play/helpers.sh" "$here/play/stepper.sh" "$run/"
+chmod u+w "$run/helpers.sh" "$run/stepper.sh"
 # The programs the windows need, resolved to directories now (the first page
 # loads them visibly through stepper.sh, so no window depends on inherited PATH).
 path_add=""

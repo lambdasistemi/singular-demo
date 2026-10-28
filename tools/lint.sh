@@ -27,7 +27,7 @@ step "workflows (actionlint)"
 actionlint -config-file .github/actionlint.yaml .github/workflows/*.yml || fail=1
 
 step "the step files (lint.sh of the demo)"
-bash demos/demo1/lint.sh demos/demo1/s*.md demos/pay-by-name/s*.md || fail=1
+bash demos/demo1/lint.sh demos/demo1/s*.md || fail=1
 
 step "the README and the kit's readme name the Singular version pinned in flake.nix and the kit release"
 version=$(node -p "require('./demos/demo1/version.js')")
@@ -44,6 +44,9 @@ grep -q "singular-demo-$release-x86_64-linux" kit/README.txt || {
   echo "kit/README.txt: it does not name singular-demo-$release-x86_64-linux" >&2
   fail=1
 }
+
+step "documentation presentation (this site has no narration reader)"
+python3 tools/check_presentation.py --no-speech --front README.md README.md docs/index.md docs/demo1/index.md docs/demo1/preprod.md || fail=1
 
 step "the Killercoda scenarios are the generated ones"
 generated=$(mktemp -d)

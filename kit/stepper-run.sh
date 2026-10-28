@@ -4,10 +4,8 @@
 # and no network, so the windows and the tools run on the kit's own tmux and programs. The stepper plays the tested
 # path unattended (--auto); then what the people wrote is judged with the tutorial's receipt checks.
 #   TARBALL=dist/KIT.tar.gz kit/stepper-run.sh                        Demo 1's shortest path: receipts of Alice and Bob
-#   SCENARIO=pay-by-name TARBALL=dist/KIT.tar.gz kit/stepper-run.sh   the pay-by-name story: the files of its five people
 # Environment:
 #   TARBALL   the kit tarball (required)
-#   SCENARIO  demo1 (default) or pay-by-name
 #   IMAGE     container image reference (default mirror.gcr.io/library/ubuntu:24.04)
 #   OUT       directory for the log, the run's folder and the transcript (default ./out)
 #   PROCESS_TIME_MS, RETRACT_TIME_MS   the registry's windows (default: the tutorial's tested path;
@@ -20,27 +18,11 @@ OUT=${OUT:-$PWD/out}
 mkdir -p "$OUT"
 OUT=$(readlink -f "$OUT")
 tarball=$(basename "$TARBALL")
-SCENARIO=${SCENARIO:-demo1}
-case $SCENARIO in
-  demo1)
-    TUTORIAL=share/tutorials/demo1
-    PATH_ARG="--path short"
-    CHECK=$here/../demos/demo1/play/check-receipts.sh
-    log=$OUT/stepper-run.log
-    rundir=$OUT/run-stepper
-    ;;
-  pay-by-name)
-    TUTORIAL=share/tutorials/pay-by-name
-    PATH_ARG=
-    CHECK=$here/../demos/pay-by-name/check-run.sh
-    log=$OUT/stepper-run-pay-by-name.log
-    rundir=$OUT/run-stepper-pay-by-name
-    ;;
-  *)
-    echo "SCENARIO is demo1 or pay-by-name" >&2
-    exit 2
-    ;;
-esac
+TUTORIAL=share/tutorials/demo1
+PATH_ARG="--path short"
+CHECK=$here/../demos/demo1/play/check-receipts.sh
+log=$OUT/stepper-run.log
+rundir=$OUT/run-stepper
 inner='
 set -u
 echo "== is there a tmux in this container?"
@@ -93,7 +75,7 @@ expect() { # description, then the command that must succeed
   fi
 }
 has() { grep -q -- "$1" "$log"; }
-echo "stepper-run $SCENARIO: log $log"
+echo "stepper-run demo1: log $log"
 expect "no tmux and no node in the image: the kit's own run the windows" test "$(grep -c '^no$' "$log")" -ge 2
 expect "the carried tutorial checks" grep -qE '^[0-9]+ pages?, [0-9]+ commands$' "$log"
 expect "the stepper played the path (exit 0)" has '^STEPPER exit=0$'

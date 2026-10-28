@@ -1,24 +1,13 @@
 # Before you start: two programs, one registry
 
-Two command-line programs are used in this demo, `singular` and `open-datum`. Here is what each is for, so every command later has a reason.
+Carol, Alice and Bob use two programs to run a registry on a private Cardano chain. Each actor keeps their own wallet and journal.
 
-**Singular is a registry of keys on Cardano.** A key exists at most once. A request to add or remove a key is first booked and waits; it becomes part of the registry when someone folds it, and the registry has rules for the waiting: a request that nobody folds can be rejected after its windows, and its owner can take it back inside the second window. Singular does not decide what a key means.
+**singular** provides wallet creation, wallet signing and transaction submission. Its generic registry creator takes an application policy; this demo uses the application-aware `open-datum create` with its processing and reclaim windows.
 
-**An application gives the keys their meaning.** It decides what a key holds, who may change it, and what happens to the deposit locked with it. Applications plug into the registry and bring their own rules.
+**open-datum** books a registration with `insert`, folds a named request with `fold`, directly updates a holding with `update`, and books its permanent termination with `terminate`. A pending registration can be taken back by its requester with `reclaim`, or cleaned up by anyone after expiry with `cleanup`.
 
-**The registry is tied to its application for good.** A registry is created with one application and keeps it for its whole life. A booking is folded only if it carries the application's approval, so every key's output is one the application accepted, and the application's script decides how that output may change afterwards. The registry runs no application code when it folds and never looks inside the data.
+A registration becomes a holding when it is folded. Its controller may change the payload directly. Termination donates the protected deposit to the treasury; its later fold burns the active token and approval. A terminated key cannot be registered again.
 
-**`open-datum` is the application used here.** In it a key holds a piece of data, the payload, that only the key's controller may replace. The controller's deposit stays locked while the key exists and is released when the key is removed. In `open-datum` a key's output carries a token named after the key, minted by the fold, and data in two parts: a fixed part, which names the registry, the key, its controller and the deposit and which no update may change, and the payload. `open-datum` is built on the registry: its commands create a registry tied to this application, and book, change, remove and read the keys.
+v0.17.0 has no key read command. Saved receipts and the recorded preprod run's explorer links show transactions; they do not supply an independent read of current state.
 
-Which program a command belongs to follows one rule:
-
-- When the command depends on **what a key holds**, it is an `open-datum` command: `create`, `insert`, `update`, `terminate`, `fold` and `inspect`. It knows how the application lays out its data.
-- When it does **not** depend on that, it is a `singular` command: making a wallet and reading its address (`singular wallet`), signing a prepared transaction and sending it (`singular wallet sign`, `singular submit`), describing the registry (`singular registry describe`), and the two exits for a stuck request, `singular registry reject` and `singular registry reclaim`.
-
-`create` and `fold` exist in both programs. `singular registry create` takes the application to use as an option; `open-datum create` already knows its own. The demo uses the `open-datum` versions, which build the application's outputs.
-
-The relation in one line: **`singular` runs the registry, `open-datum` is the application that fills it.**
-
-Every write has the same shape: a command books or builds a transaction, a wallet signs it, and it is sent.
-
-The code is in the project's repository: the [contracts](https://github.com/lambdasistemi/singular/tree/@VERSION@/onchain), the [programs](https://github.com/lambdasistemi/singular/tree/@VERSION@/offchain) and the [open-datum application](https://github.com/lambdasistemi/singular/tree/@VERSION@/applications/open-datum). Every command and setting is described in the [singular-node documentation](https://lambdasistemi.github.io/singular/docs/singular-node/).
+The trie library's proofs are assumed sound.

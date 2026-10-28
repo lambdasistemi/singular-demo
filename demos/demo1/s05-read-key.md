@@ -1,4 +1,6 @@
-# Step 5: read the key back
+# Step 5: use the holding reference
+
+Alice needs her holding's transaction output to change its payload. The helper selects the one output from Bob's fold that carries the key's token, using the provider's transaction API. This supplies a reference for the next write; it is not a Singular key read and makes no independent claim about registry membership.
 
 **Now Alice.**
 
@@ -6,13 +8,8 @@
 alice
 ```
 
-Reading is free and needs no key and no wallet: anyone can check. `inspect` asks the chain for the key's state and prints what it found. The key is now active, with its payload (`{"answer": 42}`), its controller and the deposit that stays locked with it. `root` is a fingerprint of the whole registry.
-
 ```bash { window=alice }
-open-datum inspect \
-  --key alice \
-  > receipts/05-inspect.json
-jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, controller: .applicationOutput.controller, deposit: .applicationOutput.deposit, root}' receipts/05-inspect.json
+alice_holding=$(holding_in "$(cat ../registry.token)" "$(cat ../alice-fold.tx)") &&
+printf '%s\n' "$alice_holding" > holding.ref &&
+printf 'Holding for the next write: %s\n' "$alice_holding"
 ```
-
-**What a script can rely on.** The output read here is the key's live value: it holds the token named `alice`, which only the registry's fold mints and which is burned when the key ends. Its fixed part has not changed since the booking, because `open-datum` refuses any update that changes it. A script on the chain can read this output without spending it and trust what it finds: who controls the key and what the payload is. It has nothing to compute or prove.

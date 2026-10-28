@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # Shell setup for the stepper's windows (demos/demo1/play/stepper.sh).
 # The tutorial's first page sources this visibly in each window:
-#   alice and bob windows:  . ../stepper.sh
+#   carol, alice and bob windows:  . ../stepper.sh
 #   chain window:           . ./stepper.sh
 # It sets what every window's shell needs: the run folder, the programs on
 # PATH, the passphrase, the helpers, the window's settings file, and the
@@ -30,11 +30,17 @@ export blueprint="${blueprint:-${PLAY_BLUEPRINT:-}}"
 # none: it only starts the devnet and reads its settings line.
 case "${TUTORIAL_STEPPER_WINDOW:-}" in
   alice) export SINGULAR_CONFIG="$PLAY_RUN/alice/alice.json" ;;
+  carol) export SINGULAR_CONFIG="$PLAY_RUN/carol/carol.json" ;;
   bob) export SINGULAR_CONFIG="$PLAY_RUN/bob/bob.json" ;;
 esac
-# The person words. A block that is exactly `alice` or `bob` pins the
+# The person words. A block that is exactly `carol`, `alice` or `bob` pins the
 # settings file explicitly, so the person switches in the later steps keep
 # working in every window.
-alice() { export SINGULAR_CONFIG="$PLAY_RUN/alice/alice.json"; }
-bob() { export SINGULAR_CONFIG="$PLAY_RUN/bob/bob.json"; }
-chain() { :; }
+if [ "${PLAY_TMUX_WINDOWS:-no}" != yes ]; then
+  alice() { export SINGULAR_CONFIG="$PLAY_RUN/alice/alice.json"; }
+  bob() { export SINGULAR_CONFIG="$PLAY_RUN/bob/bob.json"; }
+  carol() { export SINGULAR_CONFIG="$PLAY_RUN/carol/carol.json"; }
+  chain() { :; }
+fi
+
+set -o pipefail

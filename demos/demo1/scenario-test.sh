@@ -4,10 +4,10 @@
 #   docker run --rm --memory 8g -v /tmp/scenario:/scenario:ro -v "$PWD":/repo:ro ubuntu:24.04 \
 #     bash /repo/demos/demo1/scenario-test.sh /scenario     (/scenario is /tmp/out/killercoda/demo1-steps)
 # 1. the machine gets curl (Killercoda's has it); the scenario's intro/background.sh runs (kit, tmux, settings files),
-#    then intro/foreground.sh (the three tmux windows)
+#    then intro/foreground.sh (the four tmux windows)
 # 2. the click-to-run blocks of every step, in the order of index.json, then of the finish page, are TYPED into the
 #    tmux window the learner is in, each followed by waiting for the shell's prompt; a block that is one of the words
-#    alice, bob or chain moves the learner to that window (no key is needed anywhere: the chain is a background job of its
+#    carol, alice, bob or chain moves the learner to that window (no key is needed anywhere: the chain is a background job of its
 #    window, which keeps its prompt); a passphrase prompt on the screen fails the test (the windows carry SINGULAR_PASSPHRASE);
 #    the chain is stopped at the end by the block of the finish page (kill %1)
 # 3. the receipts of Alice's and Bob's directories are checked
@@ -36,13 +36,13 @@ if ! bash "$scenario/intro/foreground.sh" >"$work/foreground.log" 2>&1 || ! grep
   tail -8 "$work/foreground.log"
   exit 1
 fi
-if [ "$(tmux list-windows -t demo -F '#{window_index}:#{window_name}' | tr '\n' ' ')" != "0:alice 1:bob 2:chain " ]; then
-  echo "FAIL  the windows are not 0:alice 1:bob 2:chain:"
+if [ "$(tmux list-windows -t demo -F '#{window_index}:#{window_name}' | tr '\n' ' ')" != "0:alice 1:bob 2:chain 3:carol " ]; then
+  echo "FAIL  the windows are not 0:alice 1:bob 2:chain 3:carol:"
   tmux list-windows -t demo
   exit 1
 fi
-echo "ok    intro/foreground.sh said Ready; windows 0:alice 1:bob 2:chain"
-for w in alice bob chain; do tmux resize-window -t "demo:$w" -x 200 -y 50; done
+echo "ok    intro/foreground.sh said Ready; windows 0:alice 1:bob 2:chain 3:carol"
+for w in alice bob chain carol; do tmux resize-window -t "demo:$w" -x 200 -y 50; done
 kit=$(find "$HOME" -maxdepth 1 -type d -name 'singular-demo-*-linux' | head -1)
 
 # ---- the blocks, one file each
@@ -95,19 +95,21 @@ ERROR_LINES='jq: error|command not found|curl: [(]|No such file or directory|Unc
 run_block() {
   local file=$1 w=$current
   local expected
-  expected=$(awk 'NF && $0 !~ /\\$/ {c++} END {print c+0}' "$file")
+  expected=$(sed -n 's/^# Expected exit status: \([0-9]*\)$/\1/p' "$file")
+  expected=${expected:-0}
   init_window "$w"
-  local base
-  base=$(wc -l <"/tmp/prompts-$w")
+  local completed="/tmp/completed-$w"
+  rm -f "$completed"
   local hist0
   hist0=$(tmux capture-pane -p -J -S - -t "demo:$w" | grep -c .)
   local line
   while IFS= read -r line; do tx "$w" "$line"; done <"$file"
+  # A compound shell command produces one prompt, regardless of its line count.
+  # Queue a completion marker after the whole block, in that same shell.
+  tx "$w" "printf '%s\\n' \"\$?\" > '$completed'"
   local waited=0
   while :; do
-    local have
-    have=$(wc -l <"/tmp/prompts-$w")
-    [ "$have" -ge $((base + expected)) ] && break
+    [ -s "$completed" ] && break
     # one snapshot of the screen, so the last line is read from one moment
     local snap
     snap=$(tmux capture-pane -p -J -S - -t "demo:$w" | grep .)
@@ -126,6 +128,11 @@ run_block() {
       return 1
     fi
   done
+  if [ "$(cat "$completed")" != "$expected" ]; then
+    echo "FAIL  block returned $(cat "$completed"), expected $expected in window $w:"
+    cat "$file"
+    return 1
+  fi
   # what this block printed must hold no error line (a missing file, a failed jq, a missing command)
   local bad
   bad=$(tmux capture-pane -p -J -S - -t "demo:$w" | grep . | tail -n +$((hist0 + 1)) | grep -E "$ERROR_LINES" | head -3)
@@ -140,7 +147,7 @@ run_block() {
 
 dump_windows() {
   local w
-  for w in alice bob chain; do
+  for w in alice bob chain carol; do
     echo "=== window $w:"
     tmux capture-pane -p -S - -t "demo:$w" 2>/dev/null | grep . | tail -"${DUMP_LINES:-60}"
   done
@@ -155,7 +162,7 @@ for i in $(seq 1 "$n"); do
       echo "ok    attached; the learner is in the window alice"
       continue
       ;;
-    alice | bob | chain)
+    alice | bob | chain | carol)
       [ -n "$current" ] || {
         echo "FAIL  block $i goes to a window before the learner attached"
         exit 1
@@ -180,9 +187,9 @@ for i in $(seq 1 "$n"); do
     continue
   fi
   if [ "$current" = chain ]; then
-    # the chain is a background job of its window: the window gets its prompt back, and only the chain's start and stop belong here
+    # Only the shared shell setup and the chain's start, readiness wait and stop belong here.
     case "$first" in
-      "devnet --fund"* | "kill %1") ;;
+      ". ./stepper.sh" | "devnet --fund"* | "devnet_gone=0" | "kill %1") ;;
       *)
         echo "FAIL  a block other than the chain's start or stop runs in the window chain:"
         cat "$f"
@@ -213,8 +220,8 @@ grep -q '^kill %1$' "$scenario/finish/text.md" || {
 sleep 3
 
 # ---- what the windows show, for the log and the error scan
-for w in alice bob chain; do tmux capture-pane -p -S - -t "demo:$w" >"$work/window-$w.log" 2>/dev/null || true; done
-cat "$work"/window-alice.log "$work"/window-bob.log >"$work/log.txt"
+for w in alice bob chain carol; do tmux capture-pane -p -S - -t "demo:$w" >"$work/window-$w.log" 2>/dev/null || true; done
+cat "$work"/window-alice.log "$work"/window-bob.log "$work"/window-carol.log >"$work/log.txt"
 
 # ---- checks
 fail=0
@@ -226,8 +233,8 @@ if grep -qE "$ERROR_LINES" "$work/log.txt"; then
   grep -nE "$ERROR_LINES" "$work/log.txt" | head -5
   fail=1
 else echo "ok    no jq, curl, missing-file or command error on the screens"; fi
-if grep -q 'devnet: funded' devnet.log; then echo "ok    the chain's messages are in devnet.log"; else
-  echo "FAIL  no chain message in devnet.log"
+if grep -q 'devnet: funded' devnet.err; then echo "ok    the chain's messages are in devnet.err"; else
+  echo "FAIL  no chain message in devnet.err"
   fail=1
 fi
 if grep -q 'devnet: funded' "$work/window-chain.log"; then

@@ -1,4 +1,4 @@
-Bob folds `dave`, external signing as before: build (exit status 19), sign, send. Afterwards an independent read asks the chain for the key and finds it active. That is the last proof that the whole journey worked.
+Bob builds a fold for the named registration, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs. v0.17.0 supplies no key read command; this is not an independent read of current registry state.
 
 **Now Bob.** Go to Bob's window: click `bob`, or press `Ctrl-b 1`.
 
@@ -6,42 +6,26 @@ Bob folds `dave`, external signing as before: build (exit status 19), sign, send
 bob
 ```{{exec}}
 
-**Build the bundle**, as in steps 4 and 9: nothing is sent yet.
+**Build the fold.** Exit status 19 means waiting for signatures; nothing has been sent.
 
 ```bash
-open-datum fold \
-  --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle \
-  > receipts/16a-fold-dave.json
-jq '{outcome, reason, settling: [.expected.settled[]? | {key, edge}], msLeft: .expected.remainingMs} | with_entries(select(.value != null))' receipts/16a-fold-dave.json
+# Expected exit status: 19
+open-datum fold --pending "$(cat ../dave.pending)" --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle > receipts/16a-fold-dave.json
 ```{{exec}}
 
-**Bob signs:**
+**Sign with Bob's own vault.**
 
 ```bash
-singular wallet sign --vault bob.vault --out witnesses/fold-dave bundles/fold-dave.bundle
+singular wallet sign --config wallet.json --vault bob.vault --out witnesses/fold-dave bundles/fold-dave.bundle
 ```{{exec}}
 
-**Send it** and wait until it has landed:
+**Submit and wait for confirmation.**
 
 ```bash
-singular submit \
-  --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json \
-  bundles/fold-dave.bundle
+singular submit --config wallet.json --witnesses witnesses/fold-dave --receipt receipts/16a-fold-dave.submitted.json bundles/fold-dave.bundle
 ```{{exec}}
-
-**Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 
 ```bash
-alice
+jq '{outcome, expected}' receipts/16a-fold-dave.json
+jq '{outcome, submissions}' receipts/16a-fold-dave.submitted.json
 ```{{exec}}
-
-**Read `dave` back**, the independent check. It should be active.
-
-```bash
-open-datum inspect \
-  --key dave \
-  > receipts/16b-inspect-dave.json
-jq '{key: .keyText, state: .leaf, payload: .applicationOutput.payload, root}' receipts/16b-inspect-dave.json
-```{{exec}}
-
-If the first command is refused because the window ended, the recovery is at the end of step 4 for a booking of a key (Alice reclaims while the retract window is open) and at the end of step 9 for the reject.

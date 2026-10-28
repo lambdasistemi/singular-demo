@@ -5,7 +5,6 @@
 # Every command block of a step source file also names its window on the fence. The tutorial-stepper form is
 #   ```bash { window=alice status=19 mode=observe }
 # window is required; status only when the block ends non-zero; mode only show or observe.
-# The pay-by-name story still uses the word form ```bash PERSON / ```bash skip, accepted here.
 # Generated Killercoda pages keep Killercoda's own bare fences, so this rule runs on step files (s*.md) only.
 fail=0
 for f in "$@"; do
@@ -22,7 +21,6 @@ for f in "$@"; do
         printf "%s:%d: bad attribute %s\n", f, NR, kv[i]
       }
       next }
-    /^```bash [A-Za-z]+$/ { next }
     /^```bash$/ { printf "%s:%d: bare fence without attributes (want ```bash { window=... })\n", f, NR; next }
     /^```bash / { printf "%s:%d: malformed fence attributes\n", f, NR; next }
   ' "$f")

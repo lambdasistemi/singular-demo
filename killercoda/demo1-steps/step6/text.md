@@ -1,16 +1,14 @@
-The registry describes itself: which registry this is, which release of Singular runs it, its rules and what it holds now. It needs no key and no wallet, because reading is free. The page is read from the chain's provider, so it is what the chain says and not a signed statement. The command needs nothing typed: Alice's file gives it the contracts, the registry and the chain. [What each part of the page means](https://lambdasistemi.github.io/singular/docs/registry-page/).
+Carol publishes only the registry token. Alice and Bob each make their own settings file, with their own journal. v0.17.0 has no read command. A creation receipt records what the command submitted and observed; it is not an independent read of current state. The private chain has no public explorer; the recorded preprod run links its public transaction IDs to an explorer.
 
-The page is printed as JSON, and `tee` keeps a copy:
+**Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 
 ```bash
-singular registry describe | tee receipts/02-describe.json
+alice
 ```{{exec}}
 
-**Giving the registry to Bob.** Bob is on another machine. Alice gives him one thing, the registry's address. With it, a chain connection and the contracts, he needs nothing else. She would send it in a message; here the file `registry.address` stands for the message.
-
 ```bash
-jq -r .registry receipts/01-create.json > ../registry.address
-cat ../registry.address
+jq --arg blueprint "$blueprint" --arg token "$(cat ../registry.token)" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "alice-journal", "state-token": $token}' ../devnet.out > alice.json
+jq . alice.json
 ```{{exec}}
 
 **Now Bob.** Go to Bob's window: click `bob`, or press `Ctrl-b 1`.
@@ -19,22 +17,7 @@ cat ../registry.address
 bob
 ```{{exec}}
 
-**Bob's settings** are his own: the same chain and contracts, a journal folder of his own, and no registry yet.
-
 ```bash
-jq --arg blueprint "$blueprint" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "bob-journal"}' ../devnet.out > bob.json
+jq --arg blueprint "$blueprint" --arg token "$(cat ../registry.token)" '{"koios-url": .providerUrl, "network-time": .networkTimeDirectory, "network-magic": 42, "blueprint": $blueprint, "state-dir": "bob-journal", "state-token": $token}' ../devnet.out > bob.json
 jq . bob.json
-```{{exec}}
-
-**He writes the address into his file** as `registry`:
-
-```bash
-jq --arg address "$(cat ../registry.address)" '.registry = $address' bob.json > bob.new && mv bob.new bob.json
-jq . bob.json
-```{{exec}}
-
-**Bob reads the registry's page**, with the same command. It names the registry by the address he was given:
-
-```bash
-singular registry describe | tee receipts/02-describe-bob.json
 ```{{exec}}

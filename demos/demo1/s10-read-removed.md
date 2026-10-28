@@ -1,4 +1,6 @@
-# Step 10: read the removed key
+# Step 10: review what termination recorded
+
+The booking receipt records the treasury donation. Bob's fold receipt records the pending request it settled and the resulting state output. These are transaction receipts, not an independent read of the key's current state. Do not attempt to re-register a terminated key.
 
 **Now Alice.**
 
@@ -6,11 +8,6 @@
 alice
 ```
 
-The key `alice` is now terminal: gone for good, it can never be used again, and nothing holds it any more.
-
 ```bash { window=alice }
-open-datum inspect \
-  --key alice \
-  > receipts/10-inspect.json
-jq '{state: .leaf, root}' receipts/10-inspect.json
+jq '{outcome, pending, treasuryDonation}' receipts/08-terminate.json
 ```

@@ -21,7 +21,11 @@ theme:
 markdown_extensions:
   - admonition
   - tables
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - toc:
       permalink: true
 nav:
@@ -29,7 +33,14 @@ nav:
   - Demo 1:
       - Overview: demo1/index.md
       - A run: demo1/run.md
+      - The recorded preprod journey: demo1/preprod.md
       - The annotated script, as it ran: demo1/script-run.md
       - The tutorial: demo1/tutorial.md
 exclude_docs: |
   build.sh
+
+extra_css:
+  - static/vendor/asciinema/asciinema-player.css
+extra_javascript:
+  - static/vendor/asciinema/asciinema-player.min.js
+  - assets/preprod-player.js

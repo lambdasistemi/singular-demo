@@ -1,16 +1,17 @@
-# Step 15: book the key "dave" (Alice)
+# Step 15: book one more key
 
-The reclaimed request is settled: its deposit is back with Alice. She books one more key, `dave`.
+The reclaimed request was never folded. Alice now books a fresh key, dave, so Bob can demonstrate an externally signed fold.
+
+**Now Alice.**
 
 ```bash { window=alice }
-open-datum insert \
-  --key dave --payload payload.json \
-  --vault alice.vault \
-  > receipts/15-insert-dave.json
+alice
 ```
 
-**Read what it returned:**
+```bash { window=alice }
+open-datum insert --deposit 3000000 --key dave --payload payload.json --vault alice.vault > receipts/15-insert-dave.json
+```
 
 ```bash { window=alice }
-jq '{outcome, reason, request, foldDeadline} | with_entries(select(.value != null))' receipts/15-insert-dave.json
+jq -er .pending receipts/15-insert-dave.json > ../dave.pending
 ```
