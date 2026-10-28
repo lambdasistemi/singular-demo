@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Renders the Homebrew formulas from their templates.
-#   homebrew/render.sh --tag TAG --singular-version V --singular-sha SHA --kit-sha SHA --tools-sha SHA --out DIR
+#   homebrew/render.sh --tag TAG --singular-version V --singular-sha SHA --kit-sha SHA --out DIR
 #     the release render: archive urls are built from the tag, checksums are given
-#   homebrew/render.sh --tag TAG --singular-version V --singular-sha SHA --local KIT_TARBALL --tools-local TOOLS_TARBALL --out DIR
-#     the pull-request render: both archives point at fresh local tarballs (file://), checksums computed from them
-# Writes DIR/singular@0.16.rb and DIR/singular-demo.rb. Exit 0 only if both are written.
+#   homebrew/render.sh --tag TAG --singular-version V --singular-sha SHA --local KIT_TARBALL --out DIR
+#     the pull-request render: the archive points at a fresh local tarball (file://), checksums computed from them
+# Writes DIR/singular@VERSION_SERIES.rb and DIR/singular-demo.rb. Exit 0 only if both are written.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 
@@ -12,9 +12,7 @@ tag=""
 singular_version=""
 singular_sha=""
 kit_sha=""
-tools_sha=""
 local_kit=""
-local_tools=""
 out=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -34,16 +32,8 @@ while [ $# -gt 0 ]; do
       kit_sha=${2:?}
       shift 2
       ;;
-    --tools-sha)
-      tools_sha=${2:?}
-      shift 2
-      ;;
     --local)
       local_kit=${2:?}
-      shift 2
-      ;;
-    --tools-local)
-      local_tools=${2:?}
       shift 2
       ;;
     --out)
@@ -57,25 +47,18 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$tag" ] && [ -n "$singular_version" ] && [ -n "$singular_sha" ] && [ -n "$out" ] || {
-  echo "usage: render.sh --tag TAG --singular-version V --singular-sha SHA (--kit-sha SHA --tools-sha SHA | --local KIT --tools-local TOOLS) --out DIR" >&2
+  echo "usage: render.sh --tag TAG --singular-version V --singular-sha SHA (--kit-sha SHA | --local KIT) --out DIR" >&2
   exit 2
 }
-if [ -n "$local_kit" ] || [ -n "$local_tools" ]; then
-  [ -n "$local_kit" ] && [ -n "$local_tools" ] || {
-    echo "--local and --tools-local go together" >&2
+if [ -n "$local_kit" ]; then
+  [ -z "$kit_sha" ] || {
+    echo "--local goes without --kit-sha" >&2
     exit 2
   }
-  [ -z "$kit_sha" ] && [ -z "$tools_sha" ] || {
-    echo "--local goes without --kit-sha/--tools-sha" >&2
-    exit 2
-  }
-  # A file:// url needs an absolute path (a relative one does not fetch).
-  # Resolved here, without readlink -f, which macOS lacks.
   case "$local_kit" in /*) ;; *) local_kit=$PWD/$local_kit ;; esac
-  case "$local_tools" in /*) ;; *) local_tools=$PWD/$local_tools ;; esac
 else
-  [ -n "$kit_sha" ] && [ -n "$tools_sha" ] || {
-    echo "--kit-sha and --tools-sha go together" >&2
+  [ -n "$kit_sha" ] || {
+    echo "--kit-sha is required without --local" >&2
     exit 2
   }
 fi
@@ -92,11 +75,8 @@ sha256file() { # FILE: its hex checksum, with sha256sum or, on macOS, shasum -a 
 if [ -n "$local_kit" ]; then
   kit_url=file://$local_kit
   kit_sha=$(sha256file "$local_kit")
-  tools_url=file://$local_tools
-  tools_sha=$(sha256file "$local_tools")
 else
   kit_url=$repo/archive/refs/tags/$tag.tar.gz
-  tools_url=$repo/releases/download/$tag/pay-by-name-tools-$tag.tar.gz
 fi
 series=${singular_version%.*}
 formula="$out/singular@$series.rb"
@@ -118,8 +98,6 @@ sub @SINGULAR_VERSION@ "$singular_version" "$formula"
 cp "$here/singular-demo.rb.in" "$out/singular-demo.rb"
 sub @KIT_URL@ "$kit_url" "$out/singular-demo.rb"
 sub @KIT_SHA@ "$kit_sha" "$out/singular-demo.rb"
-sub @TOOLS_URL@ "$tools_url" "$out/singular-demo.rb"
-sub @TOOLS_SHA@ "$tools_sha" "$out/singular-demo.rb"
 sub @VERSION@ "$version" "$out/singular-demo.rb"
 sub @SINGULAR_SERIES@ "$series" "$out/singular-demo.rb"
 leftovers=$(grep -h -o '@[A-Z_]*@' "$formula" "$out/singular-demo.rb" | wc -l || true)

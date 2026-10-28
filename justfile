@@ -29,11 +29,6 @@ test-demo1:
     nix develop --quiet -c tutorial-stepper play --auto demos/demo1 --path short --run /tmp/demo1-run --run-setup --transcript /tmp/demo1-transcript.toml
     nix develop --quiet -c bash demos/demo1/play/check-receipts.sh /tmp/demo1-run
 
-# Play the pay-by-name story with the stepper (the story's only path).
-test-pay-by-name:
-    nix develop .#pay-by-name --quiet -c tutorial-stepper play --auto demos/pay-by-name --run /tmp/pay-by-name-run --run-setup --transcript /tmp/pay-by-name-transcript.toml
-    nix develop .#pay-by-name --quiet -c bash demos/pay-by-name/check-run.sh /tmp/pay-by-name-run
-
 # Check that the Homebrew formulas render from their templates.
 render-check:
     bash homebrew/test-render.sh

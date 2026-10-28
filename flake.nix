@@ -16,18 +16,6 @@
   };
 
   inputs = {
-    # Pay-by-name keeps its released programs and packaging until key reads are available.
-    pay-by-name-source = {
-      url = "github:lambdasistemi/singular/v0.16.0";
-      flake = false;
-    };
-    pay-by-name-offchain.url = "github:lambdasistemi/singular/v0.16.0?dir=offchain";
-    pay-by-name-open-datum.url = "github:lambdasistemi/singular/v0.16.0?dir=applications/open-datum/offchain";
-    pay-by-name-onchain.url = "github:lambdasistemi/singular/v0.16.0?dir=applications/open-datum/onchain";
-    pay-by-name-demo = {
-      url = "github:lambdasistemi/singular-demo/fb1380d8d064a58a3a930110835f0f5be99780c7";
-      flake = false;
-    };
     # The source tree also carries the devnet's genesis files.
     source = {
       url = "github:lambdasistemi/singular/a84b253730003c9b0a8961b80e2e5449ba480a62";
@@ -48,11 +36,6 @@
   outputs =
     {
       self,
-      pay-by-name-source,
-      pay-by-name-offchain,
-      pay-by-name-open-datum,
-      pay-by-name-onchain,
-      pay-by-name-demo,
       source,
       offchain,
       open-datum,
@@ -76,47 +59,8 @@
       # that release's SHA256SUMS when the kit is built).
       stepper = import ./kit/stepper.nix { inherit pkgs; };
 
-      # The pay-by-name scenario: its validator and the tools that apply it
-      payByName = import ./demos/pay-by-name/build.nix { inherit pkgs; };
-
-      # sink-tools for the development shell: the pay-by-name tools run with the flake's Node.js,
-      # as the kit's bin/sink-tools runs them with the kit's Node.js.
-      sinkToolsBin = pkgs.writeShellScriptBin "sink-tools" ''
-        exec ${pkgs.nodejs-slim}/bin/node ${payByName.tools}/sink-tools.cjs "$@"
-      '';
-
       # The kit's revision, kit/revision: the only place it is written by hand. The release is Singular's and this, as in v0.16.0-1.
       revision = pkgs.lib.removeSuffix "\n" (builtins.readFile ./kit/revision);
-
-      payByNameBlueprint = pay-by-name-onchain.packages.${system}.open-datum-blueprint;
-      payByNameContracts = pkgs.runCommand "pay-by-name-contracts-v0.16.0" { } ''
-        mkdir -p $out
-        cp ${payByNameBlueprint} $out/plutus.json
-        cp ${pay-by-name-source}/version.txt $out/version.txt
-      '';
-      payByNameKit = import (pay-by-name-demo + "/kit/build.nix") {
-        inherit
-          pkgs
-          txTools
-          stepper
-          ;
-        revision = pkgs.lib.removeSuffix "\n" (builtins.readFile (pay-by-name-demo + "/kit/revision"));
-        singular = pay-by-name-offchain.packages.${system}.singular;
-        openDatum = pay-by-name-open-datum.packages.${system}.open-datum;
-        devnet = pay-by-name-offchain.packages.${system}.devnet;
-        cardanoNode = pay-by-name-offchain.inputs.cardano-node.packages.${system}.cardano-node;
-        source = pay-by-name-source;
-        blueprint = payByNameBlueprint;
-        sinkTools = payByName.tools;
-        sinkBlueprint = payByName.sink;
-        nodejs = pkgs.nodejs-slim;
-        play = pay-by-name-demo + "/demos/demo1/play";
-        scenario = pay-by-name-demo + "/killercoda/demo1-steps";
-        payByNamePlay = pay-by-name-demo + "/demos/pay-by-name/play";
-        payByNameScenario = pay-by-name-demo + "/killercoda/pay-by-name-steps";
-        demo1Tutorial = pay-by-name-demo + "/demos/demo1";
-        payByNameTutorial = pay-by-name-demo + "/demos/pay-by-name";
-      };
 
       # The Ubuntu kit: tarball plus SHA256SUMS, built from this lock only.
       kit = import ./kit/build.nix {
@@ -134,14 +78,8 @@
           stepper
           ;
         openDatum = open-datum-exe;
-        inherit payByNameKit singularRelease;
-        sinkTools = payByName.tools;
-        sinkBlueprint = payByName.sink;
-        nodejs = pkgs.nodejs-slim;
-        payByNamePlay = ./demos/pay-by-name/play;
-        payByNameScenario = ./killercoda/pay-by-name-steps;
+        inherit singularRelease;
         demo1Tutorial = ./demos/demo1;
-        payByNameTutorial = ./demos/pay-by-name;
         # the Killercoda scenarios are generated from the step files with the scripts of the play
         play = ./demos/demo1/play;
         scenario = ./killercoda/demo1-steps;
@@ -226,10 +164,7 @@
     {
       packages.${system} = {
         inherit kit kit-verify docs-env;
-        pay-by-name-kit = payByNameKit;
         tutorial-stepper = tutorialStepper;
-        pay-by-name-sink = payByName.sink;
-        pay-by-name-tools = payByName.tools;
       };
 
       apps.${system} = {
@@ -258,8 +193,6 @@
       checks.${system} = {
         format = repoCheck "format" "format.sh check";
         lint = repoCheck "lint" "lint.sh";
-        pay-by-name-aiken = payByName.aikenCheck;
-        pay-by-name-tools = payByName.tools;
         demo1-setup =
           pkgs.runCommand "demo1-setup"
             {
@@ -292,7 +225,6 @@
             pkgs.curl
             txTools
             tutorialStepper
-            sinkToolsBin
             # The stepper's runtime needs: an interactive bash (readline) and tmux.
             # The shell's plain pkgs.bash has neither; CI has nothing beyond the flake.
             pkgs.bashInteractive
@@ -306,28 +238,11 @@
             export TMPDIR="''${TMPDIR:-/tmp/singular-demo-$(id -u)}"
             mkdir -p -m 700 "$TMPDIR"
             echo "Singular v0.17.0, Demo 1 shell"
-            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl, tutorial-stepper, sink-tools   on the PATH"
+            echo "  singular, open-datum, devnet, tx-inspect, tx-diff, jq, curl, tutorial-stepper   on the PATH"
             echo "  \$blueprint          = $blueprint"
             echo "  \$E2E_GENESIS_DIR    = $E2E_GENESIS_DIR"
             echo "  \$TMPDIR             = $TMPDIR"
           '';
-        };
-
-        pay-by-name = pkgs.mkShell {
-          name = "pay-by-name-v0.16.0";
-          packages = [
-            pay-by-name-offchain.packages.${system}.singular
-            pay-by-name-open-datum.packages.${system}.open-datum
-            pay-by-name-offchain.packages.${system}.devnet
-            tutorialStepper
-            sinkToolsBin
-            pkgs.jq
-            pkgs.curl
-            pkgs.bashInteractive
-            pkgs.tmux
-          ];
-          blueprint = "${payByNameContracts}/plutus.json";
-          E2E_GENESIS_DIR = "${pay-by-name-source}/offchain/e2e-test/genesis";
         };
 
         # The shell for working on this repository: the formatters and linters, just, and the documentation tools.

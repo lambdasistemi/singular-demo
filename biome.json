@@ -1,6 +1,10 @@
 {
-  "vcs": { "enabled": false },
-  "assist": { "enabled": false },
+  "vcs": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
   "files": {
     "includes": [
       "**",
@@ -12,8 +16,7 @@
       "!structure.json",
       "!demos/demo1/demo.html",
       "!docs/demo1/interactive.html",
-      "!tutorial/package-lock.json",
-      "!demos/pay-by-name/offchain/package-lock.json"
+      "!tutorial/package-lock.json"
     ]
   },
   "formatter": {
@@ -22,6 +25,15 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
-  "javascript": { "formatter": { "quoteStyle": "single" } },
-  "linter": { "enabled": true, "rules": { "recommended": true } }
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  }
 }

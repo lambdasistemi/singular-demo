@@ -6,5 +6,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 root=${1:-.}
 node demos/demo1/killercoda.js "$root"
-node demos/pay-by-name/killercoda.js "$root"
 node demos/structure.js "$root"

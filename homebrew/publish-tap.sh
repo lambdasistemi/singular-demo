@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Publishes the Homebrew formulas for a release tag, from inside the dev shell.
 #   homebrew/publish-tap.sh --tag TAG [--dry-run] [--out DIR]
-# Fetches the tag's archive and its pay-by-name tools, renders both formulas
+# Fetches the tag's archive, renders both formulas
 # with homebrew/render.sh, and pushes them to lambdasistemi/homebrew-tap.
 # --dry-run renders both formulas from the published tag and pushes nothing
 # (no tap token needed). --out keeps the rendered formulas in DIR (default: a
 # temporary directory named on standard output). Exit 0 only if both formulas
-# are rendered (and, without --dry-run, pushed); a tag whose release or tools
-# tarball is missing fails. Every tool this script calls (curl, sha256sum, git,
+# are rendered (and, without --dry-run, pushed); a tag whose archive
+# is missing fails. Every tool this script calls (curl, sha256sum, git,
 # gh) comes from the dev shell: run it as `nix develop .#dev --command bash
 # homebrew/publish-tap.sh ...`, never on the runner's own PATH.
 set -euo pipefail
@@ -53,16 +53,13 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 curl -fsSL --retry 3 -o "$tmp/repo.tar.gz" \
   "https://github.com/lambdasistemi/singular-demo/archive/refs/tags/$tag.tar.gz"
-curl -fsSL --retry 3 -o "$tmp/tools.tar.gz" \
-  "https://github.com/lambdasistemi/singular-demo/releases/download/$tag/pay-by-name-tools-$tag.tar.gz"
 kit_sha=$(sha256sum "$tmp/repo.tar.gz" | cut -d' ' -f1)
-tools_sha=$(sha256sum "$tmp/tools.tar.gz" | cut -d' ' -f1)
 formulas="$tmp/Formula"
 [ -z "$out" ] || formulas="$out"
 mkdir -p "$formulas"
 bash "$here/render.sh" --tag "$tag" \
   --singular-version "$SINGULAR_VERSION" --singular-sha "$SINGULAR_SHA" \
-  --kit-sha "$kit_sha" --tools-sha "$tools_sha" --out "$formulas"
+  --kit-sha "$kit_sha" --out "$formulas"
 echo "rendered $formulas/singular@${SINGULAR_VERSION%.*}.rb"
 echo "rendered $formulas/singular-demo.rb"
 if [ "$dry_run" -eq 1 ]; then

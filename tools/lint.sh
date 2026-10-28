@@ -27,7 +27,7 @@ step "workflows (actionlint)"
 actionlint -config-file .github/actionlint.yaml .github/workflows/*.yml || fail=1
 
 step "the step files (lint.sh of the demo)"
-bash demos/demo1/lint.sh demos/demo1/s*.md demos/pay-by-name/s*.md || fail=1
+bash demos/demo1/lint.sh demos/demo1/s*.md || fail=1
 
 step "the README and the kit's readme name the Singular version pinned in flake.nix and the kit release"
 version=$(node -p "require('./demos/demo1/version.js')")
