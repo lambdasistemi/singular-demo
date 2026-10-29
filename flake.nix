@@ -18,14 +18,14 @@
   inputs = {
     # The source tree also carries the devnet's genesis files.
     source = {
-      url = "github:lambdasistemi/singular/7154a41634c62d2fbbc1640c8875cd594cd3988e";
+      url = "github:lambdasistemi/singular/v0.18.0";
       flake = false;
     };
     # The three programs are built from the same source revision.
-    offchain.url = "github:lambdasistemi/singular/7154a41634c62d2fbbc1640c8875cd594cd3988e?dir=offchain";
-    open-datum.url = "github:lambdasistemi/singular/7154a41634c62d2fbbc1640c8875cd594cd3988e?dir=applications/open-datum/offchain";
+    offchain.url = "github:lambdasistemi/singular/v0.18.0?dir=offchain";
+    open-datum.url = "github:lambdasistemi/singular/v0.18.0?dir=applications/open-datum/offchain";
     # The merged deployment blueprint the release archive carries as onchain/plutus.json.
-    open-datum-onchain.url = "github:lambdasistemi/singular/7154a41634c62d2fbbc1640c8875cd594cd3988e?dir=applications/open-datum/onchain";
+    open-datum-onchain.url = "github:lambdasistemi/singular/v0.18.0?dir=applications/open-datum/onchain";
     # The package set the kit's helper tools (static jq and curl, the musl C
     # compiler, patchelf) come from: the one the programs themselves are built on.
     nixpkgs.follows = "offchain/nixpkgs";
