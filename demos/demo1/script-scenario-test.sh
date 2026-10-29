@@ -23,6 +23,20 @@ case "$cmd" in *"./demo.sh"*) ;; *)
   exit 1
   ;;
 esac
+# The pause option needs the terminal: it runs demo.sh in the foreground, as the demo account, with no log.
+# (container-run.sh pause drives that mode through a terminal; here only its command is checked.)
+pause_cmd=$(awk '/^```bash$/ {on=1; buf=""; next} /^```\{\{exec\}\}$/ {if (buf ~ /DEMO_MODE=pause/) {print buf; exit}; on=0; next} on {buf = buf $0}' "$scenario/step1/text.md")
+case "$pause_cmd" in
+  *nohup* | *setsid* | *demo.log* | "")
+    echo "FAIL  step1 has no foreground pause option: $pause_cmd"
+    exit 1
+    ;;
+  *"runuser -u singular-demo"*"./demo.sh"*) echo "ok    step1 offers the pause mode in the foreground" ;;
+  *)
+    echo "FAIL  the pause option of step1 does not run demo.sh as singular-demo: $pause_cmd"
+    exit 1
+    ;;
+esac
 bash -c "$cmd" || {
   echo "FAIL  the step's command failed"
   exit 1

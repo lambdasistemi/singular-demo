@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2016 # the script run in the container is single-quoted on purpose: its $ expansions happen there
 # Runs demo.sh from the kit tarball in a clean Ubuntu container and judges the result.
-#   kit/container-run.sh good|short|control-main|control-node|control-window
-#     good          the kit as built: demo.sh must exit 0 and show all 16 steps
+#   kit/container-run.sh good|short|pause|control-main|control-node|control-window
+#     good         the kit as built: demo.sh must exit 0 and show all 16 steps
 #                   (with the windows of PROCESS_TIME_MS and RETRACT_TIME_MS when they are set)
 #     short         the same with the shortest allowed windows (PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000)
-#     control-window  windows below the least allowed (59999 and 29999): demo.sh must refuse both with exit 2
+#     pause         demo.sh in a terminal, in pause mode, driven by kit/pause-drive.sh: the mode question answered
+#                   with p, each prompt held before Enter; every step must wait and all 16 steps must pass
+#     control-window  windows below the least allowed (59999 and 29999): demo.sh must refuse both with exit 2, and an
+#                   unknown DEMO_MODE too
 #     control-main  the kit with one library of the Haskell programs removed: the run must fail
 #                   with the missing-library error (shows the check can fail)
 #     control-node  the kit with one library of cardano-node removed: the devnet must fail to start
@@ -14,9 +17,10 @@
 #   TARBALL   the kit tarball (required)
 #   IMAGE     container image reference (default mirror.gcr.io/library/ubuntu:24.04)
 #   OUT       directory for logs and receipts (default ./out); the run of each mode keeps its files in OUT/run-MODE
-# The container has no /nix, no host store, no network; only the tarball (read-only) and OUT are mounted.
+# The container has no /nix, no host store, no network; only the tarball and pause-drive.sh (read-only) and OUT are mounted.
 set -uo pipefail
-mode=${1:?good|short|control-main|control-node|control-window}
+here=$(cd "$(dirname "$0")" && pwd)
+mode=${1:?good|short|pause|control-main|control-node|control-window}
 TARBALL=${TARBALL:?path of the kit tarball}
 IMAGE=${IMAGE:-mirror.gcr.io/library/ubuntu:24.04}
 OUT=${OUT:-$PWD/out}
@@ -43,9 +47,12 @@ case "$mode" in
 ' ;;
   short) inner+='export WORK=/out/singular-demo-run PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000
 ' ;;
+  pause) inner+='export WORK=/out/singular-demo-run
+' ;;
   control-window) inner+='for v in PROCESS_TIME_MS=59999 RETRACT_TIME_MS=29999; do
   echo "== $v ./demo.sh"; env $v ./demo.sh; echo "WINDOWCHECK $v exit=$?"
 done
+echo "== DEMO_MODE=sometimes ./demo.sh"; env DEMO_MODE=sometimes ./demo.sh; echo "MODECHECK exit=$?"
 ' ;;
   control-main) inner+='echo "== BREAK THE KIT: delete lib/main/libsecp256k1.so.2"; rm -v lib/main/libsecp256k1.so.2
 ' ;;
@@ -58,6 +65,13 @@ done
 esac
 if [ "$mode" = control-window ]; then
   inner+='rc=0
+'
+elif [ "$mode" = pause ]; then
+  inner+='echo "== run demo.sh"; date -u +%FT%TZ
+bash /pause-drive.sh "$PWD" /out/singular-demo-run /out/pause.log
+echo "== what demo.sh printed"; sed "s/\r$//" /out/pause.log
+rc=$(sed -n "s/^PAUSE exit=//p" /out/pause.log | tail -1); rc=${rc:-1}
+date -u +%FT%TZ; echo "== demo.sh exit status: $rc"
 '
 else
   inner+='echo "== run demo.sh"; date -u +%FT%TZ
@@ -95,7 +109,7 @@ mkdir -m 777 "$OUT/run-$mode"
   echo "# container-run.sh $mode  $(date -u +%FT%TZ)  image $IMAGE"
   docker run --rm --memory 8g --network none --user 1000:1000 --tmpfs /work:rw,exec,mode=1777 \
     -e "TARBALL=$tarball" -e "KIT=$kit" -e PROCESS_TIME_MS -e RETRACT_TIME_MS \
-    -v "$(dirname "$TARBALL"):/dist:ro" -v "$OUT/run-$mode:/out" "$IMAGE" bash -c "$inner"
+    -v "$(dirname "$TARBALL"):/dist:ro" -v "$here/pause-drive.sh:/pause-drive.sh:ro" -v "$OUT/run-$mode:/out" "$IMAGE" bash -c "$inner"
   echo "== docker run exit status: $?"
 } >"$log" 2>&1
 
@@ -116,6 +130,7 @@ case "$mode" in
   good | short)
     expect "demo.sh exit status 0" [ "${rc:-}" = 0 ]
     expect "'All 16 steps passed.' printed" has '^All 16 steps passed\.'
+    expect "no terminal on standard input: continuous mode" has '^Mode: continuous$'
     expect "all lifecycle pages recorded" has '^Lifecycle steps passed: 16/16$'
     expect "/nix absent in the container" has '^no: test -e /nix fails'
     expect "no kit process left running" has '^kit processes still running: 0$'
@@ -130,11 +145,23 @@ case "$mode" in
     t1=$(grep -B1 '^== demo.sh exit status' "$log" | head -1)
     echo "  time  demo.sh took $(($(date -u -d "$t1" +%s) - $(date -u -d "$t0" +%s))) s"
     ;;
+  pause)
+    expect "demo.sh exit status 0" [ "${rc:-}" = 0 ]
+    expect "the mode question was answered: pause mode" has '^Mode: pause'
+    expect "the limit of pause mode is stated" has '^Steps 4, 13 and 16 run without a pause'
+    expect "13 prompts, one before each step that pauses" has '^PAUSE prompts=13$'
+    expect "every prompted step waited for Enter" test "$(grep -c '^PAUSE held step ' "$log")" -eq 13
+    expect "no step started before Enter" test "$(grep -c '^PAUSE moved step ' "$log")" -eq 0
+    expect "'All 16 steps passed.' printed" has '^All 16 steps passed\.'
+    expect "all lifecycle pages recorded" has '^Lifecycle steps passed: 16/16'
+    expect "no kit process left running" has '^kit processes still running: 0$'
+    ;;
   control-window)
     expect "PROCESS_TIME_MS=59999 refused with exit 2" has '^WINDOWCHECK PROCESS_TIME_MS=59999 exit=2$'
     expect "PROCESS_TIME_MS refusal says why" has 'PROCESS_TIME_MS=59999 is too short'
     expect "RETRACT_TIME_MS=29999 refused with exit 2" has '^WINDOWCHECK RETRACT_TIME_MS=29999 exit=2$'
     expect "RETRACT_TIME_MS refusal says why" has 'RETRACT_TIME_MS=29999 is too short'
+    expect "an unknown DEMO_MODE refused with exit 2" has '^MODECHECK exit=2$'
     ;;
   control-main)
     expect "demo.sh failed (status ${rc:-none})" failed

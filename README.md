@@ -81,8 +81,9 @@ The trust step lets Homebrew load the tap's other formulas that `singular-demo` 
 
 The runs are kept in `~/demo1-run`. Further arguments go to `tutorial-stepper play`, for example `--run DIR`; a leading `--auto` with `--path short --run-setup --transcript FILE` plays unattended.
 
-`./demo.sh` plays the same 16-step tutorial unattended, with a private devnet and separate actor folders. Its transcript and receipts remain under `WORK`. Use a fresh folder for each chain.
+`./demo.sh` plays the same 16-step tutorial, with a private devnet and separate actor folders. It first asks whether to run straight through or to pause before each step; in pause mode it says what each step does and runs it when you press Enter. Steps 4, 13 and 16 run without a pause, because a booking must be folded before its processing deadline. Its transcript and receipts remain under `WORK`. Use a fresh folder for each chain.
 
+- `DEMO_MODE=continuous ./demo.sh` or `DEMO_MODE=pause ./demo.sh` chooses the mode without the question. With no terminal on standard input, as in CI, the mode is continuous.
 - `WORK=/some/folder ./demo.sh` chooses where vaults, receipts and bundles are kept.
 - `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./demo.sh` shortens the registry's two windows, and the waits with them.
 
@@ -117,7 +118,7 @@ tutorial-stepper play share/tutorials/demo1
 
 | What | Where it comes from | What checks it |
 |---|---|---|
-| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; the stepper playing Demo 1's shortest path, in a clean Ubuntu container with no tmux, no node, no Nix and no network |
+| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, straight through and in pause mode driven through a terminal, and failing controls; the stepper playing Demo 1's shortest path, in a clean Ubuntu container with no tmux, no node, no Nix and no network |
 | The tutorial and the runs | `demos/demo1/s*.md`, played by `tutorial-stepper play --auto` against a fresh devnet | the receipts of all 16 steps; the transcript of the run becomes the page `run` |
 | The Killercoda scenarios | generated into `killercoda/` by `bash tools/generate.sh .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
 | The Codespaces tutorial | `.devcontainer/` and `tutorial/`; it plays the same scenario | its own tests, in a browser, up to the whole demo through the buttons |

@@ -196,6 +196,11 @@ jobs:
           IMAGE: ${{ steps.image.outputs.ref }}
           OUT: out
         run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh good
+      - name: Demo in pause mode, through a terminal (each step waits for Enter)
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+          OUT: out
+        run: TARBALL=$(ls dist/*.tar.gz) kit/container-run.sh pause
       - name: Demo with the shortest allowed windows (60 s and 30 s)
         # a pull request already ran the demo above with these windows
         if: github.event_name != 'pull_request'
