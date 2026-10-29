@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Singular v0.17.0: play the same annotated lifecycle as the step-by-step tutorial.
+# Singular v0.18.0: play the same annotated lifecycle as the step-by-step tutorial.
 # Carol creates; Alice registers, updates and permanently terminates her key;
 # Bob folds, signs bundles and cleans up an expired request. Alice also reclaims.
 # Each actor keeps their own vault, settings, journal and receipts.

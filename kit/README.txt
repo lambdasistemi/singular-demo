@@ -1,4 +1,4 @@
-Singular v0.17.0 demo kit, release v0.17.0-1 (Ubuntu 24.04, x86_64, no Nix needed)
+Singular v0.18.0 demo kit, release v0.18.0-1 (Ubuntu 24.04, x86_64, no Nix needed)
 ==================================================================
 
 What is in here
@@ -12,8 +12,8 @@ What is in here
   demo.sh    the annotated Demo 1 journey, 16 steps, on a private devnet
 
 Use
-  tar xzf singular-demo-v0.17.0-1-x86_64-linux.tar.gz
-  cd singular-demo-v0.17.0-1-x86_64-linux
+  tar xzf singular-demo-v0.18.0-1-x86_64-linux.tar.gz
+  cd singular-demo-v0.18.0-1-x86_64-linux
   ./demo.sh                  # runs everything; takes about 8 minutes (two real waits on the chain)
 
   WORK=/some/folder ./demo.sh             # where vaults, receipts and bundles are kept
@@ -52,5 +52,5 @@ FUSE, no user namespaces. Nothing is installed outside the folder you unpacked.
 
 Everything here is a private test chain. Nothing touches a public network.
 
-Demo 1 uses v0.17.0.
+Demo 1 uses v0.18.0.
 Termination is permanent and donates the protected deposit to the treasury. The receipts do not independently read current registry state.
