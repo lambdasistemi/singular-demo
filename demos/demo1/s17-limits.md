@@ -1,6 +1,6 @@
 # Where this design stops
 
-This tutorial is for people exploring a registry on a private chain. It shows registration, a direct payload update, permanent termination, a requester reclaim and public cleanup after expiry. It does not establish mainnet readiness.
+This tutorial is for people exploring a registry on a private chain. It shows registration, a direct payload update, permanent termination, reading a key back after each change, a requester reclaim and public cleanup after expiry. It does not establish mainnet readiness.
 
 **The trie library's proofs are assumed sound.**
 
@@ -8,7 +8,7 @@ This tutorial is for people exploring a registry on a private chain. It shows re
 
 **Termination is permanent.** Its protected deposit goes to the treasury when termination is booked. The fold burns the active token and approval. The key cannot be registered again.
 
-**Receipts have a limited meaning.** They report what a command submitted and observed through its provider. Reading one later is not an independent read of current state. v0.17.0 has no key read command. The holding helper selects a UTxO reference for a subsequent write through that same provider.
+**Receipts and reads say different things.** A receipt reports what a command submitted and observed when it ran. A read reports the key's state when it runs, from the chain through the provider. A read the provider cannot answer exits 1 and says why.
 
 **An interrupted send needs reconciliation.** Keep its receipt and journal. No step retries an uncertain submission automatically.
 

@@ -1,5 +1,7 @@
 # A registry journey on preprod
 
+This recording was made with Singular v0.17.0, before the key read commands of v0.18.0.
+
 On 28 October 2026, Carol created one registry on Cardano preprod. Alice registered the key `alice`, changed its payload from `{"answer":42}` to `{"answer":43}`, then permanently terminated it. Bob folded the registration and termination. The termination booking donated the protected deposit of 3 ada to the treasury.
 
 ```mermaid
@@ -56,6 +58,6 @@ The six commands produced 8 transactions: creation first published two reference
 
 ## What the receipts establish
 
-Receipts report the transactions the commands submitted and observed. They are not an independent read of the key’s current state. This release has no key read command.
+Receipts report the transactions the commands submitted and observed. They are not an independent read of the key’s current state. v0.17.0 had no key read command.
 
 The trie library's proofs are assumed sound.

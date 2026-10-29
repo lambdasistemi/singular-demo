@@ -1,4 +1,4 @@
-Bob builds a fold for the named registration, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs. v0.17.0 supplies no key read command; this is not an independent read of current registry state.
+Bob builds a fold for the named registration, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs.
 
 **Now Bob.** Go to Bob's window: click `bob`, or press `Ctrl-b 1`.
 

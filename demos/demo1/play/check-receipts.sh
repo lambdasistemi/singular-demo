@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check observed transactions and their public references after the complete tutorial.
+# Check observed transactions, their public references and the answers of the key reads after the complete tutorial.
 # shellcheck disable=SC2016
 set -euo pipefail
 cd "${1:?usage: check-receipts.sh RUN_DIR}"
@@ -40,4 +40,32 @@ for pair in 'alice/receipts/11a-insert-late.json bob/receipts/11d-cleanup.json' 
   read -r booking refund <<<"$pair"
   jq -e -n --slurpfile b "$booking" --slurpfile r "$refund" '$r[0].pending == $b[0].pending and $r[0].returned.recipient == $b[0].refundAddress and $r[0].returned.lovelace >= $b[0].deposit + $b[0].tip' >/dev/null
 done
-printf 'All lifecycle receipts passed.\n'
+# The reads: each answer is the state the receipts say the key is in at that point of the story.
+registry=$(jq -er .registry carol/receipts/01-create.json)
+hex() { printf %s "$1" | od -An -tx1 | tr -d ' \n'; }
+read_of() { # FILE COMMAND KEY ANSWER: who answered, about which registry and key, and the answer
+  jq -e --arg r "$registry" --arg p "${token%%.*}" --arg c "$2" --arg k "$(hex "$3")" --arg a "$4" \
+    '.registry == $r and .application["state-policy"] == $p and .command == $c and .keyHex == $k and .answer == $a' "$1" >/dev/null
+  printf 'ok    %s: %s\n' "$1" "$4"
+}
+# after the fold: live, in the fold's transaction, with Alice's payload and deposit
+read_of alice/receipts/05-read-alice.json inspect alice live
+jq -e -n --slurpfile read alice/receipts/05-read-alice.json --slurpfile fold bob/receipts/04-fold-insert.json --arg t "$token" '
+  $read[0] | .payload == {answer: 42} and .deposit == 3000000 and .control.registry == $t
+  and (.outputRef | split("#")[0]) == ($fold[0].stateOutput | split("#")[0])' >/dev/null
+# after the update: live, in the holding the update created, with the new payload
+read_of alice/receipts/07-read-alice.json inspect alice live
+jq -e -n --slurpfile read alice/receipts/07-read-alice.json --slurpfile first alice/receipts/05-read-alice.json --slurpfile update alice/receipts/06-update.json '
+  $read[0] | .payload == {answer: 43} and .deposit == 3000000 and .outputRef == $update[0].holding and .outputRef != $first[0].outputRef' >/dev/null
+# after the termination booking: pending, at the request Alice booked
+read_of bob/receipts/09-read-alice.json inspect alice pending-termination
+jq -e -n --slurpfile read bob/receipts/09-read-alice.json --slurpfile booking alice/receipts/08-terminate.json '
+  $read[0].outputRef == $booking[0].pending' >/dev/null
+# after the termination fold: terminal, and a key nobody booked never registered, both from the state the fold wrote
+read_of alice/receipts/10-read-alice.json 'registry inspect' alice terminal
+read_of alice/receipts/10-read-nobody.json 'registry inspect' nobody never-registered
+for file in alice/receipts/10-read-alice.json alice/receipts/10-read-nobody.json; do
+  jq -e -n --slurpfile read "$file" --slurpfile fold bob/receipts/09-fold-terminate.json '
+    $read[0].stateOutput == $fold[0].stateOutput and $read[0].root == $fold[0].root' >/dev/null
+done
+printf 'All lifecycle receipts and reads passed.\n'

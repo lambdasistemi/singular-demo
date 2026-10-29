@@ -2,11 +2,11 @@ Not for mainnet. Do not deploy Singular or open datum on mainnet until on-chain 
 
 # Singular demos
 
-Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, with tutorials played on private test chains. A separate recorded journey runs on Cardano preprod. The Singular release used is v0.17.0.
+Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, with tutorials played on private test chains. A separate journey on Cardano preprod was recorded with v0.17.0. The Singular release used is v0.18.0.
 
 ## Demo 1: Carol, Alice and Bob's registry story
 
-Carol creates a registry. Alice registers a key through a booking and a fold, changes its payload, then books its permanent termination and has it folded. Its deposit goes to the treasury. Another request is reclaimed by its requester, and an expired request is cleaned up. Receipts and explorer links show the transactions; they are not an independent read of current state.
+Carol creates a registry. Alice registers a key through a booking and a fold, changes its payload, then books its permanent termination and has it folded. Its deposit goes to the treasury. Another request is reclaimed by its requester, and an expired request is cleaned up. After each change, Alice or Bob reads the key back from the chain: live with its payload, pending termination, terminal; a key nobody registered reads as never registered.
 
 ```mermaid
 flowchart TD
@@ -59,7 +59,7 @@ nix develop github:lambdasistemi/singular-demo --accept-flake-config
 **Without Nix**, on Ubuntu 24.04 (x86_64): a kit with the same programs, their libraries, the devnet's node and an annotated script of the whole journey. It needs no Nix, no Docker and no root, and installs nothing outside its folder.
 
 ```bash
-release=v0.17.0-1
+release=v0.18.0-1
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO https://github.com/lambdasistemi/singular-demo/releases/download/$release/SHA256SUMS
 sha256sum -c SHA256SUMS
@@ -81,8 +81,9 @@ The trust step lets Homebrew load the tap's other formulas that `singular-demo` 
 
 The runs are kept in `~/demo1-run`. Further arguments go to `tutorial-stepper play`, for example `--run DIR`; a leading `--auto` with `--path short --run-setup --transcript FILE` plays unattended.
 
-`./demo.sh` plays the same 16-step tutorial unattended, with a private devnet and separate actor folders. Its transcript and receipts remain under `WORK`. Use a fresh folder for each chain.
+`./demo.sh` plays the same 16-step tutorial, with a private devnet and separate actor folders. It first asks whether to run straight through or to pause before each step; in pause mode it says what each step does and runs it when you press Enter. Steps 4, 13 and 16 run without a pause, because a booking must be folded before its processing deadline. Its transcript and receipts remain under `WORK`. Use a fresh folder for each chain.
 
+- `DEMO_MODE=continuous ./demo.sh` or `DEMO_MODE=pause ./demo.sh` chooses the mode without the question. With no terminal on standard input, as in CI, the mode is continuous.
 - `WORK=/some/folder ./demo.sh` chooses where vaults, receipts and bundles are kept.
 - `PROCESS_TIME_MS=60000 RETRACT_TIME_MS=30000 ./demo.sh` shortens the registry's two windows, and the waits with them.
 
@@ -102,7 +103,7 @@ tutorial-stepper play --auto share/tutorials/demo1 --path short --run ./demo1-ru
 The daily kit, built from `main` every day, always has it:
 
 ```bash
-release=v0.17.0-1
+release=v0.18.0-1
 base=https://github.com/lambdasistemi/singular-demo/releases/download/daily
 curl -fLO $base/singular-demo-$release-x86_64-linux.tar.gz
 curl -fLO $base/SHA256SUMS
@@ -117,7 +118,7 @@ tutorial-stepper play share/tutorials/demo1
 
 | What | Where it comes from | What checks it |
 |---|---|---|
-| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, and failing controls; the stepper playing Demo 1's shortest path, in a clean Ubuntu container with no tmux, no node, no Nix and no network |
+| The Ubuntu kit, a release for each Singular version and kit revision | `nix build .#kit` from `flake.lock`; a pushed tag `vX.Y.Z-N` (the Singular release and `kit/revision`) publishes it | the build, `kit-verify`, `demo.sh` in a clean Ubuntu container with no Nix and no network, straight through and in pause mode driven through a terminal, and failing controls; the stepper playing Demo 1's shortest path, in a clean Ubuntu container with no tmux, no node, no Nix and no network |
 | The tutorial and the runs | `demos/demo1/s*.md`, played by `tutorial-stepper play --auto` against a fresh devnet | the receipts of all 16 steps; the transcript of the run becomes the page `run` |
 | The Killercoda scenarios | generated into `killercoda/` by `bash tools/generate.sh .` | the generated files must equal the committed ones, and a scenario test plays them in a clean Ubuntu with real tmux windows |
 | The Codespaces tutorial | `.devcontainer/` and `tutorial/`; it plays the same scenario | its own tests, in a browser, up to the whole demo through the buttons |
@@ -137,7 +138,7 @@ nix develop .#dev --command just ci
 
 When Singular publishes a release, `just bump vX.Y.Z` moves this repository to it: it rewrites the version in the flake, this README and the kit's script, starts the kit's revision again at 1, updates the pinned Singular inputs, regenerates the scenarios and runs the checks. Review the diff, open a pull request, and once it is merged push the tag `vX.Y.Z-1`; the release workflow builds, proves and publishes the kit.
 
-The kit's release is the Singular release and the kit's revision, as in `v0.17.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
+The kit's release is the Singular release and the kit's revision, as in `v0.18.0-1`. The revision is the number in `kit/revision`, the one place it is written: the kit's folder and tarball, the address the installer downloads from, the pages and the release checks take their names from it. A change to the kit under the same Singular release raises it by hand, and `just lint` checks that this README and the kit's readme name the release that results.
 
 A pull request runs, on the self-hosted `nixos` runners after a Build Gate, the flake checks, the kit build and its checks, and the tutorial with `tutorial-stepper play --auto` against a fresh devnet, and the documentation build. It runs on a GitHub-hosted Ubuntu the five jobs that need a real Ubuntu with Docker: the kit in a clean container with no Nix and no network, the two Killercoda scenarios of Demo 1, the kit's stepper play of both tutorials and the Codespaces tutorial. One more job runs on a GitHub-hosted macOS runner: it installs `singular-demo` from a temporary local tap built from the pull request and plays Demo 1's shortest path unattended. On a pull request every whole run uses the least windows the registry allows (60 s and 30 s), so the waits on the chain stay short; main, the nightly run and a release keep the windows the tutorial writes, and their logs are the ones published. A push to main publishes the daily release and the site; a tag `vX.Y.Z-N`, which must name the pinned Singular release and the kit's revision, publishes the numbered release. Commits follow Conventional Commits and pull requests use the template in `.github/`.
 

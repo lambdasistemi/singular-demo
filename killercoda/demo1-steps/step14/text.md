@@ -1,4 +1,4 @@
-The booking receipt records the treasury donation. Bob's fold receipt records the pending request it settled and the resulting state output. These are transaction receipts, not an independent read of the key's current state. Do not attempt to re-register a terminated key.
+Alice reads her key with `singular registry inspect`, which knows no application. It answers `terminal`: the key was registered and terminated, and can never be registered again. A key nobody registered answers `never-registered`. Both answers are read from the registry's state output on the chain.
 
 **Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 
@@ -7,5 +7,11 @@ alice
 ```{{exec}}
 
 ```bash
-jq '{outcome, pending, treasuryDonation}' receipts/08-terminate.json
+singular registry inspect --key alice --json > receipts/10-read-alice.json
+jq '{answer, stateOutput, root}' receipts/10-read-alice.json
+```{{exec}}
+
+```bash
+singular registry inspect --key nobody --json > receipts/10-read-nobody.json
+jq '{answer, stateOutput, root}' receipts/10-read-nobody.json
 ```{{exec}}

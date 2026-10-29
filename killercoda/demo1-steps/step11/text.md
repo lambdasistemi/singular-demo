@@ -1,5 +1,6 @@
-The receipt identifies the new holding and the confirmed transaction. Reading a saved receipt does not query current registry state. Keep the new holding reference: the previous output has been spent.
+Alice reads the key again. It is still `live`, with the new payload and the same deposit, in the holding the update created. The previous holding has been spent.
 
 ```bash
-jq '{outcome, holding, submissions: [.submissions[] | {step, tx, case, observed}]}' receipts/06-update.json
+open-datum inspect --key alice --json > receipts/07-read-alice.json
+jq '{answer, payload, deposit, holding: .outputRef}' receipts/07-read-alice.json
 ```{{exec}}

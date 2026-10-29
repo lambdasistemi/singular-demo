@@ -1,4 +1,4 @@
-Alice needs her holding's transaction output to change its payload. The helper selects the one output from Bob's fold that carries the key's token, using the provider's transaction API. This supplies a reference for the next write; it is not a Singular key read and makes no independent claim about registry membership.
+Alice reads her key back from the chain. `open-datum inspect` answers `live`: the holding carries her payload and her protected deposit. The read signs nothing and needs only the registry token and the chain's web API, from her settings file. Its `outputRef` is the holding she spends to change the payload.
 
 **Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 
@@ -7,7 +7,7 @@ alice
 ```{{exec}}
 
 ```bash
-alice_holding=$(holding_in "$(cat ../registry.token)" "$(cat ../alice-fold.tx)") &&
-printf '%s\n' "$alice_holding" > holding.ref &&
-printf 'Holding for the next write: %s\n' "$alice_holding"
+open-datum inspect --key alice --json > receipts/05-read-alice.json
+jq '{answer, payload, deposit, holding: .outputRef}' receipts/05-read-alice.json
+jq -er .outputRef receipts/05-read-alice.json > holding.ref
 ```{{exec}}

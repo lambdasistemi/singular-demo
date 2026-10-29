@@ -39,4 +39,4 @@ The short form shows where the money comes from and goes to, which tokens move, 
 jq '.[0] | {tx_hash, block_height, absolute_slot, inputs: [.inputs[] | {from: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000)}], outputs: [.outputs[] | {to: .payment_addr.bech32[0:16], ada: ((.value|tonumber)/1000000), tokens: [.asset_list[].asset_name[0:8]], has_data: (.inline_datum != null)}]}' receipts/tx-info.json
 ```
 
-`jq . receipts/tx-info.json` prints all of it. The data on an output is shown as raw bytes; v0.17.0 provides no key read command. This devnet's web API does not report fees or times.
+`jq . receipts/tx-info.json` prints all of it. The data on an output is shown as raw bytes; `open-datum inspect` decodes a holding's data, as in step 5. This devnet's web API does not report fees or times.

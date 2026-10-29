@@ -12,5 +12,4 @@ open-datum fold --pending "$(cat ../alice.pending)" --vault bob.vault > receipts
 
 ```bash
 jq '{outcome, folded, root, stateOutput, submissions}' receipts/04-fold-insert.json
-jq -er '.stateOutput | split("#")[0]' receipts/04-fold-insert.json > ../alice-fold.tx
 ```{{exec}}

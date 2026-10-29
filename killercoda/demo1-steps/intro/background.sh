@@ -81,17 +81,6 @@ wallet_show() {
 wait_until_ms() {
   while [ "$(($(date +%s) * 1000))" -lt "$(($1 + 4000))" ]; do sleep 1; done
 }
-
-# Select the holding output from a fold transaction reported by the provider.
-# This supplies a reference for a write; it is not a registry membership query.
-holding_in() {
-  local token=$1 transaction=$2
-  curl -fsS -X POST "$(koios_url)/tx_info" -H 'content-type: application/json' \
-    -d "{\"_tx_hashes\":[\"$transaction\"],\"_assets\":true}" |
-    jq -er --arg p "${token%%.*}" --arg n "${token#*.}" --arg tx "$transaction" '
-      [.[0].outputs[] | select(any(.asset_list[]?; .policy_id == $p and .asset_name != $n))]
-      | if length == 1 then .[0] | $tx + "#" + (.tx_index | tostring) else error("expected one holding from this fold") end'
-}
 PLAY_EOF
 cat > /root/play/stepper.sh <<'PLAY_EOF'
 # shellcheck shell=bash
@@ -182,9 +171,9 @@ $t new-window -d -t demo -n carol -c "$run/carol" "exec env PLAY_PERSON=carol ba
 $t set-option -g mouse on
 echo "The windows carol, alice, bob and chain are ready."
 PLAY_EOF
-bash /root/play/install-kit.sh v0.17.0-1 /root
+bash /root/play/install-kit.sh v0.18.0-1 /root
 # tmux holds the four windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-bash /root/play/prepare.sh /root/singular-demo-v0.17.0-1-x86_64-linux /root/singular-demo-run
+bash /root/play/prepare.sh /root/singular-demo-v0.18.0-1-x86_64-linux /root/singular-demo-run
 touch /tmp/finished
