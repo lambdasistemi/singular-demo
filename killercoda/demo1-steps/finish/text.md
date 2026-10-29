@@ -1,4 +1,4 @@
-That was the whole of Demo 1: a key booked, folded, changed and removed; an expired registration cleaned up after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Carol, Alice and Bob each in their own window.
+That was the whole of Demo 1: a key booked, folded, changed and removed, and read back after each change; an expired registration cleaned up after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Carol, Alice and Bob each in their own window.
 
 **Stop the chain.**
 

@@ -1,4 +1,4 @@
-Carol publishes only the registry token. Alice and Bob each make their own settings file, with their own journal. v0.17.0 has no read command. A creation receipt records what the command submitted and observed; it is not an independent read of current state. The private chain has no public explorer; the recorded preprod run links its public transaction IDs to an explorer.
+Carol publishes only the registry token. Alice and Bob each make their own settings file, with their own journal. The token and the chain's web API are all a reader needs. The private chain has no public explorer; the recorded preprod run links its public transaction IDs to an explorer.
 
 **Now Alice.** Go to Alice's window: click `alice`, or press `Ctrl-b 0`.
 

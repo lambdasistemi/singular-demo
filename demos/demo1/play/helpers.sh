@@ -25,14 +25,3 @@ wallet_show() {
 wait_until_ms() {
   while [ "$(($(date +%s) * 1000))" -lt "$(($1 + 4000))" ]; do sleep 1; done
 }
-
-# Select the holding output from a fold transaction reported by the provider.
-# This supplies a reference for a write; it is not a registry membership query.
-holding_in() {
-  local token=$1 transaction=$2
-  curl -fsS -X POST "$(koios_url)/tx_info" -H 'content-type: application/json' \
-    -d "{\"_tx_hashes\":[\"$transaction\"],\"_assets\":true}" |
-    jq -er --arg p "${token%%.*}" --arg n "${token#*.}" --arg tx "$transaction" '
-      [.[0].outputs[] | select(any(.asset_list[]?; .policy_id == $p and .asset_name != $n))]
-      | if length == 1 then .[0] | $tx + "#" + (.tx_index | tostring) else error("expected one holding from this fold") end'
-}

@@ -282,7 +282,7 @@ w(
 You play **Carol**, **Alice** and **Bob**, each in their own directory and tmux window, with a fourth window for the chain. You switch windows by clicking a word: \`carol\`, \`alice\`, \`bob\` or \`chain\`. You will, step by step:
 
 - create three wallets and a registry,
-- book a key, fold it into the registry, change its payload and permanently terminate it,
+- book a key, fold it into the registry, change its payload and permanently terminate it, reading it back from the chain after each change,
 - let a request go stale and clean it up, and take another one back before its window closes.
 
 Every command is shown in full with what it does. Click a command to run it, read what comes back, and go on. Two steps wait a few minutes for the chain's own clock, and the page says when.
@@ -341,7 +341,7 @@ echo "Ready."
 
 w(
   'finish/text.md',
-  `That was the whole of Demo 1: a key booked, folded, changed and removed; an expired registration cleaned up after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Carol, Alice and Bob each in their own window.
+  `That was the whole of Demo 1: a key booked, folded, changed and removed, and read back after each change; an expired registration cleaned up after its two windows; a request taken back inside its window. Everything ran on a private test chain, with Carol, Alice and Bob each in their own window.
 
 **Stop the chain.**
 
@@ -438,7 +438,7 @@ The script asks nothing; the wallets use throwaway passphrases. When the log end
 );
 ws(
   'finish/text.md',
-  `That was all 16 steps: a key booked, folded, changed and removed; an expired registration cleaned up; a request taken back. Everything ran on a private test chain.
+  `That was all 16 steps: a key booked, folded, changed and removed, and read back after each change; an expired registration cleaned up; a request taken back. Everything ran on a private test chain.
 
 The receipts are in \`/home/singular-demo/${KIT}/singular-demo-run\`.
 `,

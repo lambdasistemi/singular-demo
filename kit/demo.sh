@@ -2,6 +2,7 @@
 # Singular v0.18.0: play the same annotated lifecycle as the step-by-step tutorial.
 # Carol creates; Alice registers, updates and permanently terminates her key;
 # Bob folds, signs bundles and cleans up an expired request. Alice also reclaims.
+# After each change of the key, Alice or Bob reads it back from the chain.
 # Each actor keeps their own vault, settings, journal and receipts.
 set -euo pipefail
 KIT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
