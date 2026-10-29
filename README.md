@@ -2,7 +2,7 @@ Not for mainnet. Do not deploy Singular or open datum on mainnet until on-chain 
 
 # Singular demos
 
-Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, with tutorials played on private test chains. A separate recorded journey runs on Cardano preprod. The Singular release used is v0.18.0.
+Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a registry of keys on Cardano, with tutorials played on private test chains. A separate journey on Cardano preprod was recorded with v0.17.0. The Singular release used is v0.18.0.
 
 ## Demo 1: Carol, Alice and Bob's registry story
 
