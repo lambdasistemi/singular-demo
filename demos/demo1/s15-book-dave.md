@@ -11,7 +11,3 @@ alice
 ```bash { window=alice }
 open-datum insert --deposit 3000000 --key dave --payload payload.json --vault alice.vault > receipts/15-insert-dave.json
 ```
-
-```bash { window=alice }
-jq -er .pending receipts/15-insert-dave.json > ../dave.pending
-```

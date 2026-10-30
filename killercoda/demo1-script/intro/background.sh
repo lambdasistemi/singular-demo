@@ -34,6 +34,6 @@ tar xzf "$tmp/$name.tar.gz" -C "$dir"
 touch "$dir/$name/.verified"
 echo "The kit is installed: $dir/$name"
 PLAY_EOF
-bash /root/play/install-kit.sh v0.18.0-1 /home/singular-demo
-chown -R singular-demo:singular-demo /home/singular-demo/singular-demo-v0.18.0-1-x86_64-linux
+bash /root/play/install-kit.sh v0.19.0-1 /home/singular-demo
+chown -R singular-demo:singular-demo /home/singular-demo/singular-demo-v0.19.0-1-x86_64-linux
 touch /tmp/finished

@@ -14,5 +14,4 @@ open-datum terminate --holding "$(cat holding.ref)" --vault alice.vault > receip
 
 ```bash { window=alice }
 jq '{outcome, pending, treasuryDonation, submissions}' receipts/08-terminate.json
-jq -er .pending receipts/08-terminate.json > ../termination.pending
 ```

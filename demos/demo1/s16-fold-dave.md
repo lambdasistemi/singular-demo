@@ -1,6 +1,6 @@
 # Step 16: Bob folds the final registration with external signing
 
-Bob builds a fold for the named registration, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs.
+Bob builds a fold of whatever is pending, which is the registration of dave, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs.
 
 **Now Bob.**
 
@@ -11,7 +11,7 @@ bob
 **Build the fold.** Exit status 19 means waiting for signatures; nothing has been sent.
 
 ```bash { window=bob status=19 }
-open-datum fold --pending "$(cat ../dave.pending)" --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle > receipts/16a-fold-dave.json
+open-datum fold --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle > receipts/16a-fold-dave.json
 ```
 
 **Sign with Bob's own vault.**
