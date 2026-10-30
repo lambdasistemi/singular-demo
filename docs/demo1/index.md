@@ -1,6 +1,6 @@
 # Demo 1
 
-Carol creates a registry on a private Cardano chain. Alice registers a key, changes its payload and permanently terminates it; Bob folds the registration and termination. An expired registration is cleaned up, and another is reclaimed by its requester. Demo 1 uses v0.19.0. After each change, Alice or Bob reads the key back from the chain with `open-datum inspect` or `singular registry inspect`. The page [Where this design stops](tutorial.md) says what the demo does not show.
+Carol creates a registry on a private Cardano chain. Alice registers a key, changes its payload and permanently terminates it; Bob folds the registration and termination, finding them on the chain by himself, with no booking reference from Alice. An expired registration is cleaned up, and another is reclaimed by its requester. Demo 1 uses v0.19.0. After each change, Alice or Bob reads the key back from the chain with `open-datum inspect` or `singular registry inspect`. The page [Where this design stops](tutorial.md) says what the demo does not show.
 
 ## Read a run
 

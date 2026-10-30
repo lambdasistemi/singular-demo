@@ -3,7 +3,7 @@ Singular keeps a registry of keys on Cardano. Here you play its Demo 1 yourself 
 You play **Carol**, **Alice** and **Bob**, each in their own directory and tmux window, with a fourth window for the chain. You switch windows by clicking a word: `carol`, `alice`, `bob` or `chain`. You will, step by step:
 
 - create three wallets and a registry,
-- book a key, fold it into the registry, change its payload and permanently terminate it, reading it back from the chain after each change,
+- book a key, fold it into the registry (the fold finds it on the chain), change its payload and permanently terminate it, reading it back from the chain after each change,
 - let a request go stale and clean it up, and take another one back before its window closes.
 
 Every command is shown in full with what it does. Click a command to run it, read what comes back, and go on. Two steps wait a few minutes for the chain's own clock, and the page says when.

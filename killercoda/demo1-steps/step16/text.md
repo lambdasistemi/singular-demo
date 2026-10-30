@@ -25,6 +25,5 @@ singular submit --config wallet.json --witnesses witnesses/insert-bob --receipt 
 ```{{exec}}
 
 ```bash
-jq -er .expected.pending receipts/12-insert-bob.json > ../bob.pending
 jq '{outcome, submissions}' receipts/12-insert-bob.submitted.json
 ```{{exec}}

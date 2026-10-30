@@ -60,4 +60,5 @@ FUSE, no user namespaces. Nothing is installed outside the folder you unpacked.
 Everything here is a private test chain. Nothing touches a public network.
 
 Demo 1 uses v0.19.0.
+A fold finds the pending requests on the chain; nobody hands the folder a booking reference.
 Termination is permanent and donates the protected deposit to the treasury. After each change the journey reads the key back with open-datum inspect or singular registry inspect.

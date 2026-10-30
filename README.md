@@ -6,7 +6,7 @@ Demonstrations of [Singular](https://github.com/lambdasistemi/singular), a regis
 
 ## Demo 1: Carol, Alice and Bob's registry story
 
-Carol creates a registry. Alice registers a key through a booking and a fold, changes its payload, then books its permanent termination and has it folded. Its deposit goes to the treasury. Another request is reclaimed by its requester, and an expired request is cleaned up. After each change, Alice or Bob reads the key back from the chain: live with its payload, pending termination, terminal; a key nobody registered reads as never registered.
+Carol creates a registry. Alice registers a key through a booking and a fold, changes its payload, then books its permanent termination and has it folded. Each fold finds the pending requests on the chain by itself; nobody hands the folder a booking reference. Its deposit goes to the treasury. Another request is reclaimed by its requester, and an expired request is cleaned up. After each change, Alice or Bob reads the key back from the chain: live with its payload, pending termination, terminal; a key nobody registered reads as never registered.
 
 ```mermaid
 flowchart TD

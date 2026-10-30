@@ -17,10 +17,8 @@ for file in carol/receipts/01-create alice/receipts/03-insert-alice bob/receipts
   jq -e --arg t "$token" '.stateToken == $t' "$file.json" >/dev/null
 done
 check alice/receipts/03-insert-alice.json '.deposit == 3000000 and (.pending | type == "string")'
-check bob/receipts/04-fold-insert.json '.folded | length == 1'
 check alice/receipts/06-update.json '.holding | test("^[0-9a-f]{64}#[0-9]+$")'
 check alice/receipts/08-terminate.json '.treasuryDonation == 3000000'
-check bob/receipts/09-fold-terminate.json '.folded | length == 1'
 for scene in 12-insert-bob 16a-fold-dave; do
   check "bob/receipts/$scene.json" '.outcome == "waiting-for-signatures"'
   jq -e --arg t "$token" '.expected.stateToken == $t' "bob/receipts/$scene.json" >/dev/null
@@ -32,17 +30,29 @@ for pair in 'insert-bob 12-insert-bob' 'fold-dave 16a-fold-dave'; do
   read -r bundle scene <<<"$pair"
   jq -e -n --slurpfile b "bob/bundles/$bundle.bundle" --slurpfile r "bob/receipts/$scene.submitted.json" '($b[0].transactions | map(.identity) | sort) == ($r[0].submissions | map(.identity) | sort)' >/dev/null
 done
-jq -e -n --slurpfile booking bob/receipts/12-insert-bob.json --slurpfile fold alice/receipts/13-fold-bob.json '$fold[0].folded[0].pending == $booking[0].expected.pending' >/dev/null
-jq -e -n --slurpfile booking alice/receipts/15-insert-dave.json --slurpfile fold bob/receipts/16a-fold-dave.json '$fold[0].expected.folded[0].pending == $booking[0].pending' >/dev/null
-jq -e -n --slurpfile booking alice/receipts/03-insert-alice.json --slurpfile fold bob/receipts/04-fold-insert.json '$fold[0].folded[0].pending == $booking[0].pending' >/dev/null
-jq -e -n --slurpfile booking alice/receipts/08-terminate.json --slurpfile fold bob/receipts/09-fold-terminate.json '$fold[0].folded[0].pending == $booking[0].pending' >/dev/null
+# The folds found their requests on the chain. Each folded exactly the request the story had pending at that
+# moment, skipped only the application's configuration output (it holds an approval token but is not a request)
+# and left nothing foldable behind.
+hex() { printf %s "$1" | od -An -tx1 | tr -d ' \n'; }
+config=$(jq -er '.applicationPolicy as $a | [.submissions[].outputs[] | select(any(.assets[]; .policy == $a)) | .output]
+  | if length == 1 then .[0] else error("expected one configuration output") end' carol/receipts/01-create.json)
+fold_of() { # FOLD_RECEIPT BOOKING_RECEIPT KIND KEY: the fold's accounting (a bundle receipt keeps it under .expected)
+  jq -e -n --slurpfile f "$1" --slurpfile b "$2" --arg kind "$3" --arg key "$(hex "$4")" --arg c "$config" '
+    ($f[0] | .expected // .) as $r | ($b[0] | .expected.pending // .pending) as $p
+    | $r.folded == [{key: $key, kind: $kind, pending: $p}] and $r.left == 0
+      and ($r.skipped | map(.reference)) == [$c] and all($r.skipped[]; .reason | test("not accepted"))' >/dev/null
+  printf 'ok    %s: folded the %s of %s, skipped the configuration output, left 0\n' "$1" "$3" "$4"
+}
+fold_of bob/receipts/04-fold-insert.json alice/receipts/03-insert-alice.json registration alice
+fold_of bob/receipts/09-fold-terminate.json alice/receipts/08-terminate.json termination alice
+fold_of alice/receipts/13-fold-bob.json bob/receipts/12-insert-bob.json registration bob
+fold_of bob/receipts/16a-fold-dave.json alice/receipts/15-insert-dave.json registration dave
 for pair in 'alice/receipts/11a-insert-late.json bob/receipts/11d-cleanup.json' 'alice/receipts/14a-insert-unfolded.json alice/receipts/14c-reclaim.json'; do
   read -r booking refund <<<"$pair"
   jq -e -n --slurpfile b "$booking" --slurpfile r "$refund" '$r[0].pending == $b[0].pending and $r[0].returned.recipient == $b[0].refundAddress and $r[0].returned.lovelace >= $b[0].deposit + $b[0].tip' >/dev/null
 done
 # The reads: each answer is the state the receipts say the key is in at that point of the story.
 registry=$(jq -er .registry carol/receipts/01-create.json)
-hex() { printf %s "$1" | od -An -tx1 | tr -d ' \n'; }
 read_of() { # FILE COMMAND KEY ANSWER: who answered, about which registry and key, and the answer
   jq -e --arg r "$registry" --arg p "${token%%.*}" --arg c "$2" --arg k "$(hex "$3")" --arg a "$4" \
     '.registry == $r and .application["state-policy"] == $p and .command == $c and .keyHex == $k and .answer == $a' "$1" >/dev/null

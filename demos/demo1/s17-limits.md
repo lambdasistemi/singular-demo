@@ -4,7 +4,7 @@ This tutorial is for people exploring a registry on a private chain. It shows re
 
 **The trie library's proofs are assumed sound.**
 
-**Folding is open and optional.** A registration needs a fold before its processing deadline. An unprocessed registration can be reclaimed by the refund address in its reclaim window, or cleaned up by anyone after that window ends. A termination has no reclaim path.
+**Folding is open and optional.** A registration needs a fold before its processing deadline. A fold finds the pending requests on the chain and folds every one it can fit in one transaction; `--limit` caps how many, and repeated `--pending` names an exact batch instead. An unprocessed registration can be reclaimed by the refund address in its reclaim window, or cleaned up by anyone after that window ends. A termination has no reclaim path.
 
 **Termination is permanent.** Its protected deposit goes to the treasury when termination is booked. The fold burns the active token and approval. The key cannot be registered again.
 

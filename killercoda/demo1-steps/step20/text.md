@@ -1,4 +1,4 @@
-Bob builds a fold for the named registration, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs.
+Bob builds a fold of whatever is pending, which is the registration of dave, signs its bundle with his own wallet, then submits it. The receipt records the confirmed transaction and its outputs.
 
 **Now Bob.** Go to Bob's window: click `bob`, or press `Ctrl-b 1`.
 
@@ -10,7 +10,7 @@ bob
 
 ```bash
 # Expected exit status: 19
-open-datum fold --pending "$(cat ../dave.pending)" --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle > receipts/16a-fold-dave.json
+open-datum fold --wallet-address "$bob_addr" --bundle bundles/fold-dave.bundle > receipts/16a-fold-dave.json
 ```{{exec}}
 
 **Sign with Bob's own vault.**

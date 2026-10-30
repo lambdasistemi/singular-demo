@@ -1,6 +1,6 @@
 # Step 4: Bob folds Alice's booking
 
-Bob needs the public token, the pending reference, chain data and his own wallet. He receives no file from Alice's wallet or journal. The fold creates Alice's holding with its payload and deposit.
+Bob needs the public token, chain data and his own wallet. He does not need to know which requests are pending, and he receives no file from Alice's wallet or journal: `open-datum fold` finds the registry's pending requests on the chain and folds the ones it can. The fold creates Alice's holding with its payload and deposit. The receipt lists what was folded, what was skipped and why, and how many foldable requests were left. Here it folds Alice's registration, and it skips the application's configuration output, which holds an approval token but is not a request.
 
 **Now Bob.**
 
@@ -9,9 +9,9 @@ bob
 ```
 
 ```bash { window=bob }
-open-datum fold --pending "$(cat ../alice.pending)" --vault bob.vault > receipts/04-fold-insert.json
+open-datum fold --vault bob.vault > receipts/04-fold-insert.json
 ```
 
 ```bash { window=bob }
-jq '{outcome, folded, root, stateOutput, submissions}' receipts/04-fold-insert.json
+jq '{outcome, folded, skipped, left, root, stateOutput}' receipts/04-fold-insert.json
 ```
