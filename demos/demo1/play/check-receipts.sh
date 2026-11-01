@@ -31,17 +31,13 @@ for pair in 'insert-bob 12-insert-bob' 'fold-dave 16a-fold-dave'; do
   jq -e -n --slurpfile b "bob/bundles/$bundle.bundle" --slurpfile r "bob/receipts/$scene.submitted.json" '($b[0].transactions | map(.identity) | sort) == ($r[0].submissions | map(.identity) | sort)' >/dev/null
 done
 # The folds found their requests on the chain. Each folded exactly the request the story had pending at that
-# moment, skipped only the application's configuration output (it holds an approval token but is not a request)
-# and left nothing foldable behind.
+# moment, skipped nothing and left nothing foldable behind.
 hex() { printf %s "$1" | od -An -tx1 | tr -d ' \n'; }
-config=$(jq -er '.applicationPolicy as $a | [.submissions[].outputs[] | select(any(.assets[]; .policy == $a)) | .output]
-  | if length == 1 then .[0] else error("expected one configuration output") end' carol/receipts/01-create.json)
 fold_of() { # FOLD_RECEIPT BOOKING_RECEIPT KIND KEY: the fold's accounting (a bundle receipt keeps it under .expected)
-  jq -e -n --slurpfile f "$1" --slurpfile b "$2" --arg kind "$3" --arg key "$(hex "$4")" --arg c "$config" '
+  jq -e -n --slurpfile f "$1" --slurpfile b "$2" --arg kind "$3" --arg key "$(hex "$4")" '
     ($f[0] | .expected // .) as $r | ($b[0] | .expected.pending // .pending) as $p
-    | $r.folded == [{key: $key, kind: $kind, pending: $p}] and $r.left == 0
-      and ($r.skipped | map(.reference)) == [$c] and all($r.skipped[]; .reason | test("not accepted"))' >/dev/null
-  printf 'ok    %s: folded the %s of %s, skipped the configuration output, left 0\n' "$1" "$3" "$4"
+    | $r.folded == [{key: $key, kind: $kind, pending: $p}] and $r.skipped == [] and $r.left == 0' >/dev/null
+  printf 'ok    %s: folded the %s of %s, skipped nothing, left 0\n' "$1" "$3" "$4"
 }
 fold_of bob/receipts/04-fold-insert.json alice/receipts/03-insert-alice.json registration alice
 fold_of bob/receipts/09-fold-terminate.json alice/receipts/08-terminate.json termination alice
