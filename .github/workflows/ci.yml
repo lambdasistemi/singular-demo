@@ -333,7 +333,7 @@ jobs:
     # tap built from the pull request and plays Demo 1's shortest path unattended. Nothing is pushed to
     # lambdasistemi/homebrew-tap; the release workflow owns the real tap.
     needs: kit
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
