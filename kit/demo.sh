@@ -86,23 +86,33 @@ awk -v process="$PROCESS_TIME_MS" -v reclaim="$RETRACT_TIME_MS" '
   }
 ' "$KIT/share/tutorials/demo1/tutorial.toml" >"$run_tmp/tutorial/tutorial.toml"
 
-# Pause mode: each step page of the copy starts with a block that waits for a file of this run; the prompts
-# below say what the step does, wait for Enter and write that file.
+# Both modes: each announced step page of the copy starts with a block that waits for a file of this run;
+# the announcer below says what the step does and writes that file, in pause mode after Enter.
+# Continuous mode announces all 16 steps; pause mode the ones that pause.
 step_page() { find "$run_tmp/tutorial" -maxdepth 1 -name "s$1-*.md" | head -1; }
 step_title() { sed -n '1s/^# *//p' "$1"; }
 step_summary() { awk 'NR > 1 && /^[^`*#]/ && NF { print; exit }' "$1"; }
-pause_prompts() {
-  local n page next input=yes
-  for n in $(seq -w 1 16); do
+announced=""
+for n in $(seq -w 1 16); do
+  if [ "$mode" = pause ]; then
     case " $unpaused " in *" $n "*) continue ;; esac
+  fi
+  announced="$announced $n"
+done
+announce_steps() {
+  local n page next input=yes
+  [ "$mode" = pause ] || input=no
+  for n in $announced; do
     until [ -e "$gate/want-$n" ]; do sleep 0.2; done
     page=$(step_page "$n")
     printf '\n%s\n%s\n' "$(step_title "$page")" "$(step_summary "$page")"
-    next=$(printf '%02d' $((10#$n + 1)))
-    case " $unpaused " in *" $next "*)
-      printf 'Then %s, without a pause: a booking is folded before its processing deadline.\n' "$(step_title "$(step_page "$next")" | sed 's/^Step [0-9]*: //')"
-      ;;
-    esac
+    if [ "$mode" = pause ]; then
+      next=$(printf '%02d' $((10#$n + 1)))
+      case " $unpaused " in *" $next "*)
+        printf 'Then %s, without a pause: a booking is folded before its processing deadline.\n' "$(step_title "$(step_page "$next")" | sed 's/^Step [0-9]*: //')"
+        ;;
+      esac
+    fi
     if [ "$input" = yes ]; then
       printf 'Press Enter to run step %d. ' "$((10#$n))"
       if ! read -r _; then
@@ -113,25 +123,29 @@ pause_prompts() {
     : >"$gate/go-$n"
   done
 }
+gate=$run_tmp/gate
+mkdir "$gate"
+for n in $announced; do
+  page=$(step_page "$n")
+  window=$(sed -n 's/^```bash {.*window=\([A-Za-z0-9]*\).*}$/\1/p' "$page" | head -1)
+  awk -v w="$window" -v g="$gate" -v n="$n" '
+    !done && /^```bash \{/ { print "```bash { window=" w " }"; print ": >" g "/want-" n "; until [ -e " g "/go-" n " ]; do sleep 0.2; done"; print "```"; print ""; done=1 }
+    { print }' "$page" >"$page.new"
+  mv "$page.new" "$page"
+done
 if [ "$mode" = pause ]; then
-  gate=$run_tmp/gate
-  mkdir "$gate"
-  for n in $(seq -w 1 16); do
-    case " $unpaused " in *" $n "*) continue ;; esac
-    page=$(step_page "$n")
-    window=$(sed -n 's/^```bash {.*window=\([A-Za-z0-9]*\).*}$/\1/p' "$page" | head -1)
-    awk -v w="$window" -v g="$gate" -v n="$n" '
-      !done && /^```bash \{/ { print "```bash { window=" w " }"; print ": >" g "/want-" n "; until [ -e " g "/go-" n " ]; do sleep 0.2; done"; print "```"; print ""; done=1 }
-      { print }' "$page" >"$page.new"
-    mv "$page.new" "$page"
-  done
   printf 'Steps 4, 13 and 16 run without a pause, because a booking must be folded before its processing deadline.\n'
   printf 'Ctrl+C stops the run.\n'
-  printf 'Starting the private chain and the three wallets.\n'
-  pause_prompts 0<&3 &
+fi
+printf 'Starting the private chain and the three wallets.\n'
+if [ "$mode" = pause ]; then
+  announce_steps 0<&3 &
   prompts=$!
   # the stepper reads nothing: the Enter presses are for the prompts
   exec 3</dev/null
+else
+  announce_steps </dev/null &
+  prompts=$!
 fi
 
 if tutorial-stepper play --auto "$run_tmp/tutorial" --path script \

@@ -132,6 +132,7 @@ case "$mode" in
     expect "'All 16 steps passed.' printed" has '^All 16 steps passed\.'
     expect "no terminal on standard input: continuous mode" has '^Mode: continuous$'
     expect "all lifecycle pages recorded" has '^Lifecycle steps passed: 16/16$'
+    expect "continuous mode names each of the 16 steps as it starts" test "$(grep -c '^Step [0-9]*: ' "$log")" -eq 16
     expect "/nix absent in the container" has '^no: test -e /nix fails'
     expect "no kit process left running" has '^kit processes still running: 0$'
     expect "tx-inspect exit 0" has '^TXTOOLS inspect-exit=0$'
