@@ -171,9 +171,9 @@ $t new-window -d -t demo -n carol -c "$run/carol" "exec env PLAY_PERSON=carol ba
 $t set-option -g mouse on
 echo "The windows carol, alice, bob and chain are ready."
 PLAY_EOF
-bash /root/play/install-kit.sh v1.1.0-1 /root
+bash /root/play/install-kit.sh v1.1.0-2 /root
 # tmux holds the four windows
 apt-get update -qq && apt-get install -y -qq tmux
 tmux -V
-bash /root/play/prepare.sh /root/singular-demo-v1.1.0-1-x86_64-linux /root/singular-demo-run
+bash /root/play/prepare.sh /root/singular-demo-v1.1.0-2-x86_64-linux /root/singular-demo-run
 touch /tmp/finished
