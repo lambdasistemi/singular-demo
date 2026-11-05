@@ -1,4 +1,4 @@
-Singular v1.1.0 demo kit, release v1.1.0-1 (Ubuntu 24.04, x86_64, no Nix needed)
+Singular v1.1.0 demo kit, release v1.1.0-2 (Ubuntu 24.04, x86_64, no Nix needed)
 ==================================================================
 
 What is in here
@@ -12,8 +12,8 @@ What is in here
   demo.sh    the annotated Demo 1 journey, 16 steps, on a private devnet
 
 Use
-  tar xzf singular-demo-v1.1.0-1-x86_64-linux.tar.gz
-  cd singular-demo-v1.1.0-1-x86_64-linux
+  tar xzf singular-demo-v1.1.0-2-x86_64-linux.tar.gz
+  cd singular-demo-v1.1.0-2-x86_64-linux
   ./demo.sh                  # runs everything; takes about 8 minutes (two real waits on the chain)
                              # it first asks: straight through, or pause before each step
 
